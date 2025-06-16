@@ -7,10 +7,10 @@ from starlette.routing import Mount
 # Create your FastMCP server as well as any tools, resources, etc.
 mcp = FastMCP("MyServer")
 # Create the ASGI app
-mcp_app = mcp.http_app(path='/mcp')
+mcp_app = mcp.http_app(path='/')
 
 # For SSE transport (deprecated)
-sse_app = mcp.http_app(path="/sse", transport="sse")
+sse_app = mcp.http_app(path="/", transport="sse")
 
 
 app = FastAPI(
@@ -19,7 +19,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=mcp_app.lifespan
 )
-app.mount("/mcp-server", mcp_app)
+app.mount("/mcp-server/mcp", mcp_app)
+app.mount("/mcp-server/sse", sse_app)
 @app.get("/health")
 async def health_check():
     """健康检查接口"""
