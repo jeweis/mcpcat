@@ -16,6 +16,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "python-dotenv>=1.0.1",
     "fastmcp>=2.8.1",
+    "httpx>=0.24.0",
 ]
 
 [project.optional-dependencies]

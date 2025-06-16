@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastmcp import FastMCP
 from starlette.routing import Mount
+from fastmcp.server.openapi import RouteMap, MCPType
+import httpx
 
 
 # Create your FastMCP server as well as any tools, resources, etc.
@@ -55,6 +57,28 @@ mcpConfig = {
 }
 proxy = FastMCP.as_proxy(mcpConfig, name="Config-Based Proxy")
 mcp.mount("app", proxy)
+
+
+
+client = httpx.AsyncClient(base_url="https://api.jeweis.com/api")
+openapi_spec = httpx.get("https://api.jeweis.com/api/v3/api-docs/default").json()
+route_map_list=[]
+route_configs = [{"methods":["GET"],"pattern":"^/user/userManage/.*"},{"methods":["GET"],"pattern":"^/goods/order/.*"}]
+for route_config in route_configs:
+    route_map_list.append(RouteMap(
+        methods=route_config['methods'],
+        pattern=route_config['pattern'],
+        mcp_type=MCPType.TOOL,
+    ))
+# 添加默认的排除规则
+route_map_list.append(RouteMap(mcp_type=MCPType.EXCLUDE))
+mcp_openapi = FastMCP.from_openapi(
+    openapi_spec=openapi_spec,
+    client=client,
+    name="openapi2mcpserver server",
+    route_maps=route_map_list
+)
+mcp.mount("openapi", mcp_openapi)
 
 if __name__ == "__main__":
     import uvicorn
