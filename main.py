@@ -5,7 +5,7 @@ from starlette.routing import Mount
 
 
 # Create your FastMCP server as well as any tools, resources, etc.
-mcp = FastMCP("MyServer")
+mcp = FastMCP("McpcatServer")
 # Create the ASGI app
 mcp_app = mcp.http_app(path='/')
 
@@ -19,8 +19,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=mcp_app.lifespan
 )
-app.mount("/mcp-server/mcp", mcp_app)
-app.mount("/mcp-server/sse", sse_app)
+app.mount("/mcp", mcp_app)
+app.mount("/sse", sse_app)
 @app.get("/health")
 async def health_check():
     """健康检查接口"""
@@ -35,6 +35,26 @@ async def root():
 def add(a: int, b: int) -> int:
     """Adds two integer numbers together."""
     return a + b
+
+mcpConfig = {
+    "mcpServers": {
+        "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ]
+    },
+        "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+    }
+}
+proxy = FastMCP.as_proxy(mcpConfig, name="Config-Based Proxy")
+mcp.mount("app", proxy)
 
 if __name__ == "__main__":
     import uvicorn
