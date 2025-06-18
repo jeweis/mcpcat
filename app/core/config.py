@@ -2,7 +2,7 @@
 
 import os
 from typing import List, Optional
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     
     # 数据库配置（可选）
     database_url: Optional[str] = None
+    
+    # MCP配置文件路径
+    mcpcat_config_path: str = "config.json"
     
     class Config:
         env_file = ".env"

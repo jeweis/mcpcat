@@ -6,6 +6,38 @@ from fastmcp.server.openapi import RouteMap, MCPType
 import httpx
 from typing import List, Callable
 from contextlib import asynccontextmanager
+import os
+import json
+from pathlib import Path
+from app.core.config import settings
+
+
+def load_config():
+    """加载配置文件"""
+    # 从config.py获取配置文件路径
+    config_path = settings.mcpcat_config_path
+    print(f"配置文件路径: {config_path}")
+    
+    # 如果是相对路径，则相对于项目根目录
+    if not os.path.isabs(config_path):
+        config_file = Path(__file__).parent / config_path
+    else:
+        config_file = Path(config_path)
+    
+    if config_file.exists():
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"读取配置文件失败: {e}")
+            return {}
+    else:
+        # 如果配置文件不存在，创建空配置文件
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump({}, f, indent=2)
+        print(f"已创建配置文件: {config_file}")
+        return {}
 
 
 def merge_lifespans(lifespans: List[Callable[[FastAPI], object]]):
@@ -25,29 +57,11 @@ def merge_lifespans(lifespans: List[Callable[[FastAPI], object]]):
     return merged
 
 
-mcpServerList={
-    "fetch": {
-      "type":"stdio",
-      "command": "uvx",
-      "args": [
-        "mcp-server-fetch"
-      ]
-    },
-      "mayna-openapi": {
-      "type":"openapi",
-      "spec_url": "https://api.jeweis.com/api/v3/api-docs/default",
-      "api_base_url":"https://api.jeweis.com/api",
-      "route_configs" : [{"methods":["GET"],"pattern":"^/user/userManage/.*"},{"methods":["GET"],"pattern":"^/goods/order/.*"}]
-    },
-    "sequential-thinking": {
-      "type":"stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
-    }
-    }
+# 从配置文件加载MCP服务器列表
+print("Loading MCP server list...")
+mcpServerList = load_config()
+print("MCP server list loaded.")
+print(mcpServerList)
 app_mount_list=[]
 lifespan_list=[]
 ## 遍历mcpServerList的字段
@@ -142,4 +156,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=settings.host, port=settings.port)

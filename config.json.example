@@ -1,0 +1,32 @@
+{
+  "fetch": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-fetch"
+    ]
+  },
+  "mayna-openapi": {
+    "type": "openapi",
+    "spec_url": "https://api.jeweis.com/api/v3/api-docs/default",
+    "api_base_url": "https://api.jeweis.com/api",
+    "route_configs": [
+      {
+        "methods": ["GET"],
+        "pattern": "^/user/userManage/.*"
+      },
+      {
+        "methods": ["GET"],
+        "pattern": "^/goods/order/.*"
+      }
+    ]
+  },
+  "sequential-thinking": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-sequential-thinking"
+    ]
+  }
+}
