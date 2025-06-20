@@ -26,20 +26,34 @@ class AddServerRequest(BaseModel):
         }
 
 
+def _get_server_manager(request: Request):
+    """获取服务器管理器，统一验证逻辑"""
+    if not hasattr(request.app.state, 'server_manager'):
+        raise HTTPException(status_code=503, detail="服务器管理器未初始化")
+    return request.app.state.server_manager
+
+
+def _validate_server_exists(manager, server_name: str):
+    """验证服务器是否存在"""
+    server_status = manager.get_server_status()
+    if server_name not in server_status:
+        raise HTTPException(status_code=404, detail=f"服务器 '{server_name}' 不存在")
+    return server_status
+
+
 @router.get("/servers")
 async def list_servers(request: Request):
     """列出所有已配置的MCP服务器"""
-    # 从应用状态中获取服务器管理器
-    if hasattr(request.app.state, 'server_manager'):
-        manager = request.app.state.server_manager
+    try:
+        manager = _get_server_manager(request)
         server_status = manager.get_server_status()
         
         return {
             "servers": server_status,
             "total": len(server_status)
         }
-    else:
-        # 向后兼容：如果没有管理器，返回基础信息
+    except HTTPException:
+        # 如果是服务不可用，返回兼容性响应
         return {
             "servers": {},
             "total": 0,
@@ -50,52 +64,37 @@ async def list_servers(request: Request):
 @router.get("/servers/{server_name}")
 async def get_server_detail(server_name: str, request: Request):
     """获取特定服务器的详细信息"""
-    if hasattr(request.app.state, 'server_manager'):
-        manager = request.app.state.server_manager
-        server_status = manager.get_server_status()
-        
-        if server_name not in server_status:
-            raise HTTPException(status_code=404, detail=f"服务器 '{server_name}' 不存在")
-        
-        return server_status[server_name]
-    else:
-        raise HTTPException(status_code=503, detail="服务器管理器未初始化")
+    manager = _get_server_manager(request)
+    server_status = _validate_server_exists(manager, server_name)
+    
+    return server_status[server_name]
 
 
 @router.get("/servers/{server_name}/health")
 async def check_server_health(server_name: str, request: Request):
     """检查特定服务器的健康状态"""
-    if hasattr(request.app.state, 'server_manager'):
-        manager = request.app.state.server_manager
-        server_status = manager.get_server_status()
-        
-        if server_name not in server_status:
-            raise HTTPException(status_code=404, detail=f"服务器 '{server_name}' 不存在")
-        
-        server_info = server_status[server_name]
-        is_healthy = server_info['status'] == 'running'
-        
-        return {
-            "server_name": server_name,
-            "healthy": is_healthy,
-            "status": server_info['status'],
-            "error": server_info.get('error'),
-            "endpoints": {
-                "mcp": server_info['mcp_endpoint'],
-                "sse": server_info['sse_endpoint']
-            }
+    manager = _get_server_manager(request)
+    server_status = _validate_server_exists(manager, server_name)
+    
+    server_info = server_status[server_name]
+    is_healthy = server_info['status'] == 'running'
+    
+    return {
+        "server_name": server_name,
+        "healthy": is_healthy,
+        "status": server_info['status'],
+        "error": server_info.get('error'),
+        "endpoints": {
+            "mcp": server_info['mcp_endpoint'],
+            "sse": server_info['sse_endpoint']
         }
-    else:
-        raise HTTPException(status_code=503, detail="服务器管理器未初始化")
+    }
 
 
 @router.post("/servers")
 async def add_server(server_request: AddServerRequest, request: Request):
     """动态添加新的MCP服务器并立即挂载"""
-    if not hasattr(request.app.state, 'server_manager'):
-        raise HTTPException(status_code=503, detail="服务器管理器未初始化")
-    
-    manager = request.app.state.server_manager
+    manager = _get_server_manager(request)
     
     # 检查服务器名称是否已存在
     existing_servers = manager.get_server_status()

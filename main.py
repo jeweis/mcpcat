@@ -14,11 +14,8 @@ from app.core.config import settings
 from app.services.server_manager import MCPServerManager
 from app.api import health, servers
 
-# 保持与原代码完全一致的全局变量
-lifespan_tasks: Dict[str, Callable] = {}
-app_started = False
-running_contexts = {}  # 保持兼容性，虽然不再使用
-app_mount_list = []    # 保持兼容性，虽然不再使用
+# 创建全局服务器管理器
+server_manager = MCPServerManager()
 
 # 设置日志
 logging.basicConfig(
@@ -26,9 +23,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(settings.app_name)
-
-# 创建全局服务器管理器
-server_manager = MCPServerManager()
 
 
 # 保持向后兼容的函数
@@ -46,22 +40,13 @@ def add_mcp_server(key, value):
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
     """
-    应用生命周期管理器 - 与原有逻辑完全一致
-    现在使用服务器管理器，但保持相同的行为
+    应用生命周期管理器 - 使用服务器管理器的统一生命周期管理
     """
-    global app_started
-    
-    app_started = True
-    
-    # 使用服务器管理器的统一生命周期管理
-    # 这会产生与原有 AsyncExitStack 逻辑完全相同的行为
     async with server_manager.create_unified_lifespan(app):
         yield
-    
-    app_started = False
 
 
-# 加载配置和创建服务器 - 保持与原逻辑完全一致
+# 加载配置和创建服务器
 print("Loading MCP server list...")
 mcpServerList = load_config()
 print("MCP server list loaded.")
@@ -70,11 +55,7 @@ print(mcpServerList)
 # 创建服务器管理器并加载服务器
 server_manager.load_servers_from_config()
 
-# 为了保持兼容性，同步全局变量
-lifespan_tasks = server_manager.get_lifespan_tasks()
-app_mount_list = server_manager.get_mount_list()
-
-# 创建 FastAPI 应用 - 与原逻辑完全一致
+# 创建 FastAPI 应用
 app = FastAPI(
     title=settings.app_name,
     description=settings.description,
@@ -85,28 +66,18 @@ app = FastAPI(
 # 存储服务器管理器到应用状态，供API使用
 app.state.server_manager = server_manager
 
-# 挂载所有服务器 - 与原逻辑完全一致
+# 挂载所有服务器
 server_manager.mount_all_servers(app)
 
-# 注册API路由 - 新增的功能，不影响原有行为
+# 注册API路由
 app.include_router(health.router, tags=["健康检查"])
 app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
 
 
-# 保持原有的端点 - 与原逻辑完全一致
-@app.get("/health")
-async def health_check():
-    """健康检查接口 - 保持与原有逻辑完全一致"""
-    return {"message": "OK"}
-
-
 @app.get("/")
 async def root():
-    """根路径 - 保持与原有逻辑完全一致"""
+    """根路径"""
     return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
-
-
-
 
 
 if __name__ == "__main__":

@@ -24,6 +24,23 @@ class MCPServerManager:
         self.app_started = False  # 应用是否已启动
         self.running_contexts = {}  # 存储动态启动的服务器上下文
     
+    def _update_server_status(self, server_name: str, status: str, error: Optional[str] = None):
+        """
+        统一的服务器状态更新方法
+        
+        Args:
+            server_name: 服务器名称
+            status: 新状态
+            error: 错误信息（可选）
+        """
+        if server_name in self.server_info:
+            self.server_info[server_name]['status'] = status
+            if error:
+                self.server_info[server_name]['error'] = error
+            elif 'error' in self.server_info[server_name]:
+                # 清除之前的错误信息
+                del self.server_info[server_name]['error']
+    
     def load_servers_from_config(self) -> None:
         """
         从配置文件加载所有MCP服务器 - 保持与原有逻辑完全一致
@@ -83,8 +100,7 @@ class MCPServerManager:
         except Exception as e:
             logger.error(f"❌ 创建MCP服务器 {key} 失败: {e}")
             if key in self.server_info:
-                self.server_info[key]['status'] = 'failed'
-                self.server_info[key]['error'] = str(e)
+                self._update_server_status(key, 'failed', str(e))
             return False
     
     def mount_all_servers(self, app: FastAPI) -> None:
@@ -139,13 +155,12 @@ class MCPServerManager:
                     logger.warning(f"挂载 {path} 时出现警告: {mount_error}")
             
             # 更新服务器状态
-            self.server_info[server_name]['status'] = 'mounted'
+            self._update_server_status(server_name, 'mounted')
             return True
             
         except Exception as e:
             logger.error(f"挂载服务器 {server_name} 失败: {e}")
-            self.server_info[server_name]['status'] = 'mount_failed'
-            self.server_info[server_name]['error'] = str(e)
+            self._update_server_status(server_name, 'mount_failed', str(e))
             return False
     
     async def add_and_mount_server(self, app: FastAPI, key: str, value: Dict[str, Any]) -> bool:
@@ -187,8 +202,7 @@ class MCPServerManager:
                 print(f"✓ 动态服务器 {key} 生命周期启动成功")
                 
                 # 更新服务器状态
-                if key in self.server_info:
-                    self.server_info[key]['status'] = 'running'
+                self._update_server_status(key, 'running')
                 
             except Exception as e:
                 print(f"✗ 动态服务器 {key} 生命周期启动失败: {e}")
@@ -197,9 +211,7 @@ class MCPServerManager:
                 # 清理已添加的服务器
                 if key in self.lifespan_tasks:
                     del self.lifespan_tasks[key]
-                if key in self.server_info:
-                    self.server_info[key]['status'] = 'failed'
-                    self.server_info[key]['error'] = str(e)
+                self._update_server_status(key, 'failed', str(e))
                 
                 return False
         
@@ -228,16 +240,13 @@ class MCPServerManager:
                     print(f"✓ 任务 {task_name} 启动成功")
                     
                     # 更新服务器状态
-                    if task_name in self.server_info:
-                        self.server_info[task_name]['status'] = 'running'
+                    self._update_server_status(task_name, 'running')
                         
                 except Exception as e:
                     print(f"✗ 任务 {task_name} 启动失败: {e}")
                     
                     # 更新服务器状态
-                    if task_name in self.server_info:
-                        self.server_info[task_name]['status'] = 'failed'
-                        self.server_info[task_name]['error'] = str(e)
+                    self._update_server_status(task_name, 'failed', str(e))
             
             yield
             
@@ -255,8 +264,7 @@ class MCPServerManager:
             
             # 更新所有服务器状态为已停止
             for task_name in self.lifespan_tasks.keys():
-                if task_name in self.server_info:
-                    self.server_info[task_name]['status'] = 'stopped'
+                self._update_server_status(task_name, 'stopped')
             
             # 清理状态
             self.app_started = False
