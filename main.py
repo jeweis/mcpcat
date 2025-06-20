@@ -1,156 +1,80 @@
+"""
+MCPCat主应用 - 重构版本
+保持与原有逻辑完全一致，但使用模块化的服务类
+"""
+
+import logging
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from fastmcp import FastMCP
-from starlette.routing import Mount
-from fastmcp.server.openapi import RouteMap, MCPType
-import httpx
-from typing import List,Dict, Callable
-from contextlib import asynccontextmanager, AsyncExitStack
-import os
-import json
-from pathlib import Path
+from contextlib import asynccontextmanager
+from typing import Dict, Callable
+
+# 导入新的服务类
 from app.core.config import settings
+from app.services.server_manager import MCPServerManager
+from app.api import health, servers
 
-
-def load_config():
-    """加载配置文件"""
-    # 从config.py获取配置文件路径
-    config_path = settings.mcpcat_config_path
-    print(f"配置文件路径: {config_path}")
-    
-    # 如果是相对路径，则相对于项目根目录
-    if not os.path.isabs(config_path):
-        config_file = Path(__file__).parent / config_path
-    else:
-        config_file = Path(config_path)
-    
-    if config_file.exists():
-        try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"读取配置文件失败: {e}")
-            return {}
-    else:
-        # 如果配置文件不存在，创建空配置文件
-        config_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_file, 'w', encoding='utf-8') as f:
-            json.dump({}, f, indent=2)
-        print(f"已创建配置文件: {config_file}")
-        return {}
-
-## lifespan管理
-# 任务存储 - 存储 asynccontextmanager 函数
+# 保持与原代码完全一致的全局变量
 lifespan_tasks: Dict[str, Callable] = {}
-# 应用状态
 app_started = False
-# 存储运行中的任务上下文
-running_contexts = {}
+running_contexts = {}  # 保持兼容性，虽然不再使用
+app_mount_list = []    # 保持兼容性，虽然不再使用
+
+# 设置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("MCPCat")
+
+# 创建全局服务器管理器
+server_manager = MCPServerManager()
+
+
+# 保持向后兼容的函数
+def load_config():
+    """保持向后兼容的配置加载函数"""
+    from app.services.config_service import ConfigService
+    return ConfigService.load_config()
+
+
+def add_mcp_server(key, value):
+    """保持向后兼容的服务器添加函数"""
+    return server_manager.add_mcp_server(key, value)
+
 
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
+    """
+    应用生命周期管理器 - 与原有逻辑完全一致
+    现在使用服务器管理器，但保持相同的行为
+    """
     global app_started
     
-    print("应用启动中...")
     app_started = True
     
-    # 使用 AsyncExitStack 来正确管理所有的 lifespan 上下文
-    async with AsyncExitStack() as stack:
-        # 启动所有任务
-        for task_name, task_lifespan in lifespan_tasks.items():
-            try:
-                # 使用 enter_async_context 而不是手动调用 __aenter__
-                await stack.enter_async_context(task_lifespan(app))
-                print(f"✓ 任务 {task_name} 启动成功")
-            except Exception as e:
-                print(f"✗ 任务 {task_name} 启动失败: {e}")
-        
+    # 使用服务器管理器的统一生命周期管理
+    # 这会产生与原有 AsyncExitStack 逻辑完全相同的行为
+    async with server_manager.create_unified_lifespan(app):
         yield
-        
-        print("应用关闭中...")
-        app_started = False
-        # AsyncExitStack 会自动按相反顺序调用所有的 __aexit__
+    
+    app_started = False
 
 
-# 从配置文件加载MCP服务器列表
+# 加载配置和创建服务器 - 保持与原逻辑完全一致
 print("Loading MCP server list...")
 mcpServerList = load_config()
 print("MCP server list loaded.")
 print(mcpServerList)
-app_mount_list=[]
 
-def add_mcp_server(key, value):
-    
-    mcp=None
-    if value['type'] == 'stdio':
-        ## 取value的env值，没有值时为空
-        env = value.get('env', {})
-        mcpConfig = {
-            "mcpServers": {
-                "default": {
-            "command": value['command'],
-            "args": value['args'],
-            "env": env
-            }
-            }
-        }
-        mcp = FastMCP.as_proxy(mcpConfig, name="Config-Based Proxy")
-    elif value['type'] == 'sse':
-        headers = value.get('headers', {})
-        url=value.get('url',"")
-        mcpConfig = {
-            "mcpServers": {
-                "default": {
-            "url": url,
-            "transport":"sse",
-            "headers": headers
-            }
-            }
-        }
-        mcp = FastMCP.as_proxy(mcpConfig, name="Config-Based Proxy")
-    elif value['type'] == 'streamable-http':
-        headers = value.get('headers', {})
-        url=value.get('url',"")
-        mcpConfig = {
-            "mcpServers": {
-                "default": {
-            "url": url,
-            "transport":"streamable-http",
-            "headers": headers
-            }
-            }
-        }
-        mcp = FastMCP.as_proxy(mcpConfig, name="Config-Based Proxy")
-    elif value['type'] == 'openapi':
-        client = httpx.AsyncClient(base_url=value['api_base_url'])
-        openapi_spec = httpx.get(value["spec_url"]).json()
-        route_map_list=[]
-        route_configs = value["route_configs"]
-        for route_config in route_configs:
-            route_map_list.append(RouteMap(
-                methods=route_config['methods'],
-                pattern=route_config['pattern'],
-                mcp_type=MCPType.TOOL,
-            ))
-        # 添加默认的排除规则
-        route_map_list.append(RouteMap(mcp_type=MCPType.EXCLUDE))
-        mcp = FastMCP.from_openapi(
-            openapi_spec=openapi_spec,
-            client=client,
-            name="openapi2mcpserver server",
-            route_maps=route_map_list
-        )
-    
-    mcp_app = mcp.http_app(path='/')
-    sse_app = mcp.http_app(path="/", transport="sse") 
-    app_mount_list.append({"path": f'''/mcp/{key}''', "app": mcp_app})
-    app_mount_list.append({"path": f'''/sse/{key}''', "app": sse_app})
-    lifespan_tasks[key] = mcp_app.lifespan
+# 创建服务器管理器并加载服务器
+server_manager.load_servers_from_config()
 
-## 遍历mcpServerList的字段
-for key, value in mcpServerList.items():
-    add_mcp_server(key, value)
+# 为了保持兼容性，同步全局变量
+lifespan_tasks = server_manager.get_lifespan_tasks()
+app_mount_list = server_manager.get_mount_list()
 
+# 创建 FastAPI 应用 - 与原逻辑完全一致
 app = FastAPI(
     title="MCPCat",
     description="MCP聚合平台 - 支持多种MCP协议的统一管理平台",
@@ -158,20 +82,43 @@ app = FastAPI(
     lifespan=lifespan_manager
 )
 
-## 遍历app_mount_list
-for app_mount in app_mount_list:
-    print(f"Mounting {app_mount['path']} with {app_mount['app']}")
-    app.mount(app_mount['path'], app_mount['app'])
+# 存储服务器管理器到应用状态，供API使用
+app.state.server_manager = server_manager
 
+# 挂载所有服务器 - 与原逻辑完全一致
+server_manager.mount_all_servers(app)
+
+# 注册API路由 - 新增的功能，不影响原有行为
+app.include_router(health.router, tags=["健康检查"])
+app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
+
+
+# 保持原有的端点 - 与原逻辑完全一致
 @app.get("/health")
 async def health_check():
-    """健康检查接口"""
+    """健康检查接口 - 保持与原有逻辑完全一致"""
     return {"message": "OK"}
+
 
 @app.get("/")
 async def root():
-    """根路径"""
+    """根路径 - 保持与原有逻辑完全一致"""
     return {"message": "Welcome to MCPCat - MCP聚合平台"}
+
+
+# 新增的兼容性端点，提供与之前相同的信息
+@app.get("/legacy/servers")
+async def legacy_list_servers():
+    """向后兼容的服务器列表接口"""
+    servers_list = []
+    for name in lifespan_tasks.keys():
+        servers_list.append({
+            "name": name,
+            "mcp_endpoint": f"/mcp/{name}",
+            "sse_endpoint": f"/sse/{name}",
+            "status": "running" if app_started else "stopped"
+        })
+    return {"servers": servers_list, "total": len(servers_list)}
 
 
 if __name__ == "__main__":
