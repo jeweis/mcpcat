@@ -313,10 +313,19 @@ class MCPServerManager:
                     if not task.done():
                         task.cancel()
                 
-                # 等待所有任务完成
+                # 等待所有任务完成，给更多时间
                 if self.dynamic_tasks:
-                    await asyncio.gather(*self.dynamic_tasks, return_exceptions=True)
-                    print("✓ 所有动态服务器已关闭")
+                    try:
+                        await asyncio.wait_for(
+                            asyncio.gather(*self.dynamic_tasks, return_exceptions=True),
+                            timeout=5.0  # 给5秒时间优雅关闭
+                        )
+                        print("✓ 所有动态服务器已关闭")
+                    except asyncio.TimeoutError:
+                        print("⚠️  部分动态服务器关闭超时，强制终止")
+            
+            # 给底层连接一些时间完成
+            await asyncio.sleep(0.5)
             
             # AsyncExitStack 会自动按相反顺序调用所有的 __aexit__ - 与原逻辑一致
             

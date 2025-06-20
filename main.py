@@ -24,6 +24,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(settings.app_name)
 
+# 增加更详细的MCP相关日志
+logging.getLogger("mcp").setLevel(logging.DEBUG)
+logging.getLogger("fastmcp").setLevel(logging.DEBUG)
+logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
+
 
 # 保持向后兼容的函数
 def load_config():
@@ -82,4 +87,12 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host=settings.host, port=settings.port)
+    uvicorn.run(
+        app, 
+        host=settings.host, 
+        port=settings.port,
+        # 优化关闭行为，减少 ASGI 错误
+        timeout_graceful_shutdown=10,  # 优雅关闭超时时间
+        timeout_keep_alive=5,         # 保持连接超时时间
+        log_level="info"
+    )
