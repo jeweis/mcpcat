@@ -25,7 +25,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("MCPCat")
+logger = logging.getLogger(settings.app_name)
 
 # 创建全局服务器管理器
 server_manager = MCPServerManager()
@@ -76,9 +76,9 @@ app_mount_list = server_manager.get_mount_list()
 
 # 创建 FastAPI 应用 - 与原逻辑完全一致
 app = FastAPI(
-    title="MCPCat",
-    description="MCP聚合平台 - 支持多种MCP协议的统一管理平台",
-    version="0.1.0",
+    title=settings.app_name,
+    description=settings.description,
+    version=settings.app_version,
     lifespan=lifespan_manager
 )
 
@@ -103,7 +103,7 @@ async def health_check():
 @app.get("/")
 async def root():
     """根路径 - 保持与原有逻辑完全一致"""
-    return {"message": "Welcome to MCPCat - MCP聚合平台"}
+    return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
 
 
 # 新增的兼容性端点，提供与之前相同的信息

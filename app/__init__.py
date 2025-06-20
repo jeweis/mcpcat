@@ -1,5 +1,7 @@
 """MCPCat应用包"""
 
-__version__ = "0.1.0"
+from .core.config import settings
+
+__version__ = settings.app_version
 __author__ = "MCPCat Team"
-__description__ = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
+__description__ = settings.description

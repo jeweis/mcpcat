@@ -3,6 +3,8 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from app.core.config import settings
+
 router = APIRouter()
 
 
@@ -16,8 +18,8 @@ async def health_check():
 async def get_basic_status():
     """获取基础系统状态"""
     return {
-        "app_name": "MCPCat",
-        "version": "0.1.0",
-        "description": "MCP聚合平台 - 支持多种MCP协议的统一管理平台",
+        "app_name": settings.app_name,
+        "version": settings.app_version,
+        "description": settings.description,
         "status": "running"
     } 
