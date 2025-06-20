@@ -83,8 +83,9 @@ mcpServerList = load_config()
 print("MCP server list loaded.")
 print(mcpServerList)
 app_mount_list=[]
-## 遍历mcpServerList的字段
-for key, value in mcpServerList.items():
+
+def add_mcp_server(key, value):
+    
     mcp=None
     if value['type'] == 'stdio':
         ## 取value的env值，没有值时为空
@@ -151,8 +152,10 @@ for key, value in mcpServerList.items():
     app_mount_list.append({"path": f'''/sse/{key}''', "app": sse_app})
     lifespan_tasks[key] = mcp_app.lifespan
 
+## 遍历mcpServerList的字段
+for key, value in mcpServerList.items():
+    add_mcp_server(key, value)
 
-    
 app = FastAPI(
     title="MCPCat",
     description="MCP聚合平台 - 支持多种MCP协议的统一管理平台",
