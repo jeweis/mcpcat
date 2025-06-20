@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 from starlette.routing import Mount
 from fastmcp.server.openapi import RouteMap, MCPType
 import httpx
-from typing import List, Callable
+from typing import List,Dict, Callable
 from contextlib import asynccontextmanager
 import os
 import json
@@ -39,22 +39,42 @@ def load_config():
         print(f"已创建配置文件: {config_file}")
         return {}
 
+## lifespan管理
+# 任务存储 - 存储 asynccontextmanager 函数
+lifespan_tasks: Dict[str, Callable] = {}
+# 应用状态
+app_started = False
+# 存储运行中的任务上下文
+running_contexts = {}
 
-def merge_lifespans(lifespans: List[Callable[[FastAPI], object]]):
-    @asynccontextmanager
-    async def merged(app: FastAPI):
-        stack = []
+@asynccontextmanager
+async def lifespan_manager(app: FastAPI):
+    global app_started
+    
+    print("应用启动中...")
+    app_started = True
+    
+    # 启动所有任务
+    for task_name, task_lifespan in lifespan_tasks.items():
+        ctx = task_lifespan(app)
+        await ctx.__aenter__()
+        running_contexts[task_name] = ctx
+        print(f"✓ 任务 {task_name} 启动成功")
+    
+    yield
+    
+    print("应用关闭中...")
+    app_started = False
+    
+    # 关闭所有任务 - 包括动态添加的
+    for task_name, ctx in list(running_contexts.items()):
         try:
-            for lifespan in lifespans:
-                ctx = lifespan(app)
-                await ctx.__aenter__()
-                stack.append(ctx)
-            yield
-        finally:
-            while stack:
-                ctx = stack.pop()
-                await ctx.__aexit__(None, None, None)
-    return merged
+            await ctx.__aexit__(None, None, None)
+            print(f"✓ 任务 {task_name} 关闭成功")
+        except Exception as e:
+            print(f"✗ 任务 {task_name} 关闭失败: {e}")
+    
+    running_contexts.clear()
 
 
 # 从配置文件加载MCP服务器列表
@@ -63,7 +83,6 @@ mcpServerList = load_config()
 print("MCP server list loaded.")
 print(mcpServerList)
 app_mount_list=[]
-lifespan_list=[]
 ## 遍历mcpServerList的字段
 for key, value in mcpServerList.items():
     mcp=None
@@ -130,13 +149,15 @@ for key, value in mcpServerList.items():
     sse_app = mcp.http_app(path="/", transport="sse") 
     app_mount_list.append({"path": f'''/mcp/{key}''', "app": mcp_app})
     app_mount_list.append({"path": f'''/sse/{key}''', "app": sse_app})
-    lifespan_list.append(mcp_app.lifespan)
+    lifespan_tasks[key] = mcp_app.lifespan
+
+
     
 app = FastAPI(
     title="MCPCat",
     description="MCP聚合平台 - 支持多种MCP协议的统一管理平台",
     version="0.1.0",
-    lifespan=merge_lifespans(lifespan_list)
+    lifespan=lifespan_manager
 )
 
 ## 遍历app_mount_list
