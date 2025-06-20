@@ -5,7 +5,7 @@ from starlette.routing import Mount
 from fastmcp.server.openapi import RouteMap, MCPType
 import httpx
 from typing import List,Dict, Callable
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, AsyncExitStack
 import os
 import json
 from pathlib import Path
@@ -54,27 +54,22 @@ async def lifespan_manager(app: FastAPI):
     print("应用启动中...")
     app_started = True
     
-    # 启动所有任务
-    for task_name, task_lifespan in lifespan_tasks.items():
-        ctx = task_lifespan(app)
-        await ctx.__aenter__()
-        running_contexts[task_name] = ctx
-        print(f"✓ 任务 {task_name} 启动成功")
-    
-    yield
-    
-    print("应用关闭中...")
-    app_started = False
-    
-    # 关闭所有任务 - 包括动态添加的
-    for task_name, ctx in list(running_contexts.items()):
-        try:
-            await ctx.__aexit__(None, None, None)
-            print(f"✓ 任务 {task_name} 关闭成功")
-        except Exception as e:
-            print(f"✗ 任务 {task_name} 关闭失败: {e}")
-    
-    running_contexts.clear()
+    # 使用 AsyncExitStack 来正确管理所有的 lifespan 上下文
+    async with AsyncExitStack() as stack:
+        # 启动所有任务
+        for task_name, task_lifespan in lifespan_tasks.items():
+            try:
+                # 使用 enter_async_context 而不是手动调用 __aenter__
+                await stack.enter_async_context(task_lifespan(app))
+                print(f"✓ 任务 {task_name} 启动成功")
+            except Exception as e:
+                print(f"✗ 任务 {task_name} 启动失败: {e}")
+        
+        yield
+        
+        print("应用关闭中...")
+        app_started = False
+        # AsyncExitStack 会自动按相反顺序调用所有的 __aexit__
 
 
 # 从配置文件加载MCP服务器列表
@@ -165,6 +160,7 @@ app = FastAPI(
 
 ## 遍历app_mount_list
 for app_mount in app_mount_list:
+    print(f"Mounting {app_mount['path']} with {app_mount['app']}")
     app.mount(app_mount['path'], app_mount['app'])
 
 @app.get("/health")

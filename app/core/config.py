@@ -33,7 +33,8 @@ class Settings(BaseSettings):
     # CORS配置
     allowed_origins: List[str] = [
         "http://localhost:3000",
-        "http://localhost:8080"
+        "http://localhost:8080",
+        "http://localhost:8000"
     ]
     
     # 数据库配置（可选）
