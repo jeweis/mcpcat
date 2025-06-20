@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCPCat 服务器管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 24px;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #6b7280;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        .nav-text {
+            font-weight: 500;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+            margin-right: 12px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px);
+        }
+
+        .status-item h4 {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .status-item p {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .server-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .server-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .server-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: -0.01em;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+
+        .status-running {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .status-stopped {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .status-loading {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .server-details {
+            color: #666666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .server-details p {
+            margin-bottom: 8px;
+        }
+
+        .server-details strong {
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+
+        .server-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.8);
+            color: #6b7280;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #374151;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.8);
+            color: #1f2937;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            line-height: 1.5;
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: none;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top: 2px solid #000000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 提示框样式更新 */
+        .info-tip {
+            background: #f8f8f8;
+            border: 1px solid #000000;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #1a1a1a;
+        }
+
+        .info-tip strong {
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .servers-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 40px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .section {
+                padding: 24px;
+            }
+            
+            .form-container {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🔧</div>
+                    <span class="logo-text">MCPCat</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">仪表板</span>
+                </a>
+                <a href="#servers" class="nav-item" onclick="showSection('servers')">
+                    <span class="nav-icon">🖥️</span>
+                    <span class="nav-text">服务器</span>
+                </a>
+                <a href="#add-server" class="nav-item" onclick="showSection('add-server')">
+                    <span class="nav-icon">➕</span>
+                    <span class="nav-text">添加服务器</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-container">
+            <div class="header">
+                <h1>MCP Inspector</h1>
+                <p>管理和监控您的 MCP 服务器</p>
+            </div>
+
+            <div class="main-content">
+                <!-- 仪表板部分 -->
+                <div id="dashboard-section" class="content-section active">
+                    <div class="section">
+                        <h2 class="section-title">系统状态</h2>
+                        <div class="status-card">
+                            <div class="status-grid" id="systemStatus">
+                                <div class="status-item">
+                                    <h4>应用状态</h4>
+                                    <p id="appStatus">加载中...</p>
+                                </div>
+                                <div class="status-item">
+                                    <h4>服务器总数</h4>
+                                    <p id="serverCount">-</p>
+                                </div>
+                                <div class="status-item">
+                                    <h4>运行中</h4>
+                                    <p id="runningCount">-</p>
+                                </div>
+                                <div class="status-item">
+                                    <h4>已停止</h4>
+                                    <p id="stoppedCount">-</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="refreshStatus()">刷新状态</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 服务器列表部分 -->
+                <div id="servers-section" class="content-section">
+                    <div class="section">
+                        <h2 class="section-title">服务器列表</h2>
+                        <div id="serversContainer">
+                            <div class="loading"></div>
+                            <p>加载服务器列表...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 添加服务器部分 -->
+                <div id="add-server-section" class="content-section">
+                    <div class="section">
+                <h2 class="section-title">添加新服务器</h2>
+                <div class="form-container">
+                    <div class="info-tip" style="background: #f8f8f8; border: 1px solid #000000; padding: 20px; margin-bottom: 30px; font-size: 14px; color: #1a1a1a;">
+                        <strong>💡 提示：</strong> 表单数据会自动保存到本地缓存，刷新页面后可以继续填写。提交成功后缓存会自动清除。
+                    </div>
+                    <div id="addServerAlert" class="hidden"></div>
+                    
+                    <form id="addServerForm">
+                        <div class="form-group">
+                            <label class="form-label" for="serverName">服务器名称</label>
+                            <input type="text" id="serverName" name="serverName" class="form-input" placeholder="输入服务器名称" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="serverType">服务器类型</label>
+                                <select id="serverType" name="serverType" class="form-input" required>
+                                    <option value="">选择类型</option>
+                                    <option value="stdio">stdio</option>
+                                    <option value="sse">sse</option>
+                                    <option value="streamable-http">Streamable HTTP</option>
+                                    <option value="openapi">OpenAPI</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverEnabled">启用状态</label>
+                                <select id="serverEnabled" name="serverEnabled" class="form-input">
+                                    <option value="true">启用</option>
+                                    <option value="false">禁用</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="stdioConfig" class="hidden">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="serverCommand">命令</label>
+                                    <input type="text" id="serverCommand" name="serverCommand" class="form-input" placeholder="例如: python" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="serverArgs">参数</label>
+                                    <input type="text" id="serverArgs" name="serverArgs" class="form-input" placeholder="例如: -m some_module (用逗号分隔)">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverEnv">环境变量 (JSON格式)</label>
+                                <textarea id="serverEnv" name="serverEnv" class="form-input form-textarea" placeholder='{"VAR1": "value1", "VAR2": "value2"}' rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverTimeoutStdio">超时时间 (秒)</label>
+                                <input type="number" id="serverTimeoutStdio" name="serverTimeoutStdio" class="form-input" min="1" max="300" value="30">
+                            </div>
+                        </div>
+
+                        <div id="sseConfig" class="hidden">
+                            <div class="form-group">
+                                <label class="form-label" for="serverUrl">服务器URL</label>
+                                <input type="url" id="serverUrl" name="serverUrl" class="form-input" placeholder="例如: http://localhost:3000" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverHeadersSse">请求头 (JSON格式)</label>
+                                <textarea id="serverHeadersSse" name="serverHeadersSse" class="form-input form-textarea" placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}' rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverTimeoutSse">超时时间 (秒)</label>
+                                <input type="number" id="serverTimeoutSse" name="serverTimeoutSse" class="form-input" min="1" max="300" value="30">
+                            </div>
+                        </div>
+
+                        <div id="streamableHttpConfig" class="hidden">
+                            <div class="form-group">
+                                <label class="form-label" for="serverUrlHttp">服务器URL</label>
+                                <input type="url" id="serverUrlHttp" name="serverUrlHttp" class="form-input" placeholder="例如: http://localhost:3000" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverHeadersHttp">请求头 (JSON格式)</label>
+                                <textarea id="serverHeadersHttp" name="serverHeadersHttp" class="form-input form-textarea" placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}' rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverTimeoutHttp">超时时间 (秒)</label>
+                                <input type="number" id="serverTimeoutHttp" name="serverTimeoutHttp" class="form-input" min="1" max="300" value="30">
+                            </div>
+                        </div>
+
+                        <div id="openapiConfig" class="hidden">
+                            <div class="form-group">
+                                <label class="form-label" for="serverSpecUrl">OpenAPI规范URL</label>
+                                <input type="url" id="serverSpecUrl" name="serverSpecUrl" class="form-input" placeholder="例如: http://localhost:3000/openapi.json" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverApiBaseUrl">API基础URL</label>
+                                <input type="url" id="serverApiBaseUrl" name="serverApiBaseUrl" class="form-input" placeholder="例如: http://localhost:3000" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverRouteConfigs">路由配置 (JSON格式)</label>
+                                <textarea id="serverRouteConfigs" name="serverRouteConfigs" class="form-input form-textarea" placeholder='[{"methods": ["GET", "POST"], "pattern": "/api/v1/*"}]' rows="5"></textarea>
+                                <small style="color: #6b7280;">包含methods和pattern字段的路由配置数组</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="serverTimeoutOpenapi">超时时间 (秒)</label>
+                                <input type="number" id="serverTimeoutOpenapi" name="serverTimeoutOpenapi" class="form-input" min="1" max="300" value="30">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="serverConfigJson">完整配置 (JSON)</label>
+                            <textarea id="serverConfigJson" name="serverConfigJson" class="form-input form-textarea" placeholder="可选：直接输入完整的JSON配置"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="submit" class="btn btn-success" id="addServerBtn">
+                                添加服务器
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearFormAndCache()" title="清除表单内容和缓存数据">
+                                清除表单
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Section切换功能
+        function showSection(sectionName) {
+            // 隐藏所有section
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // 移除所有导航项的active状态
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+            
+            // 显示目标section
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+            
+            // 激活对应的导航项
+            const targetNav = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+            if (targetNav) {
+                targetNav.classList.add('active');
+            }
+        }
+        // API 基础URL
+        const API_BASE = '/api';
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemStatus();
+            loadServers();
+            setupFormHandlers();
+            loadFormCache(); // 加载缓存的表单数据
+        });
+
+        // 加载系统状态
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                
+                document.getElementById('appStatus').textContent = `${data.app_name} v${data.version} - ${data.status}`;
+            } catch (error) {
+                document.getElementById('appStatus').textContent = '连接失败';
+                console.error('加载系统状态失败:', error);
+            }
+        }
+
+        // 加载服务器列表
+        async function loadServers() {
+            const container = document.getElementById('serversContainer');
+            
+            try {
+                const response = await fetch(`${API_BASE}/servers`);
+                const data = await response.json();
+                
+                updateServerCounts(data.servers);
+                renderServers(data.servers);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>加载失败:</strong> ${error.message}
+                    </div>
+                `;
+                console.error('加载服务器列表失败:', error);
+            }
+        }
+
+        // 更新服务器计数
+        function updateServerCounts(servers) {
+            const total = Object.keys(servers).length;
+            let running = 0;
+            let stopped = 0;
+
+            Object.values(servers).forEach(server => {
+                if (server.status === 'running') {
+                    running++;
+                } else {
+                    stopped++;
+                }
+            });
+
+            document.getElementById('serverCount').textContent = total;
+            document.getElementById('runningCount').textContent = running;
+            document.getElementById('stoppedCount').textContent = stopped;
+        }
+
+        // 渲染服务器列表
+        function renderServers(servers) {
+            const container = document.getElementById('serversContainer');
+            
+            if (Object.keys(servers).length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>暂无服务器</strong><br>
+                        请添加新的服务器配置。
+                    </div>
+                `;
+                return;
+            }
+
+            const serversHtml = Object.entries(servers).map(([name, server]) => {
+                const statusClass = getStatusClass(server.status);
+                const statusText = getStatusText(server.status);
+                
+                return `
+                    <div class="server-card">
+                        <div class="server-header">
+                            <div class="server-name">${name}</div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="server-details">
+                            <p><strong>类型:</strong> ${server.type || 'N/A'}</p>
+                            <p><strong>命令:</strong> ${server.command || 'N/A'}</p>
+                            <p><strong>参数:</strong> ${server.args ? server.args.join(' ') : 'N/A'}</p>
+                            <p><strong>URL:</strong> ${server.url || 'N/A'}</p>
+                            <p><strong>启用:</strong> ${server.enabled ? '是' : '否'}</p>
+                            ${server.error ? `<p><strong>错误:</strong> <span style="color: #dc2626;">${server.error}</span></p>` : ''}
+                        </div>
+                        <div class="server-actions">
+                            <button class="btn btn-primary" onclick="checkServerHealth('${name}')">
+                                检查健康状态
+                            </button>
+                            <a href="${server.mcp_endpoint || '#'}" target="_blank" class="btn btn-secondary">
+                                MCP 端点
+                            </a>
+                            <a href="${server.sse_endpoint || '#'}" target="_blank" class="btn btn-secondary">
+                                SSE 端点
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="servers-grid">${serversHtml}</div>`;
+        }
+
+        // 获取状态样式类
+        function getStatusClass(status) {
+            switch (status) {
+                case 'running':
+                    return 'status-running';
+                case 'stopped':
+                case 'error':
+                    return 'status-stopped';
+                default:
+                    return 'status-loading';
+            }
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            switch (status) {
+                case 'running':
+                    return '运行中';
+                case 'stopped':
+                    return '已停止';
+                case 'error':
+                    return '错误';
+                case 'loaded':
+                    return '已加载';
+                case 'mounted':
+                    return '已挂载';
+                case 'mounted_dynamic':
+                    return '动态挂载';
+                case 'mounted_pending_restart':
+                    return '待重启';
+                default:
+                    return status || '未知';
+            }
+        }
+
+        // 检查服务器健康状态
+        async function checkServerHealth(serverName) {
+            try {
+                const response = await fetch(`${API_BASE}/servers/${serverName}/health`);
+                const data = await response.json();
+                
+                const healthStatus = data.healthy ? '健康' : '不健康';
+                const healthColor = data.healthy ? '#10b981' : '#dc2626';
+                
+                alert(`服务器 "${serverName}" 健康状态:\n\n` +
+                      `状态: ${healthStatus}\n` +
+                      `运行状态: ${getStatusText(data.status)}\n` +
+                      `MCP端点: ${data.endpoints.mcp}\n` +
+                      `SSE端点: ${data.endpoints.sse}` +
+                      (data.error ? `\n错误: ${data.error}` : ''));
+            } catch (error) {
+                alert(`检查服务器健康状态失败: ${error.message}`);
+            }
+        }
+
+        // 刷新状态
+        async function refreshStatus() {
+            await loadSystemStatus();
+            await loadServers();
+        }
+
+        // 获取表单数据
+        function getFormData() {
+            const formData = {
+                name: document.getElementById('serverName').value,
+                type: document.getElementById('serverType').value
+            };
+            
+            const type = formData.type;
+            if (type === 'stdio') {
+                formData.command = document.getElementById('serverCommand').value;
+                const argsText = document.getElementById('serverArgs').value;
+                formData.args = argsText ? argsText.split(',').map(arg => arg.trim()) : [];
+                
+                // Environment variables
+                const envText = document.getElementById('serverEnv').value;
+                if (envText) {
+                    try {
+                        formData.env = JSON.parse(envText);
+                    } catch (e) {
+                        formData.env = {};
+                    }
+                } else {
+                    formData.env = {};
+                }
+                
+                // Timeout
+                formData.timeout = parseInt(document.getElementById('serverTimeoutStdio').value) || 30;
+                
+            } else if (type === 'sse') {
+                formData.url = document.getElementById('serverUrl').value;
+                
+                // Headers
+                const headersText = document.getElementById('serverHeadersSse').value;
+                if (headersText) {
+                    try {
+                        formData.headers = JSON.parse(headersText);
+                    } catch (e) {
+                        formData.headers = {};
+                    }
+                } else {
+                    formData.headers = {};
+                }
+                
+                // Timeout
+                formData.timeout = parseInt(document.getElementById('serverTimeoutSse').value) || 30;
+                
+            } else if (type === 'streamable-http') {
+                formData.url = document.getElementById('serverUrlHttp').value;
+                
+                // Headers
+                const headersText = document.getElementById('serverHeadersHttp').value;
+                if (headersText) {
+                    try {
+                        formData.headers = JSON.parse(headersText);
+                    } catch (e) {
+                        formData.headers = {};
+                    }
+                } else {
+                    formData.headers = {};
+                }
+                
+                // Timeout
+                formData.timeout = parseInt(document.getElementById('serverTimeoutHttp').value) || 30;
+                
+            } else if (type === 'openapi') {
+                formData.spec_url = document.getElementById('serverSpecUrl').value;
+                formData.api_base_url = document.getElementById('serverApiBaseUrl').value;
+                
+                // Route configurations
+                const routeConfigsText = document.getElementById('serverRouteConfigs').value;
+                if (routeConfigsText) {
+                    try {
+                        formData.route_configs = JSON.parse(routeConfigsText);
+                    } catch (e) {
+                        formData.route_configs = [];
+                    }
+                } else {
+                    formData.route_configs = [];
+                }
+                
+                // Timeout
+                formData.timeout = parseInt(document.getElementById('serverTimeoutOpenapi').value) || 30;
+            }
+            
+            return formData;
+        }
+
+        // 显示/隐藏服务器类型字段
+        function showServerTypeFields(type) {
+            const configs = [
+                { element: document.getElementById('stdioConfig'), type: 'stdio', requiredFields: ['serverCommand'] },
+                { element: document.getElementById('sseConfig'), type: 'sse', requiredFields: ['serverUrl'] },
+                { element: document.getElementById('streamableHttpConfig'), type: 'streamable-http', requiredFields: ['serverUrlHttp'] },
+                { element: document.getElementById('openapiConfig'), type: 'openapi', requiredFields: ['serverSpecUrl', 'serverApiBaseUrl'] }
+            ];
+            
+            configs.forEach(config => {
+                const isVisible = type === config.type;
+                config.element.classList.toggle('hidden', !isVisible);
+                
+                // 动态设置required属性
+                config.requiredFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        if (isVisible) {
+                            field.setAttribute('required', 'required');
+                        } else {
+                            field.removeAttribute('required');
+                        }
+                    }
+                });
+            });
+        }
+
+        // 设置表单处理器
+        function setupFormHandlers() {
+            const typeSelect = document.getElementById('serverType');
+            const form = document.getElementById('addServerForm');
+
+            // 初始化时隐藏所有配置区域
+            showServerTypeFields('');
+
+            // 类型选择变化处理
+            typeSelect.addEventListener('change', function() {
+                const type = this.value;
+                showServerTypeFields(type);
+                updateConfigJson();
+                saveFormCache(); // 保存表单缓存
+            });
+
+            // 表单字段变化时更新JSON配置和保存缓存
+            const formFields = [
+                'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs', 
+                'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse', 
+                'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
+                'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
+                'serverConfigJson'
+            ];
+            
+            formFields.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        updateConfigJson();
+                        saveFormCache();
+                    });
+                    element.addEventListener('change', function() {
+                        updateConfigJson();
+                        saveFormCache();
+                    });
+                }
+            });
+
+            // 表单提交处理
+            form.addEventListener('submit', handleAddServer);
+        }
+
+        // 更新配置JSON
+        function updateConfigJson() {
+            const formData = getFormData();
+            
+            // Remove name field from preview as it's not part of the config
+            const configData = { ...formData };
+            delete configData.name;
+            
+            document.getElementById('serverConfigJson').value = JSON.stringify(configData, null, 2);
+        }
+
+        // 保存表单数据到localStorage
+        function saveFormCache() {
+            try {
+                const formData = {};
+                const formFields = [
+                    'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs', 
+                    'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse', 
+                    'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
+                    'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
+                    'serverConfigJson'
+                ];
+                
+                formFields.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        formData[id] = element.value;
+                    }
+                });
+                
+                localStorage.setItem('mcpcat_form_cache', JSON.stringify(formData));
+            } catch (error) {
+                console.warn('保存表单缓存失败:', error);
+            }
+        }
+
+        // 从localStorage加载表单数据
+        function loadFormCache() {
+            try {
+                const cachedData = localStorage.getItem('mcpcat_form_cache');
+                if (!cachedData) return;
+                
+                const formData = JSON.parse(cachedData);
+                
+                // 恢复表单字段值
+                Object.keys(formData).forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element && formData[id]) {
+                        element.value = formData[id];
+                    }
+                });
+                
+                // 如果有服务器类型，显示对应的配置区域
+                const serverType = formData.serverType;
+                if (serverType) {
+                    showServerTypeFields(serverType);
+                    updateConfigJson();
+                }
+                
+                console.log('已恢复表单缓存数据');
+            } catch (error) {
+                console.warn('加载表单缓存失败:', error);
+                // 清除损坏的缓存
+                localStorage.removeItem('mcpcat_form_cache');
+            }
+        }
+
+        // 清除表单缓存
+        function clearFormCache() {
+            try {
+                localStorage.removeItem('mcpcat_form_cache');
+                console.log('已清除表单缓存');
+            } catch (error) {
+                console.warn('清除表单缓存失败:', error);
+            }
+        }
+
+        // 清除表单内容和缓存
+        function clearFormAndCache() {
+            if (confirm('确定要清除表单内容和缓存数据吗？')) {
+                // 重置表单
+                document.getElementById('addServerForm').reset();
+                
+                // 隐藏所有配置区域
+                document.getElementById('stdioConfig').classList.add('hidden');
+                document.getElementById('sseConfig').classList.add('hidden');
+                document.getElementById('streamableHttpConfig').classList.add('hidden');
+                document.getElementById('openapiConfig').classList.add('hidden');
+                
+                // 清空所有文本域
+                document.getElementById('serverEnv').value = '';
+                document.getElementById('serverHeadersSse').value = '';
+                document.getElementById('serverHeadersHttp').value = '';
+                document.getElementById('serverRouteConfigs').value = '';
+                document.getElementById('serverConfigJson').value = '';
+                
+                // 重置超时时间为默认值
+                document.getElementById('serverTimeoutStdio').value = '30';
+                document.getElementById('serverTimeoutSse').value = '30';
+                document.getElementById('serverTimeoutHttp').value = '30';
+                document.getElementById('serverTimeoutOpenapi').value = '30';
+                
+                // 清除缓存
+                clearFormCache();
+                
+                // 重新设置required属性
+                showServerTypeFields('');
+                
+                alert('表单和缓存已清除');
+            }
+        }
+
+        // 验证表单
+        function validateForm() {
+            const name = document.getElementById('serverName').value.trim();
+            const type = document.getElementById('serverType').value;
+            
+            if (!name) {
+                alert('请输入服务器名称');
+                return false;
+            }
+            
+            if (!type) {
+                alert('请选择服务器类型');
+                return false;
+            }
+            
+            if (type === 'stdio') {
+                const command = document.getElementById('serverCommand').value.trim();
+                if (!command) {
+                    alert('请输入命令');
+                    return false;
+                }
+                
+                // Validate environment variables JSON
+                const envText = document.getElementById('serverEnv').value.trim();
+                if (envText) {
+                    try {
+                        JSON.parse(envText);
+                    } catch (e) {
+                        alert('环境变量格式错误，请输入有效的JSON格式');
+                        return false;
+                    }
+                }
+                
+            } else if (type === 'sse') {
+                const url = document.getElementById('serverUrl').value.trim();
+                if (!url) {
+                    alert('请输入服务器URL');
+                    return false;
+                }
+                
+                // Validate headers JSON
+                const headersText = document.getElementById('serverHeadersSse').value.trim();
+                if (headersText) {
+                    try {
+                        JSON.parse(headersText);
+                    } catch (e) {
+                        alert('请求头格式错误，请输入有效的JSON格式');
+                        return false;
+                    }
+                }
+                
+            } else if (type === 'streamable-http') {
+                const url = document.getElementById('serverUrlHttp').value.trim();
+                if (!url) {
+                    alert('请输入服务器URL');
+                    return false;
+                }
+                
+                // Validate headers JSON
+                const headersText = document.getElementById('serverHeadersHttp').value.trim();
+                if (headersText) {
+                    try {
+                        JSON.parse(headersText);
+                    } catch (e) {
+                        alert('请求头格式错误，请输入有效的JSON格式');
+                        return false;
+                    }
+                }
+                
+            } else if (type === 'openapi') {
+                const specUrl = document.getElementById('serverSpecUrl').value.trim();
+                const apiBaseUrl = document.getElementById('serverApiBaseUrl').value.trim();
+                
+                if (!specUrl) {
+                    alert('请输入OpenAPI规范URL');
+                    return false;
+                }
+                
+                if (!apiBaseUrl) {
+                    alert('请输入API基础URL');
+                    return false;
+                }
+                
+                // Validate route configurations JSON
+                const routeConfigsText = document.getElementById('serverRouteConfigs').value.trim();
+                if (routeConfigsText) {
+                    try {
+                        const routeConfigs = JSON.parse(routeConfigsText);
+                        if (!Array.isArray(routeConfigs)) {
+                            alert('路由配置必须是数组格式');
+                            return false;
+                        }
+                        
+                        // Validate each route config
+                        for (const config of routeConfigs) {
+                            if (!config.methods || !Array.isArray(config.methods)) {
+                                alert('每个路由配置必须包含methods数组');
+                                return false;
+                            }
+                            if (!config.pattern || typeof config.pattern !== 'string') {
+                                alert('每个路由配置必须包含pattern字符串');
+                                return false;
+                            }
+                        }
+                    } catch (e) {
+                        alert('路由配置格式错误，请输入有效的JSON格式');
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+
+        // 处理添加服务器
+        async function handleAddServer(event) {
+            event.preventDefault();
+            
+            // 验证表单
+            if (!validateForm()) {
+                return;
+            }
+            
+            const alertDiv = document.getElementById('addServerAlert');
+            const submitBtn = document.getElementById('addServerBtn');
+            const originalBtnText = submitBtn.textContent;
+            
+            // 显示加载状态
+            submitBtn.innerHTML = '<span class="loading"></span> 添加中...';
+            submitBtn.disabled = true;
+            alertDiv.classList.add('hidden');
+
+            try {
+                const formData = getFormData();
+                const name = formData.name;
+                
+                if (!name.trim()) {
+                    throw new Error('请输入服务器名称');
+                }
+                
+                // 构建配置对象（移除name字段）
+                const config = { ...formData };
+                delete config.name;
+
+                const response = await fetch(`${API_BASE}/servers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        config: config
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || '添加服务器失败');
+                }
+
+                // 显示成功消息
+                alertDiv.className = 'alert alert-success';
+                alertDiv.innerHTML = `
+                    <strong>添加成功!</strong><br>
+                    ${data.message}<br>
+                    <small>${data.note}</small>
+                `;
+                alertDiv.classList.remove('hidden');
+
+                // 重置表单
+                document.getElementById('addServerForm').reset();
+                document.getElementById('stdioConfig').classList.add('hidden');
+                document.getElementById('sseConfig').classList.add('hidden');
+                document.getElementById('streamableHttpConfig').classList.add('hidden');
+                document.getElementById('openapiConfig').classList.add('hidden');
+                
+                // 清空所有文本域
+                document.getElementById('serverEnv').value = '';
+                document.getElementById('serverHeadersSse').value = '';
+                document.getElementById('serverHeadersHttp').value = '';
+                document.getElementById('serverRouteConfigs').value = '';
+                document.getElementById('serverConfigJson').value = '';
+                
+                // 重置超时时间为默认值
+                document.getElementById('serverTimeoutStdio').value = '30';
+                document.getElementById('serverTimeoutSse').value = '30';
+                document.getElementById('serverTimeoutHttp').value = '30';
+                document.getElementById('serverTimeoutOpenapi').value = '30';
+
+                // 清除表单缓存
+                clearFormCache();
+
+                // 刷新服务器列表
+                await loadServers();
+
+            } catch (error) {
+                alertDiv.className = 'alert alert-error';
+                alertDiv.innerHTML = `<strong>添加失败:</strong> ${error.message}`;
+                alertDiv.classList.remove('hidden');
+            } finally {
+                // 恢复按钮状态
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

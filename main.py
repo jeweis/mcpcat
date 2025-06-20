@@ -6,8 +6,11 @@ MCPCat主应用 - 重构版本
 import logging
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from typing import Dict, Callable
+import os
 
 # 导入新的服务类
 from app.core.config import settings
@@ -75,13 +78,21 @@ app.state.server_manager = server_manager
 server_manager.mount_all_servers(app)
 
 # 注册API路由
-app.include_router(health.router, tags=["健康检查"])
+app.include_router(health.router, prefix="/api", tags=["健康检查"])
 app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
 
 
+# 挂载静态文件
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 @app.get("/")
 async def root():
-    """根路径"""
+    """根路径 - 返回前端页面"""
+    static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    if os.path.exists(static_file):
+        return FileResponse(static_file)
     return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
 
 
