@@ -1,5 +1,5 @@
 [project]
-name = "mcpcat"
+name = "jewei-mcpcat"
 version = "0.1.0"
 description = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
 authors = [
