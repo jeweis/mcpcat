@@ -80,4 +80,65 @@ class ConfigService:
         Returns:
             Dict[str, dict]: 原始配置字典
         """
-        return ConfigService.load_raw_config() 
+        return ConfigService.load_raw_config()
+    
+    @staticmethod
+    def save_config(config_dict: Dict[str, dict]) -> bool:
+        """
+        保存配置到文件
+        
+        Args:
+            config_dict: 要保存的配置字典
+            
+        Returns:
+            bool: 是否保存成功
+        """
+        try:
+            # 从config.py获取配置文件路径
+            config_path = settings.mcpcat_config_path
+            
+            # 如果是相对路径，则相对于项目根目录
+            if not os.path.isabs(config_path):
+                config_file = Path(__file__).parent.parent.parent / config_path
+            else:
+                config_file = Path(config_path)
+            
+            # 确保目录存在
+            config_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # 保存配置文件
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config_dict, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"✓ 配置已保存到: {config_file}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"✗ 保存配置失败: {e}")
+            return False
+    
+    @staticmethod
+    def add_server_to_config(server_name: str, server_config: dict) -> bool:
+        """
+        添加服务器到配置文件
+        
+        Args:
+            server_name: 服务器名称
+            server_config: 服务器配置
+            
+        Returns:
+            bool: 是否添加成功
+        """
+        try:
+            # 加载现有配置
+            current_config = ConfigService.load_raw_config()
+            
+            # 添加新服务器
+            current_config[server_name] = server_config
+            
+            # 保存配置
+            return ConfigService.save_config(current_config)
+            
+        except Exception as e:
+            logger.error(f"✗ 添加服务器到配置失败: {e}")
+            return False 

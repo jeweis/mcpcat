@@ -120,11 +120,26 @@ async def add_server(server_request: AddServerRequest, request: Request):
         if success:
             # 获取更新后的服务器状态
             server_status = manager.get_server_status().get(server_request.name, {})
+            current_status = server_status.get('status', 'mounted')
+            
+            # 根据状态生成提示信息
+            if current_status == 'mounted_pending_restart':
+                note = "服务器已成功添加并挂载，但需要重启应用才能完全激活生命周期。"
+            elif current_status == 'mounted_dynamic':
+                note = "服务器已成功添加并挂载，路由立即可用。完整的生命周期功能将在下次应用重启时激活。"
+            elif current_status == 'running':
+                note = "服务器已成功添加、挂载并启动生命周期，完整功能立即可用！"
+            elif current_status == 'loaded':
+                note = "服务器已成功添加，将在应用启动时自动激活。"
+            elif current_status == 'mounted':
+                note = "服务器已成功添加并挂载，路由可用。"
+            else:
+                note = f"服务器已添加，当前状态：{current_status}。"
             
             return {
                 "message": f"服务器 '{server_request.name}' 添加并挂载成功",
                 "server_name": server_request.name,
-                "status": server_status.get('status', 'mounted'),
+                "status": current_status,
                 "type": server_request.config.get('type'),
                 "command": server_request.config.get('command'),
                 "args": server_request.config.get('args'),
@@ -134,7 +149,7 @@ async def add_server(server_request: AddServerRequest, request: Request):
                     "mcp": f"/mcp/{server_request.name}",
                     "sse": f"/sse/{server_request.name}"
                 },
-                "note": "服务器已成功添加、挂载并启动生命周期，可立即使用。"
+                "note": note
             }
         else:
             # 获取错误信息

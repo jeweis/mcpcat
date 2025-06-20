@@ -1,7 +1,8 @@
 """服务器管理器 - 封装MCP服务器管理逻辑"""
 
 import logging
-from typing import Dict, List, Any, Optional, Callable
+import asyncio
+from typing import Dict, List, Any, Optional, Callable, Set
 from contextlib import AsyncExitStack, asynccontextmanager
 from fastapi import FastAPI
 
@@ -22,7 +23,8 @@ class MCPServerManager:
         
         # 新增：用于管理动态添加的服务器生命周期
         self.app_started = False  # 应用是否已启动
-        self.running_contexts = {}  # 存储动态启动的服务器上下文
+        self.main_app: Optional[FastAPI] = None  # 主应用实例
+        self.dynamic_tasks: Set[asyncio.Task] = set()  # 动态服务器任务集合
     
     def _update_server_status(self, server_name: str, status: str, error: Optional[str] = None):
         """
@@ -163,6 +165,40 @@ class MCPServerManager:
             self._update_server_status(server_name, 'mount_failed', str(e))
             return False
     
+    async def _run_dynamic_server_lifespan(self, server_name: str, app: FastAPI):
+        """
+        运行动态服务器的生命周期作为独立任务
+        
+        Args:
+            server_name: 服务器名称
+            app: FastAPI应用实例
+        """
+        try:
+            print(f"🚀 启动动态服务器 {server_name} 的生命周期")
+            
+            # 获取生命周期任务
+            task_lifespan = self.lifespan_tasks[server_name]
+            
+            # 运行生命周期
+            async with task_lifespan(app):
+                print(f"✓ 动态服务器 {server_name} 生命周期启动成功")
+                self._update_server_status(server_name, 'running')
+                
+                # 等待任务被取消
+                try:
+                    await asyncio.Event().wait()  # 无限等待直到被取消
+                except asyncio.CancelledError:
+                    print(f"🔄 动态服务器 {server_name} 生命周期正在关闭")
+                    raise  # 重新抛出，让上下文管理器正常退出
+                    
+        except asyncio.CancelledError:
+            print(f"✓ 动态服务器 {server_name} 生命周期已关闭")
+            self._update_server_status(server_name, 'stopped')
+        except Exception as e:
+            print(f"✗ 动态服务器 {server_name} 生命周期出错: {e}")
+            logger.error(f"动态服务器 {server_name} 生命周期出错: {e}")
+            self._update_server_status(server_name, 'failed', str(e))
+    
     async def add_and_mount_server(self, app: FastAPI, key: str, value: Dict[str, Any]) -> bool:
         """
         添加并动态挂载MCP服务器到运行中的应用
@@ -188,25 +224,39 @@ class MCPServerManager:
         if not self.mount_server(app, key):
             return False
         
+        # 保存配置到文件，确保持久化
+        try:
+            if ConfigService.add_server_to_config(key, value):
+                print(f"✓ 服务器 {key} 配置已保存到文件")
+            else:
+                print(f"⚠️  服务器 {key} 配置保存失败，但服务器已添加")
+        except Exception as e:
+            logger.warning(f"保存服务器 {key} 配置时出现警告: {e}")
+        
         # 如果应用已经在运行，立即启动这个服务器的生命周期
-        if self.app_started:
+        if self.app_started and self.main_app:
             try:
-                # 获取生命周期任务
-                task_lifespan = self.lifespan_tasks[key]
-                ctx = task_lifespan(app)
+                # 创建独立的后台任务来运行动态服务器的生命周期
+                task = asyncio.create_task(
+                    self._run_dynamic_server_lifespan(key, self.main_app)
+                )
+                self.dynamic_tasks.add(task)
                 
-                # 启动生命周期
-                await ctx.__aenter__()
-                self.running_contexts[key] = ctx
+                # 添加回调来清理完成的任务
+                task.add_done_callback(self.dynamic_tasks.discard)
                 
-                print(f"✓ 动态服务器 {key} 生命周期启动成功")
+                # 等待一小段时间确保服务器启动完成
+                await asyncio.sleep(0.1)
                 
-                # 更新服务器状态
-                self._update_server_status(key, 'running')
+                # 检查服务器是否成功启动
+                if self.server_info[key]['status'] == 'running':
+                    print(f"✅ 动态服务器 {key} 已挂载并启动，完整功能立即可用")
+                else:
+                    print(f"⚠️  动态服务器 {key} 已挂载，生命周期启动中...")
                 
             except Exception as e:
-                print(f"✗ 动态服务器 {key} 生命周期启动失败: {e}")
-                logger.error(f"启动服务器 {key} 生命周期失败: {e}")
+                print(f"✗ 动态服务器 {key} 启动失败: {e}")
+                logger.error(f"启动服务器 {key} 失败: {e}")
                 
                 # 清理已添加的服务器
                 if key in self.lifespan_tasks:
@@ -214,6 +264,9 @@ class MCPServerManager:
                 self._update_server_status(key, 'failed', str(e))
                 
                 return False
+        else:
+            # 如果应用还没启动，标记为已加载
+            self._update_server_status(key, 'loaded')
         
         return True
     
@@ -227,8 +280,9 @@ class MCPServerManager:
         """
         print("应用启动中...")
         
-        # 设置应用已启动状态
+        # 设置应用已启动状态和保存应用实例
         self.app_started = True
+        self.main_app = app
         
         # 使用 AsyncExitStack 来正确管理所有的 lifespan 上下文 - 与原逻辑一致
         async with AsyncExitStack() as stack:
@@ -252,13 +306,17 @@ class MCPServerManager:
             
             print("应用关闭中...")
             
-            # 关闭动态启动的服务器
-            for server_name, ctx in self.running_contexts.items():
-                try:
-                    await ctx.__aexit__(None, None, None)
-                    print(f"✓ 动态服务器 {server_name} 关闭成功")
-                except Exception as e:
-                    print(f"✗ 动态服务器 {server_name} 关闭失败: {e}")
+            # 取消所有动态服务器任务
+            if self.dynamic_tasks:
+                print(f"正在关闭 {len(self.dynamic_tasks)} 个动态服务器...")
+                for task in self.dynamic_tasks:
+                    if not task.done():
+                        task.cancel()
+                
+                # 等待所有任务完成
+                if self.dynamic_tasks:
+                    await asyncio.gather(*self.dynamic_tasks, return_exceptions=True)
+                    print("✓ 所有动态服务器已关闭")
             
             # AsyncExitStack 会自动按相反顺序调用所有的 __aexit__ - 与原逻辑一致
             
@@ -268,7 +326,8 @@ class MCPServerManager:
             
             # 清理状态
             self.app_started = False
-            self.running_contexts.clear()
+            self.main_app = None
+            self.dynamic_tasks.clear()
     
     def get_server_status(self) -> Dict[str, Dict[str, Any]]:
         """

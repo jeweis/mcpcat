@@ -12,11 +12,15 @@
     "api_base_url": "https://api.jeweis.com/api",
     "route_configs": [
       {
-        "methods": ["GET"],
+        "methods": [
+          "GET"
+        ],
         "pattern": "^/user/userManage/.*"
       },
       {
-        "methods": ["GET"],
+        "methods": [
+          "GET"
+        ],
         "pattern": "^/goods/order/.*"
       }
     ]
@@ -28,5 +32,14 @@
       "-y",
       "@modelcontextprotocol/server-sequential-thinking"
     ]
+  },
+  "time": {
+    "type": "stdio",
+    "command": "uvx",
+    "args": [
+      "mcp-server-time",
+      "--local-timezone=Asia/Shanghai"
+    ],
+    "enabled": true
   }
 }
