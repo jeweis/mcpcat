@@ -106,19 +106,7 @@ async def root():
     return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
 
 
-# 新增的兼容性端点，提供与之前相同的信息
-@app.get("/legacy/servers")
-async def legacy_list_servers():
-    """向后兼容的服务器列表接口"""
-    servers_list = []
-    for name in lifespan_tasks.keys():
-        servers_list.append({
-            "name": name,
-            "mcp_endpoint": f"/mcp/{name}",
-            "sse_endpoint": f"/sse/{name}",
-            "status": "running" if app_started else "stopped"
-        })
-    return {"servers": servers_list, "total": len(servers_list)}
+
 
 
 if __name__ == "__main__":
