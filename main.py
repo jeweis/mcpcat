@@ -96,7 +96,8 @@ async def root():
     return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
 
 
-if __name__ == "__main__":
+def main():
+    """主入口点函数"""
     import uvicorn
     uvicorn.run(
         app, 
@@ -107,3 +108,7 @@ if __name__ == "__main__":
         timeout_keep_alive=5,         # 保持连接超时时间
         log_level="info"
     )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,6 +1,6 @@
 [project]
 name = "jewei-mcpcat"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
 authors = [
     {name = "MCPCat Team", email = "team@mcpcat.com"}
@@ -27,6 +27,9 @@ dev = [
     "isort>=5.12.0",
     "flake8>=6.0.0",
 ]
+
+[project.scripts]
+jewei-mcpcat = "main:main"
 
 [build-system]
 requires = ["hatchling"]
