@@ -34,8 +34,15 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 访问服务
 
+- 控制台页面（前端）: http://localhost:8000
 - API文档: http://localhost:8000/docs
 - 健康检查: http://localhost:8000/health
+- streamable http访问端点：http://{本机ip}:8000/sse/{Mcp Server名称}
+- sse访问端点：http://{本机ip}:8000/mcp/{Mcp Server名称}
+
+### 首页展示
+  ![image](https://github.com/user-attachments/assets/ad70c84d-ee00-48e6-b22f-986c9c0a5c1b)
+
 
 ## 项目结构
 
