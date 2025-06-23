@@ -1,0 +1,92 @@
+# 多阶段构建 - 构建阶段
+FROM python:3.12-slim-bookworm as builder
+
+# 设置构建环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# 安装构建依赖
+RUN apt-get update && \
+    apt-get install -y --fix-missing --no-install-recommends \
+    gcc \
+    g++ \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装 Python 依赖到用户目录
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# 预编译 Python 文件
+COPY app/ ./app/
+COPY main.py .
+RUN python -m compileall -b app/ main.py
+
+# 生产阶段
+FROM python:3.12-slim-bookworm as production
+
+# 设置生产环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONOPTIMIZE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PATH=/home/mcpcat/.local/bin:$PATH
+
+# 安装运行时依赖
+RUN apt-get update && \
+    apt-get install -y --fix-missing --no-install-recommends \
+    curl \
+    ca-certificates \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 创建非 root 用户和组
+RUN groupadd -r mcpcat --gid=1000 && \
+    useradd -r -g mcpcat --uid=1000 --home-dir=/home/mcpcat --create-home mcpcat
+
+# 设置工作目录
+WORKDIR /app
+
+# 从构建阶段复制 Python 包
+COPY --from=builder --chown=mcpcat:mcpcat /root/.local /home/mcpcat/.local
+
+# 复制应用代码和预编译文件
+COPY --from=builder --chown=mcpcat:mcpcat /app/app/ ./app/
+COPY --from=builder --chown=mcpcat:mcpcat /app/main.pyc ./
+COPY --chown=mcpcat:mcpcat static/ ./static/
+COPY --chown=mcpcat:mcpcat config.json ./
+COPY --chown=mcpcat:mcpcat .env.example ./
+
+# 创建必要的目录
+RUN mkdir -p /app/logs /app/data && \
+    chown -R mcpcat:mcpcat /app
+
+# 切换到非 root 用户
+USER mcpcat
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 添加标签
+LABEL maintainer="MCPCat Team" \
+      version="1.0.0" \
+      description="MCPCat - MCP Server Management Tool" \
+      org.opencontainers.image.title="MCPCat" \
+      org.opencontainers.image.description="A powerful MCP server management tool" \
+      org.opencontainers.image.vendor="MCPCat Team" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/jeweis/mcpcat"
+
+# 启动命令
+CMD ["python", "main.pyc"]

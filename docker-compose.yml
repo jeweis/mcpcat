@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mcpcat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcpcat-app
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=MCPCat
+      - APP_VERSION=0.1.1
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - MCPCAT_CONFIG_PATH=/app/config.json
+    volumes:
+      # 挂载配置文件（默认从宿主机挂载）
+      - ./config.json:/app/config.json:ro
+      # 挂载日志目录
+      - ./logs:/app/logs
+      # 挂载数据目录（可选）
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcpcat-network
+
+networks:
+  mcpcat-network:
+    driver: bridge
+
+volumes:
+  mcpcat-logs:
+    driver: local
