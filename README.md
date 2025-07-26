@@ -136,9 +136,6 @@ docker stop mcpcat-app
 docker restart mcpcat-app
 ```
 
-### 首页展示
-  ![image](https://github.com/user-attachments/assets/ad70c84d-ee00-48e6-b22f-986c9c0a5c1b)
-
 
 ## 项目结构
 
