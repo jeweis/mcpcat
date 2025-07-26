@@ -4,13 +4,12 @@
 
 ## 功能特性
 
-- 🚀 基于FastAPI构建的高性能Web服务
 - 🔌 支持多种MCP协议：
   - STDIO (默认，用于本地工具)
   - Streamable HTTP (推荐用于Web服务)
   - SSE (传统Web传输)
+- 🧩支持openapi3配置，直接转为mcp协议
 - 📊 统一的MCP服务管理界面
-- 🛡️ 安全的服务隔离和权限控制
 
 ## 快速开始
 
