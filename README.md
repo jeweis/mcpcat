@@ -1,6 +1,6 @@
 # MCPCat
 
-一个用Python实现的MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
+一个MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
 
 ## 功能特性
 
@@ -14,35 +14,8 @@
 
 ## 快速开始
 
-### 安装依赖
+## Docker 部署（推荐）
 
-```bash
-pip install -r requirements.txt
-```
-
-### 运行服务
-
-```bash
-python main.py
-```
-
-或使用uvicorn：
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### 访问服务
-
-- 控制台页面（前端）: http://localhost:8000
-- API文档: http://localhost:8000/docs
-- 健康检查: http://localhost:8000/health
-- streamable http访问端点：http://{本机ip}:8000/sse/{Mcp Server名称}
-- sse访问端点：http://{本机ip}:8000/mcp/{Mcp Server名称}
-
-## Docker 部署
-
-### 使用预构建镜像（推荐）
 
 #### 快速启动
 
@@ -50,11 +23,20 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 docker run -d \
   --name mcpcat-app \
   -p 8000:8000 \
-  -v $(pwd)/config.json:/app/config.json:ro \
+  -v $(pwd)/config.json:/home/app/config.json:ro \
   -v $(pwd)/logs:/app/logs \
   --restart unless-stopped \
   jeweis/mcpcat:latest
 ```
+
+
+### 访问服务
+
+- 控制台页面: http://localhost:8000
+- API文档: http://localhost:8000/docs
+- 健康检查: http://localhost:8000/health
+- streamable http访问端点：http://{本机ip}:8000/sse/{Mcp Server名称}
+- sse访问端点：http://{本机ip}:8000/mcp/{Mcp Server名称}
 
 #### 完整配置启动
 
@@ -67,10 +49,10 @@ docker run -d \
   -e HOST=0.0.0.0 \
   -e PORT=8000 \
   -e LOG_LEVEL=INFO \
-  -e MCPCAT_CONFIG_PATH=/app/config.json \
-  -v $(pwd)/config.json:/app/config.json:ro \
-  -v $(pwd)/logs:/app/logs \
-  -v $(pwd)/data:/app/data \
+  -e MCPCAT_CONFIG_PATH=/home/app/config.json \
+  -v $(pwd)/config.json:/home/app/config.json:ro \
+  -v $(pwd)/logs:/home/app/logs \
+  -v $(pwd)/data:/home/app/data \
   --restart unless-stopped \
   --health-cmd="curl -f http://localhost:8000/api/health" \
   --health-interval=30s \
@@ -93,47 +75,24 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### 自行构建镜像
 
-#### 开发版本
+## 源码运行
+### 安装依赖
 
 ```bash
-docker build -t mcpcat:dev .
+pip install -r requirements.txt
 ```
 
-#### 生产版本
+### 运行服务
 
 ```bash
-docker build -f Dockerfile.production -t mcpcat:prod .
+python main.py
 ```
 
-### 部署前准备
+或使用uvicorn：
 
 ```bash
-# 创建必要的目录
-mkdir -p logs data
-
-# 确保配置文件存在
-# config.json 文件是必需的，包含 MCP 服务器配置
-```
-
-### 常用管理命令
-
-```bash
-# 查看容器状态
-docker ps
-
-# 查看容器日志
-docker logs mcpcat-app -f
-
-# 进入容器
-docker exec -it mcpcat-app /bin/bash
-
-# 停止容器
-docker stop mcpcat-app
-
-# 重启容器
-docker restart mcpcat-app
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 
@@ -162,11 +121,6 @@ mcpcat/
 - [ ] 监控和日志
 - [x] 部署文档
 
-## 相关资源
-
-- [FastAPI官方文档](https://fastapi.tiangolo.com/)
-- [Model Context Protocol](https://modelcontextprotocol.io/introduction)
-- [FastMCP框架](https://gofastmcp.com/getting-started/welcome)
 
 ## 许可证
 

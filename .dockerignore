@@ -1,34 +1,37 @@
+# Git
+.git
+.gitignore
+
 # Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+__pycache__
+*.pyc
+*.pyo
+*.pyd
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-PYTHONPATH
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
 
 # Virtual environments
-venv/
+.env
+.venv
 env/
+venv/
 ENV/
 env.bak/
 venv.bak/
-.venv/
 
 # IDE
 .vscode/
@@ -46,91 +49,19 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Git
-.git/
-.gitignore
-.gitattributes
-
-# Docker
-Dockerfile*
-docker-compose*.yml
-.dockerignore
-
-# Documentation
-*.md
-docs/
-
-# Tests
-tests/
-test_*
-*_test.py
-pytest.ini
-.pytest_cache/
-.coverage
-.tox/
-
-# Logs
-*.log
+# Project specific
 logs/
+data/
+*.log
+.env.example
 
-# Temporary files
-*.tmp
-*.temp
-.cache/
-.tmp/
+# Development
+tests/
+docs/
+*.md
+!README.md
 
-# Development and CI/CD
-.github/
-scripts/
-.env
-.env.local
-.env.development
-.env.test
-
-# Node.js (if any)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-
-# Additional Python
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pyre/
-.pytype/
-cov.xml
-*.cover
-*.py,cover
-.hypothesis/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# Poetry
-poetry.lock
-
-# Backup files
-*.bak
-*.backup
-*.orig
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Configuration files that shouldn't be in image
-config.local.json
-secrets.json
-
-# Note: config.json is NOT ignored because it needs to be available for volume mounting
-# The main config.json file should be present in the build context for docker-compose volume mounting
+# Build artifacts
+build/
+dist/
+*.egg-info/
