@@ -28,9 +28,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用代码
 COPY . .
 
-# 创建非 root 用户
-RUN useradd --create-home --shell /bin/bash app \
+# 创建非 root 用户 (统一使用UID=1000)
+RUN groupadd -r app --gid=1000 && \
+    useradd -r -g app --uid=1000 --home-dir=/home/app --create-home app \
     && chown -R app:app /app
+
+# 创建配置目录并设置权限
+RUN mkdir -p /app/.mcpcat && chown -R app:app /app/.mcpcat
+
 USER app
 
 # 暴露端口

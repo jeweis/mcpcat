@@ -61,11 +61,10 @@ COPY --from=builder --chown=mcpcat:mcpcat /root/.local /home/mcpcat/.local
 COPY --from=builder --chown=mcpcat:mcpcat /app/app/ ./app/
 COPY --from=builder --chown=mcpcat:mcpcat /app/main.pyc ./
 COPY --chown=mcpcat:mcpcat static/ ./static/
-COPY --chown=mcpcat:mcpcat config.json ./
 COPY --chown=mcpcat:mcpcat .env.example ./
 
-# 设置目录权限
-RUN chown -R mcpcat:mcpcat /app
+# 创建配置目录并设置权限
+RUN mkdir -p /app/.mcpcat && chown -R mcpcat:mcpcat /app
 
 # 切换到非 root 用户
 USER mcpcat

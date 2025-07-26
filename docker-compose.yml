@@ -17,7 +17,8 @@ services:
       - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json
     volumes:
       # 挂载配置目录（默认从宿主机挂载）
-      - ./.mcpcat:/app/.mcpcat
+      - ./.mcpcat:/app/.mcpcat:rw
+    user: "1000:1000"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
