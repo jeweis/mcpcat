@@ -192,3 +192,5 @@ Desktop.ini
 # MCP specific
 mcp_data/
 config/local.json
+
+.mcpcat/
