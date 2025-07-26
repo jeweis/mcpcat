@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """应用设置"""
     
     # 应用基础配置
-    app_name: str = "MCPCat"
+    app_name: str = "mcpcat"
     app_version: str = "0.1.1"
     description: str = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
     

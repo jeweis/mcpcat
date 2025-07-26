@@ -3,7 +3,7 @@ name = "jewei-mcpcat"
 version = "0.1.1"
 description = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
 authors = [
-    {name = "MCPCat Team", email = "team@mcpcat.com"}
+    {name = "mcpcat Team", email = "team@mcpcat.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"

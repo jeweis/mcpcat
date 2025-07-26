@@ -1,4 +1,4 @@
-# MCPCat
+# mcapcat
 
 一个MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
 
@@ -44,7 +44,7 @@ docker run -d \
 docker run -d \
   --name mcpcat-app \
   -p 8000:8000 \
-  -e APP_NAME=MCPCat \
+  -e APP_NAME=mcpcat \
   -e APP_VERSION=0.1.1 \
   -e HOST=0.0.0.0 \
   -e PORT=8000 \

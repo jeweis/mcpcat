@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# MCPCat Docker 部署脚本
+# mcpcat Docker 部署脚本
 
 set -e
 
-echo "🚀 开始部署 MCPCat..."
+echo "🚀 开始部署 mcpcat..."
 
 # 检查 Docker 是否安装
 if ! command -v docker &> /dev/null; then
@@ -57,7 +57,7 @@ sleep 10
 # 检查服务状态
 echo "🔍 检查服务状态..."
 if docker-compose ps | grep -q "Up"; then
-    echo "✅ MCPCat 部署成功！"
+    echo "✅ mcpcat 部署成功！"
     echo "📱 访问地址: http://localhost:8000"
     echo "🏥 健康检查: http://localhost:8000/api/health"
     echo ""

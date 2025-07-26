@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-echo 🚀 开始部署 MCPCat...
+echo 🚀 开始部署 mcpcat...
 
 REM 检查 Docker 是否安装
 docker --version >nul 2>&1
@@ -75,7 +75,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 ) else (
-    echo ✅ MCPCat 部署成功！
+    echo ✅ mcpcat 部署成功！
     echo 📱 访问地址: http://localhost:8000
     echo 🏥 健康检查: http://localhost:8000/api/health
     echo.

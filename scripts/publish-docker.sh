@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# MCPCat Docker 镜像发布脚本
+# mcpcat Docker 镜像发布脚本
 # 用法: ./scripts/publish-docker.sh [version] [docker-username]
 
 set -e
@@ -45,7 +45,7 @@ IMAGE_NAME="$DOCKER_USERNAME/mcpcat"
 FULL_IMAGE_NAME="$IMAGE_NAME:$VERSION"
 LATEST_IMAGE_NAME="$IMAGE_NAME:latest"
 
-log_info "开始构建和发布 MCPCat Docker 镜像"
+log_info "开始构建和发布 mcpcat Docker 镜像"
 log_info "版本: $VERSION"
 log_info "镜像名称: $FULL_IMAGE_NAME"
 

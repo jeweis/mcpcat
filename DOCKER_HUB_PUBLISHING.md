@@ -1,6 +1,6 @@
 # Docker Hub 官方镜像发布指南
 
-本指南将帮助您将 MCPCat 项目发布到 Docker Hub 官方镜像库。
+本指南将帮助您将 mcpcat 项目发布到 Docker Hub 官方镜像库。
 
 ## 前置准备
 
@@ -277,7 +277,7 @@ RUN python -m compileall .
 
 ### 1. 仓库描述
 ```
-MCPCat - A powerful MCP (Model Context Protocol) server management tool
+mcpcat - A powerful MCP (Model Context Protocol) server management tool
 
 Features:
 - Easy MCP server configuration
@@ -363,4 +363,4 @@ git push origin v1.1.0
    - 优化 .dockerignore
    - 清理缓存和临时文件
 
-通过遵循这个指南，您可以成功将 MCPCat 项目发布到 Docker Hub，并建立一个专业的容器化分发流程。
+通过遵循这个指南，您可以成功将 mcpcat 项目发布到 Docker Hub，并建立一个专业的容器化分发流程。

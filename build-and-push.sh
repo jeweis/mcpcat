@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# MCPCat Docker 构建和发布脚本
+# mcpcat Docker 构建和发布脚本
 # 使用方法: ./build-and-push.sh [your-dockerhub-username]
 
 set -e
@@ -20,7 +20,7 @@ DOCKER_USERNAME=${1:-"jeweis"}  # 默认用户名，可以通过参数覆盖
 IMAGE_NAME="mcpcat"
 FULL_IMAGE_NAME="${DOCKER_USERNAME}/${IMAGE_NAME}"
 
-echo -e "${BLUE}🐳 MCPCat Docker 构建和发布脚本${NC}"
+echo -e "${BLUE}🐳 mcpcat Docker 构建和发布脚本${NC}"
 echo -e "${BLUE}版本: ${VERSION}${NC}"
 echo -e "${BLUE}镜像: ${FULL_IMAGE_NAME}${NC}"
 echo ""

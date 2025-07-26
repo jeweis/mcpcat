@@ -1,6 +1,6 @@
-# MCPCat Docker 部署指南
+# mcpcat Docker 部署指南
 
-本指南将帮助您使用 Docker 部署 MCPCat 应用。
+本指南将帮助您使用 Docker 部署 mcpcat 应用。
 
 ## 前置要求
 
@@ -98,7 +98,7 @@ deploy.bat
 
 ```yaml
 environment:
-  - APP_NAME=MCPCat                    # 应用名称
+  - APP_NAME=mcpcat                    # 应用名称
   - APP_VERSION=0.1.1                 # 应用版本
   - HOST=0.0.0.0                      # 监听地址
   - PORT=8000                         # 监听端口
@@ -174,7 +174,7 @@ services:
     ports:
       - "80:8000"  # 生产环境通常使用 80 端口
     environment:
-      - APP_NAME=MCPCat
+      - APP_NAME=mcpcat
       - LOG_LEVEL=WARNING  # 生产环境减少日志输出
     volumes:
       - ./config.json:/app/config.json:ro

@@ -1,6 +1,6 @@
-# MCPCat 产品概述
+# mcpcat 产品概述
 
-MCPCat 是一个基于 Python 的 MCP（Model Context Protocol）聚合平台，提供多种 MCP 协议的统一管理和运行。
+mcpcat 是一个基于 Python 的 MCP（Model Context Protocol）聚合平台，提供多种 MCP 协议的统一管理和运行。
 
 ## 核心目标
 - 通过单一接口聚合和管理多个 MCP 服务器

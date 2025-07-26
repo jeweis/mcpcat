@@ -1,4 +1,4 @@
-# MCPCat Docker 使用指南
+# mcpcat Docker 使用指南
 
 ## 🚀 快速开始
 
@@ -39,7 +39,7 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
     environment:
-      - APP_NAME=MCPCat
+      - APP_NAME=mcpcat
       - LOG_LEVEL=INFO
     restart: unless-stopped
     healthcheck:
@@ -53,7 +53,7 @@ services:
 
 | 变量名 | 默认值 | 描述 |
 |--------|--------|------|
-| `APP_NAME` | MCPCat | 应用名称 |
+| `APP_NAME` | mcpcat | 应用名称 |
 | `APP_VERSION` | 0.1.1 | 应用版本 |
 | `HOST` | 0.0.0.0 | 监听地址 |
 | `PORT` | 8000 | 监听端口 |

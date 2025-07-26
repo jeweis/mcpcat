@@ -1,5 +1,5 @@
 @echo off
-REM MCPCat Docker 构建和发布脚本 (Windows版本)
+REM mcpcat Docker 构建和发布脚本 (Windows版本)
 REM 使用方法: build-and-push.bat [your-dockerhub-username]
 
 setlocal enabledelayedexpansion
@@ -22,7 +22,7 @@ set IMAGE_NAME=mcpcat
 set FULL_IMAGE_NAME=%DOCKER_USERNAME%/%IMAGE_NAME%
 
 echo.
-echo 🐳 MCPCat Docker 构建和发布脚本
+echo 🐳 mcpcat Docker 构建和发布脚本
 echo 版本: %VERSION%
 echo 镜像: %FULL_IMAGE_NAME%
 echo.

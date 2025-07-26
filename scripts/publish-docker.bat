@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM MCPCat Docker 镜像发布脚本 (Windows 版本)
+REM mcpcat Docker 镜像发布脚本 (Windows 版本)
 REM 用法: scripts\publish-docker.bat [version] [docker-username]
 
 set "VERSION=%~1"
@@ -20,7 +20,7 @@ set "IMAGE_NAME=%DOCKER_USERNAME%/mcpcat"
 set "FULL_IMAGE_NAME=%IMAGE_NAME%:%VERSION%"
 set "LATEST_IMAGE_NAME=%IMAGE_NAME%:latest"
 
-echo [INFO] 开始构建和发布 MCPCat Docker 镜像
+echo [INFO] 开始构建和发布 mcpcat Docker 镜像
 echo [INFO] 版本: %VERSION%
 echo [INFO] 镜像名称: %FULL_IMAGE_NAME%
 

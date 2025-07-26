@@ -79,12 +79,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # 添加标签
-LABEL maintainer="MCPCat Team" \
+LABEL maintainer="mcpcat Team" \
       version="1.0.0" \
-      description="MCPCat - MCP Server Management Tool" \
-      org.opencontainers.image.title="MCPCat" \
+      description="mcpcat - MCP Server Management Tool" \
+      org.opencontainers.image.title="mcpcat" \
       org.opencontainers.image.description="A powerful MCP server management tool" \
-      org.opencontainers.image.vendor="MCPCat Team" \
+      org.opencontainers.image.vendor="mcpcat Team" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/jeweis/mcpcat"
 
