@@ -167,4 +167,183 @@ async def add_server(server_request: AddServerRequest, request: Request):
         raise HTTPException(
             status_code=500,
             detail=f"添加服务器时发生错误: {str(e)}"
-        ) 
+        )
+
+
+@router.put("/servers/{server_name}")
+async def update_server(server_name: str, server_request: AddServerRequest, request: Request):
+    """更新服务器配置并重启"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+    
+    # 验证配置
+    from app.services.config_service import ConfigService
+    is_valid, error_msg = ConfigService.validate_server_config(server_request.config)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"配置验证失败: {error_msg}")
+    
+    try:
+        # 更新配置并重启服务器
+        success = await manager.restart_server(server_name, server_request.config)
+        
+        if success:
+            # 获取更新后的服务器状态
+            server_status = manager.get_server_status().get(server_name, {})
+            current_status = server_status.get('status', 'unknown')
+            
+            return {
+                "message": f"服务器 '{server_name}' 配置更新并重启成功",
+                "server_name": server_name,
+                "status": current_status,
+                "type": server_request.config.get('type'),
+                "endpoints": {
+                    "mcp": f"/mcp/{server_name}",
+                    "sse": f"/sse/{server_name}"
+                }
+            }
+        else:
+            # 获取错误信息
+            server_info = manager.server_info.get(server_name, {})
+            error_msg = server_info.get('error', '未知错误')
+            raise HTTPException(status_code=500, detail=f"更新服务器配置失败: {error_msg}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新服务器时发生错误: {str(e)}")
+
+
+@router.post("/servers/{server_name}/restart")
+async def restart_server(server_name: str, request: Request):
+    """重启服务器"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+    
+    try:
+        success = await manager.restart_server(server_name)
+        
+        if success:
+            server_status = manager.get_server_status().get(server_name, {})
+            current_status = server_status.get('status', 'unknown')
+            
+            return {
+                "message": f"服务器 '{server_name}' 重启成功",
+                "server_name": server_name,
+                "status": current_status,
+                "endpoints": {
+                    "mcp": f"/mcp/{server_name}",
+                    "sse": f"/sse/{server_name}"
+                }
+            }
+        else:
+            # 获取错误信息
+            server_info = manager.server_info.get(server_name, {})
+            error_msg = server_info.get('error', '未知错误')
+            raise HTTPException(status_code=500, detail=f"重启服务器失败: {error_msg}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"重启服务器时发生错误: {str(e)}")
+
+
+@router.post("/servers/{server_name}/start")
+async def start_server(server_name: str, request: Request):
+    """启动服务器"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+    
+    try:
+        success = await manager.start_server(server_name)
+        
+        if success:
+            server_status = manager.get_server_status().get(server_name, {})
+            current_status = server_status.get('status', 'unknown')
+            
+            return {
+                "message": f"服务器 '{server_name}' 启动成功",
+                "server_name": server_name,
+                "status": current_status,
+                "endpoints": {
+                    "mcp": f"/mcp/{server_name}",
+                    "sse": f"/sse/{server_name}"
+                }
+            }
+        else:
+            # 获取错误信息
+            server_info = manager.server_info.get(server_name, {})
+            error_msg = server_info.get('error', '未知错误')
+            raise HTTPException(status_code=500, detail=f"启动服务器失败: {error_msg}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"启动服务器时发生错误: {str(e)}")
+
+
+@router.post("/servers/{server_name}/stop")
+async def stop_server(server_name: str, request: Request):
+    """停止服务器"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+    
+    try:
+        success = await manager.stop_server(server_name)
+        
+        if success:
+            return {
+                "message": f"服务器 '{server_name}' 停止成功",
+                "server_name": server_name,
+                "status": "stopped"
+            }
+        else:
+            # 获取错误信息
+            server_info = manager.server_info.get(server_name, {})
+            error_msg = server_info.get('error', '未知错误')
+            raise HTTPException(status_code=500, detail=f"停止服务器失败: {error_msg}")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"停止服务器时发生错误: {str(e)}")
+
+
+@router.delete("/servers/{server_name}")
+async def delete_server(server_name: str, request: Request):
+    """删除服务器"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+    
+    try:
+        success = await manager.remove_server(server_name)
+        
+        if success:
+            return {
+                "message": f"服务器 '{server_name}' 删除成功",
+                "server_name": server_name,
+                "deleted": True
+            }
+        else:
+            raise HTTPException(status_code=500, detail="删除服务器失败")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除服务器时发生错误: {str(e)}")
+
+
+@router.get("/servers/{server_name}/config")
+async def get_server_config(server_name: str, request: Request):
+    """获取服务器配置"""
+    manager = _get_server_manager(request)
+    server_status = _validate_server_exists(manager, server_name)
+    
+    # 从配置文件中获取原始配置
+    from app.services.config_service import ConfigService
+    config = ConfigService.load_raw_config().get(server_name, {})
+    
+    return {
+        "server_name": server_name,
+        "config": config,
+        "status": server_status[server_name]['status']
+    } 

@@ -141,4 +141,88 @@ class ConfigService:
             
         except Exception as e:
             logger.error(f"✗ 添加服务器到配置失败: {e}")
-            return False 
+            return False
+    
+    @staticmethod
+    def update_server_config(server_name: str, new_config: dict) -> bool:
+        """
+        更新指定服务器的配置
+        
+        Args:
+            server_name: 服务器名称
+            new_config: 新的服务器配置
+            
+        Returns:
+            bool: 是否更新成功
+        """
+        try:
+            # 加载现有配置
+            current_config = ConfigService.load_raw_config()
+            
+            # 检查服务器是否存在
+            if server_name not in current_config:
+                logger.error(f"服务器 {server_name} 不存在")
+                return False
+            
+            # 更新服务器配置
+            current_config[server_name] = new_config
+            
+            # 保存配置
+            success = ConfigService.save_config(current_config)
+            if success:
+                logger.info(f"✓ 服务器 {server_name} 配置更新成功")
+            return success
+            
+        except Exception as e:
+            logger.error(f"✗ 更新服务器配置失败: {e}")
+            return False
+    
+    @staticmethod  
+    def remove_server_from_config(server_name: str) -> bool:
+        """
+        从配置文件中移除服务器
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            bool: 是否移除成功
+        """
+        try:
+            # 加载现有配置
+            current_config = ConfigService.load_raw_config()
+            
+            # 检查服务器是否存在
+            if server_name in current_config:
+                del current_config[server_name]
+                success = ConfigService.save_config(current_config)
+                if success:
+                    logger.info(f"✓ 服务器 {server_name} 从配置中移除成功")
+                return success
+            else:
+                # 服务器不存在也算成功
+                logger.info(f"服务器 {server_name} 不存在于配置中")
+                return True
+                
+        except Exception as e:
+            logger.error(f"✗ 移除服务器配置失败: {e}")
+            return False
+    
+    @staticmethod
+    def validate_server_config(config: dict) -> tuple[bool, str]:
+        """
+        验证服务器配置的有效性
+        
+        Args:
+            config: 服务器配置字典
+            
+        Returns:
+            tuple[bool, str]: (是否有效, 错误信息)
+        """
+        try:
+            # 使用 Pydantic 模型验证配置
+            from app.models.mcp_config import create_config_from_dict
+            create_config_from_dict(config)
+            return True, ""
+        except Exception as e:
+            return False, str(e) 

@@ -15,13 +15,7 @@
         "methods": [
           "GET"
         ],
-        "pattern": "^/user/userManage/.*"
-      },
-      {
-        "methods": [
-          "GET"
-        ],
-        "pattern": "^/goods/order/.*"
+        "pattern": "^/user/protect/userManage/.*"
       }
     ]
   },
@@ -42,5 +36,20 @@
     ],
     "env": {},
     "timeout": 30
+  },
+  "xiaogj-ai": {
+    "type": "openapi",
+    "spec_url": "http://nas.jeweis.com:18044/xiaogj-ai-api/v3/api-docs",
+    "api_base_url": "http://nas.jeweis.com:18044/xiaogj-ai-api",
+    "route_configs": [
+      {
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "pattern": "^/tool/.*"
+      }
+    ],
+    "timeout": 240
   }
 }

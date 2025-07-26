@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
             color: #1f2937;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             min-height: 100vh;
             margin: 0;
         }
@@ -27,11 +28,10 @@
 
         .sidebar {
             width: 280px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            background: #fafafa;
+            border-right: 1px solid #e5e7eb;
             padding: 24px;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
         }
 
         .logo {
@@ -45,8 +45,8 @@
         .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
+            background: #3b82f6;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -80,12 +80,12 @@
         }
 
         .nav-item:hover {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
+            background: #f1f5f9;
+            color: #3b82f6;
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             color: white;
         }
 
@@ -106,8 +106,9 @@
 
         .main-content {
             flex: 1;
-            padding: 24px;
+            padding: 32px;
             overflow-y: auto;
+            background: #ffffff;
         }
 
         .content-section {
@@ -119,13 +120,12 @@
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: #ffffff;
+            border-radius: 12px;
             padding: 32px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
         }
 
         .header h1 {
@@ -133,10 +133,6 @@
             font-weight: 700;
             color: #1f2937;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .header p {
@@ -162,35 +158,33 @@
             content: '';
             width: 4px;
             height: 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             border-radius: 2px;
             margin-right: 12px;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: #fafafa;
+            border-radius: 12px;
             padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
         }
 
         .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .status-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: #fafafa;
+            border-radius: 12px;
             padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
         }
 
         .status-grid {
@@ -201,18 +195,18 @@
         }
 
         .status-item {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
+            background: #ffffff;
             padding: 20px;
             text-align: center;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
             transition: all 0.2s ease;
         }
 
         .status-item:hover {
-            background: rgba(255, 255, 255, 0.95);
-            transform: translateY(-2px);
+            background: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         .status-item h4 {
@@ -238,18 +232,18 @@
         }
 
         .server-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: #fafafa;
+            border-radius: 12px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
         }
 
         .server-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #d1d5db;
         }
 
         .server-header {
@@ -337,50 +331,56 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3b82f6;
             color: white;
+            border: 1px solid #3b82f6;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            background: #2563eb;
+            border-color: #2563eb;
         }
 
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.8);
+            background: #ffffff;
             color: #6b7280;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid #d1d5db;
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.95);
+            background: #f9fafb;
             color: #374151;
+            border-color: #9ca3af;
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #10b981;
             color: white;
+            border: 1px solid #10b981;
         }
 
         .btn-success:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: #059669;
+            border-color: #059669;
         }
 
         .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: #ef4444;
             color: white;
+            border: 1px solid #ef4444;
         }
 
         .btn-danger:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            background: #dc2626;
+            border-color: #dc2626;
         }
 
         .form-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
+            background: #fafafa;
+            border-radius: 12px;
             padding: 32px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
         }
 
         .form-group {
@@ -398,28 +398,28 @@
         .form-input {
             width: 100%;
             padding: 12px 16px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
+            border: 1px solid #d1d5db;
             border-radius: 8px;
             font-size: 14px;
             transition: all 0.2s ease;
-            background: rgba(255, 255, 255, 0.8);
+            background: #ffffff;
             color: #1f2937;
         }
-        
+
         .form-input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            background: rgba(255, 255, 255, 0.95);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #ffffff;
         }
-        
+
         .form-textarea {
             resize: vertical;
             min-height: 80px;
             font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
             line-height: 1.5;
         }
-        
+
         .form-group small {
             display: block;
             margin-top: 6px;
@@ -448,14 +448,16 @@
         }
 
         .alert-success {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            background: #f0fdf4;
             color: #065f46;
+            border: 1px solid #bbf7d0;
             border-left: 4px solid #10b981;
         }
 
         .alert-error {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            background: #fef2f2;
             color: #991b1b;
+            border: 1px solid #fecaca;
             border-left: 4px solid #ef4444;
         }
 
@@ -470,12 +472,273 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .hidden {
             display: none;
+        }
+
+        /* 模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fafafa;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 24px;
+            border-top: 1px solid #e5e7eb;
+            background: #fafafa;
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* 操作按钮样式优化 */
+        .server-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .server-actions .btn {
+            font-size: 0.8rem;
+            padding: 8px 16px;
+            min-width: auto;
+        }
+
+        /* 状态样式扩展 */
+        .status-restarting {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .status-updating {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+        }
+
+        .status-failed {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        /* 服务器基本信息样式 */
+        .server-basic-info {
+            margin-bottom: 12px;
+        }
+
+        /* 端点信息样式 */
+        .server-endpoints {
+            margin: 8px 0;
+        }
+
+        .endpoints-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .endpoint-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .endpoint-label {
+            font-weight: 500;
+            color: #6b7280;
+            min-width: 35px;
+            font-size: 0.8rem;
+        }
+
+        .endpoint-url {
+            background: #f3f4f6;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: #374151;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        /* 响应式设计：在较大屏幕上横向显示端点 */
+        @media (min-width: 480px) {
+            .endpoints-row {
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            .endpoint-info {
+                flex: 1;
+            }
+        }
+
+        /* 详情模态框样式 */
+        .details-info {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            color: #6b7280;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .config-display {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #374151;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .endpoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .endpoint-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .endpoint-type {
+            font-weight: 500;
+            color: #6b7280;
+            min-width: 80px;
+            font-size: 0.875rem;
+        }
+
+        .endpoint-code {
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            color: #374151;
+            flex: 1;
+        }
+
+        /* 状态徽章在详情中的样式 */
+        .detail-value .status-badge {
+            display: inline-block;
+            margin: 0;
         }
 
         /* 提示框样式更新 */
@@ -496,33 +759,34 @@
             .container {
                 padding: 20px 16px;
             }
-            
+
             .form-row {
                 grid-template-columns: 1fr;
             }
-            
+
             .servers-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .header {
                 padding: 40px 20px;
             }
-            
+
             .header h1 {
                 font-size: 2.2rem;
             }
-            
+
             .section {
                 padding: 24px;
             }
-            
+
             .form-container {
                 padding: 24px;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <!-- 侧边栏 -->
@@ -599,125 +863,149 @@
                 <!-- 添加服务器部分 -->
                 <div id="add-server-section" class="content-section">
                     <div class="section">
-                <h2 class="section-title">添加新服务器</h2>
-                <div class="form-container">
-                    <div class="info-tip" style="background: #f8f8f8; border: 1px solid #000000; padding: 20px; margin-bottom: 30px; font-size: 14px; color: #1a1a1a;">
-                        <strong>💡 提示：</strong> 表单数据会自动保存到本地缓存，刷新页面后可以继续填写。提交成功后缓存会自动清除。
-                    </div>
-                    <div id="addServerAlert" class="hidden"></div>
-                    
-                    <form id="addServerForm">
-                        <div class="form-group">
-                            <label class="form-label" for="serverName">服务器名称</label>
-                            <input type="text" id="serverName" name="serverName" class="form-input" placeholder="输入服务器名称" required>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="serverType">服务器类型</label>
-                                <select id="serverType" name="serverType" class="form-input" required>
-                                    <option value="">选择类型</option>
-                                    <option value="stdio">stdio</option>
-                                    <option value="sse">sse</option>
-                                    <option value="streamable-http">Streamable HTTP</option>
-                                    <option value="openapi">OpenAPI</option>
-                                </select>
+                        <h2 class="section-title">添加新服务器</h2>
+                        <div class="form-container">
+                            <div class="info-tip"
+                                style="background: #f8f8f8; border: 1px solid #000000; padding: 20px; margin-bottom: 30px; font-size: 14px; color: #1a1a1a;">
+                                <strong>💡 提示：</strong> 表单数据会自动保存到本地缓存，刷新页面后可以继续填写。提交成功后缓存会自动清除。
                             </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverEnabled">启用状态</label>
-                                <select id="serverEnabled" name="serverEnabled" class="form-input">
-                                    <option value="true">启用</option>
-                                    <option value="false">禁用</option>
-                                </select>
-                            </div>
-                        </div>
+                            <div id="addServerAlert" class="hidden"></div>
 
-                        <div id="stdioConfig" class="hidden">
-                            <div class="form-row">
+                            <form id="addServerForm">
                                 <div class="form-group">
-                                    <label class="form-label" for="serverCommand">命令</label>
-                                    <input type="text" id="serverCommand" name="serverCommand" class="form-input" placeholder="例如: python" required>
+                                    <label class="form-label" for="serverName">服务器名称</label>
+                                    <input type="text" id="serverName" name="serverName" class="form-input"
+                                        placeholder="输入服务器名称" required>
                                 </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverType">服务器类型</label>
+                                        <select id="serverType" name="serverType" class="form-input" required>
+                                            <option value="">选择类型</option>
+                                            <option value="stdio">stdio</option>
+                                            <option value="sse">sse</option>
+                                            <option value="streamable-http">Streamable HTTP</option>
+                                            <option value="openapi">OpenAPI</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverEnabled">启用状态</label>
+                                        <select id="serverEnabled" name="serverEnabled" class="form-input">
+                                            <option value="true">启用</option>
+                                            <option value="false">禁用</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="stdioConfig" class="hidden">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label" for="serverCommand">命令</label>
+                                            <input type="text" id="serverCommand" name="serverCommand"
+                                                class="form-input" placeholder="例如: python" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" for="serverArgs">参数</label>
+                                            <input type="text" id="serverArgs" name="serverArgs" class="form-input"
+                                                placeholder="例如: -m some_module (用逗号分隔)">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverEnv">环境变量 (JSON格式)</label>
+                                        <textarea id="serverEnv" name="serverEnv" class="form-input form-textarea"
+                                            placeholder='{"VAR1": "value1", "VAR2": "value2"}' rows="3"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverTimeoutStdio">超时时间 (秒)</label>
+                                        <input type="number" id="serverTimeoutStdio" name="serverTimeoutStdio"
+                                            class="form-input" min="1" max="300" value="30">
+                                    </div>
+                                </div>
+
+                                <div id="sseConfig" class="hidden">
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverUrl">服务器URL</label>
+                                        <input type="url" id="serverUrl" name="serverUrl" class="form-input"
+                                            placeholder="例如: http://localhost:3000" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverHeadersSse">请求头 (JSON格式)</label>
+                                        <textarea id="serverHeadersSse" name="serverHeadersSse"
+                                            class="form-input form-textarea"
+                                            placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}'
+                                            rows="3"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverTimeoutSse">超时时间 (秒)</label>
+                                        <input type="number" id="serverTimeoutSse" name="serverTimeoutSse"
+                                            class="form-input" min="1" max="300" value="30">
+                                    </div>
+                                </div>
+
+                                <div id="streamableHttpConfig" class="hidden">
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverUrlHttp">服务器URL</label>
+                                        <input type="url" id="serverUrlHttp" name="serverUrlHttp" class="form-input"
+                                            placeholder="例如: http://localhost:3000" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverHeadersHttp">请求头 (JSON格式)</label>
+                                        <textarea id="serverHeadersHttp" name="serverHeadersHttp"
+                                            class="form-input form-textarea"
+                                            placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}'
+                                            rows="3"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverTimeoutHttp">超时时间 (秒)</label>
+                                        <input type="number" id="serverTimeoutHttp" name="serverTimeoutHttp"
+                                            class="form-input" min="1" max="300" value="30">
+                                    </div>
+                                </div>
+
+                                <div id="openapiConfig" class="hidden">
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverSpecUrl">OpenAPI规范URL</label>
+                                        <input type="url" id="serverSpecUrl" name="serverSpecUrl" class="form-input"
+                                            placeholder="例如: http://localhost:3000/openapi.json" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverApiBaseUrl">API基础URL</label>
+                                        <input type="url" id="serverApiBaseUrl" name="serverApiBaseUrl"
+                                            class="form-input" placeholder="例如: http://localhost:3000" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverRouteConfigs">路由配置 (JSON格式)</label>
+                                        <textarea id="serverRouteConfigs" name="serverRouteConfigs"
+                                            class="form-input form-textarea"
+                                            placeholder='[{"methods": ["GET", "POST"], "pattern": "/api/v1/*"}]'
+                                            rows="5"></textarea>
+                                        <small style="color: #6b7280;">包含methods和pattern字段的路由配置数组</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverTimeoutOpenapi">超时时间 (秒)</label>
+                                        <input type="number" id="serverTimeoutOpenapi" name="serverTimeoutOpenapi"
+                                            class="form-input" min="1" max="300" value="30">
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
-                                    <label class="form-label" for="serverArgs">参数</label>
-                                    <input type="text" id="serverArgs" name="serverArgs" class="form-input" placeholder="例如: -m some_module (用逗号分隔)">
+                                    <label class="form-label" for="serverConfigJson">完整配置 (JSON)</label>
+                                    <textarea id="serverConfigJson" name="serverConfigJson"
+                                        class="form-input form-textarea" placeholder="可选：直接输入完整的JSON配置"></textarea>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverEnv">环境变量 (JSON格式)</label>
-                                <textarea id="serverEnv" name="serverEnv" class="form-input form-textarea" placeholder='{"VAR1": "value1", "VAR2": "value2"}' rows="3"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverTimeoutStdio">超时时间 (秒)</label>
-                                <input type="number" id="serverTimeoutStdio" name="serverTimeoutStdio" class="form-input" min="1" max="300" value="30">
-                            </div>
-                        </div>
 
-                        <div id="sseConfig" class="hidden">
-                            <div class="form-group">
-                                <label class="form-label" for="serverUrl">服务器URL</label>
-                                <input type="url" id="serverUrl" name="serverUrl" class="form-input" placeholder="例如: http://localhost:3000" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverHeadersSse">请求头 (JSON格式)</label>
-                                <textarea id="serverHeadersSse" name="serverHeadersSse" class="form-input form-textarea" placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}' rows="3"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverTimeoutSse">超时时间 (秒)</label>
-                                <input type="number" id="serverTimeoutSse" name="serverTimeoutSse" class="form-input" min="1" max="300" value="30">
-                            </div>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <button type="submit" class="btn btn-success" id="addServerBtn">
+                                        添加服务器
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="clearFormAndCache()"
+                                        title="清除表单内容和缓存数据">
+                                        清除表单
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-
-                        <div id="streamableHttpConfig" class="hidden">
-                            <div class="form-group">
-                                <label class="form-label" for="serverUrlHttp">服务器URL</label>
-                                <input type="url" id="serverUrlHttp" name="serverUrlHttp" class="form-input" placeholder="例如: http://localhost:3000" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverHeadersHttp">请求头 (JSON格式)</label>
-                                <textarea id="serverHeadersHttp" name="serverHeadersHttp" class="form-input form-textarea" placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}' rows="3"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverTimeoutHttp">超时时间 (秒)</label>
-                                <input type="number" id="serverTimeoutHttp" name="serverTimeoutHttp" class="form-input" min="1" max="300" value="30">
-                            </div>
-                        </div>
-
-                        <div id="openapiConfig" class="hidden">
-                            <div class="form-group">
-                                <label class="form-label" for="serverSpecUrl">OpenAPI规范URL</label>
-                                <input type="url" id="serverSpecUrl" name="serverSpecUrl" class="form-input" placeholder="例如: http://localhost:3000/openapi.json" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverApiBaseUrl">API基础URL</label>
-                                <input type="url" id="serverApiBaseUrl" name="serverApiBaseUrl" class="form-input" placeholder="例如: http://localhost:3000" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverRouteConfigs">路由配置 (JSON格式)</label>
-                                <textarea id="serverRouteConfigs" name="serverRouteConfigs" class="form-input form-textarea" placeholder='[{"methods": ["GET", "POST"], "pattern": "/api/v1/*"}]' rows="5"></textarea>
-                                <small style="color: #6b7280;">包含methods和pattern字段的路由配置数组</small>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="serverTimeoutOpenapi">超时时间 (秒)</label>
-                                <input type="number" id="serverTimeoutOpenapi" name="serverTimeoutOpenapi" class="form-input" min="1" max="300" value="30">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label" for="serverConfigJson">完整配置 (JSON)</label>
-                            <textarea id="serverConfigJson" name="serverConfigJson" class="form-input form-textarea" placeholder="可选：直接输入完整的JSON配置"></textarea>
-                        </div>
-
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button type="submit" class="btn btn-success" id="addServerBtn">
-                                添加服务器
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="clearFormAndCache()" title="清除表单内容和缓存数据">
-                                清除表单
-                            </button>
-                        </div>
-                    </form>
-                </div>
                     </div>
                 </div>
             </div>
@@ -730,17 +1018,17 @@
             // 隐藏所有section
             const sections = document.querySelectorAll('.content-section');
             sections.forEach(section => section.classList.remove('active'));
-            
+
             // 移除所有导航项的active状态
             const navItems = document.querySelectorAll('.nav-item');
             navItems.forEach(item => item.classList.remove('active'));
-            
+
             // 显示目标section
             const targetSection = document.getElementById(sectionName + '-section');
             if (targetSection) {
                 targetSection.classList.add('active');
             }
-            
+
             // 激活对应的导航项
             const targetNav = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
             if (targetNav) {
@@ -751,7 +1039,7 @@
         const API_BASE = '/api';
 
         // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadSystemStatus();
             loadServers();
             setupFormHandlers();
@@ -763,7 +1051,7 @@
             try {
                 const response = await fetch(`${API_BASE}/status`);
                 const data = await response.json();
-                
+
                 document.getElementById('appStatus').textContent = `${data.app_name} v${data.version} - ${data.status}`;
             } catch (error) {
                 document.getElementById('appStatus').textContent = '连接失败';
@@ -774,11 +1062,11 @@
         // 加载服务器列表
         async function loadServers() {
             const container = document.getElementById('serversContainer');
-            
+
             try {
                 const response = await fetch(`${API_BASE}/servers`);
                 const data = await response.json();
-                
+
                 updateServerCounts(data.servers);
                 renderServers(data.servers);
             } catch (error) {
@@ -813,7 +1101,7 @@
         // 渲染服务器列表
         function renderServers(servers) {
             const container = document.getElementById('serversContainer');
-            
+
             if (Object.keys(servers).length === 0) {
                 container.innerHTML = `
                     <div class="alert alert-error">
@@ -827,7 +1115,7 @@
             const serversHtml = Object.entries(servers).map(([name, server]) => {
                 const statusClass = getStatusClass(server.status);
                 const statusText = getStatusText(server.status);
-                
+
                 return `
                     <div class="server-card">
                         <div class="server-header">
@@ -835,23 +1123,43 @@
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
                         <div class="server-details">
-                            <p><strong>类型:</strong> ${server.type || 'N/A'}</p>
-                            <p><strong>命令:</strong> ${server.command || 'N/A'}</p>
-                            <p><strong>参数:</strong> ${server.args ? server.args.join(' ') : 'N/A'}</p>
-                            <p><strong>URL:</strong> ${server.url || 'N/A'}</p>
-                            <p><strong>启用:</strong> ${server.enabled ? '是' : '否'}</p>
-                            ${server.error ? `<p><strong>错误:</strong> <span style="color: #dc2626;">${server.error}</span></p>` : ''}
+                            <div class="server-basic-info">
+                                <p><strong>类型:</strong> ${server.type || '未知'}</p>
+                                ${server.error ? `<p><strong>错误:</strong> <span style="color: #dc2626;">${server.error}</span></p>` : ''}
+                            </div>
+                            <div class="server-endpoints">
+                                <div class="endpoints-row">
+                                    <div class="endpoint-info">
+                                        <span class="endpoint-label">MCP:</span>
+                                        <code class="endpoint-url">${server.mcp_endpoint || 'N/A'}</code>
+                                    </div>
+                                    <div class="endpoint-info">
+                                        <span class="endpoint-label">SSE:</span>
+                                        <code class="endpoint-url">${server.sse_endpoint || 'N/A'}</code>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="server-actions">
                             <button class="btn btn-primary" onclick="checkServerHealth('${name}')">
                                 检查健康状态
                             </button>
-                            <a href="${server.mcp_endpoint || '#'}" target="_blank" class="btn btn-secondary">
-                                MCP 端点
-                            </a>
-                            <a href="${server.sse_endpoint || '#'}" target="_blank" class="btn btn-secondary">
-                                SSE 端点
-                            </a>
+                            <button class="btn btn-secondary" onclick="viewServerDetails('${name}')">
+                                查看详情
+                            </button>
+                            <button class="btn btn-secondary" onclick="editServer('${name}')">
+                                编辑配置
+                            </button>
+                            <button class="btn btn-success" onclick="restartServer('${name}')">
+                                重启服务
+                            </button>
+                            ${server.status === 'running' ?
+                        `<button class="btn btn-danger" onclick="stopServer('${name}')">停止</button>` :
+                        `<button class="btn btn-success" onclick="startServer('${name}')">启动</button>`
+                    }
+                            <button class="btn btn-danger" onclick="deleteServer('${name}')">
+                                删除
+                            </button>
                         </div>
                     </div>
                 `;
@@ -866,8 +1174,14 @@
                 case 'running':
                     return 'status-running';
                 case 'stopped':
-                case 'error':
                     return 'status-stopped';
+                case 'error':
+                case 'failed':
+                    return 'status-failed';
+                case 'restarting':
+                    return 'status-restarting';
+                case 'updating':
+                    return 'status-updating';
                 default:
                     return 'status-loading';
             }
@@ -881,6 +1195,7 @@
                 case 'stopped':
                     return '已停止';
                 case 'error':
+                case 'failed':
                     return '错误';
                 case 'loaded':
                     return '已加载';
@@ -890,6 +1205,10 @@
                     return '动态挂载';
                 case 'mounted_pending_restart':
                     return '待重启';
+                case 'restarting':
+                    return '重启中';
+                case 'updating':
+                    return '更新中';
                 default:
                     return status || '未知';
             }
@@ -900,16 +1219,16 @@
             try {
                 const response = await fetch(`${API_BASE}/servers/${serverName}/health`);
                 const data = await response.json();
-                
+
                 const healthStatus = data.healthy ? '健康' : '不健康';
                 const healthColor = data.healthy ? '#10b981' : '#dc2626';
-                
+
                 alert(`服务器 "${serverName}" 健康状态:\n\n` +
-                      `状态: ${healthStatus}\n` +
-                      `运行状态: ${getStatusText(data.status)}\n` +
-                      `MCP端点: ${data.endpoints.mcp}\n` +
-                      `SSE端点: ${data.endpoints.sse}` +
-                      (data.error ? `\n错误: ${data.error}` : ''));
+                    `状态: ${healthStatus}\n` +
+                    `运行状态: ${getStatusText(data.status)}\n` +
+                    `MCP端点: ${data.endpoints.mcp}\n` +
+                    `SSE端点: ${data.endpoints.sse}` +
+                    (data.error ? `\n错误: ${data.error}` : ''));
             } catch (error) {
                 alert(`检查服务器健康状态失败: ${error.message}`);
             }
@@ -927,13 +1246,13 @@
                 name: document.getElementById('serverName').value,
                 type: document.getElementById('serverType').value
             };
-            
+
             const type = formData.type;
             if (type === 'stdio') {
                 formData.command = document.getElementById('serverCommand').value;
                 const argsText = document.getElementById('serverArgs').value;
                 formData.args = argsText ? argsText.split(',').map(arg => arg.trim()) : [];
-                
+
                 // Environment variables
                 const envText = document.getElementById('serverEnv').value;
                 if (envText) {
@@ -945,13 +1264,13 @@
                 } else {
                     formData.env = {};
                 }
-                
+
                 // Timeout
                 formData.timeout = parseInt(document.getElementById('serverTimeoutStdio').value) || 30;
-                
+
             } else if (type === 'sse') {
                 formData.url = document.getElementById('serverUrl').value;
-                
+
                 // Headers
                 const headersText = document.getElementById('serverHeadersSse').value;
                 if (headersText) {
@@ -963,13 +1282,13 @@
                 } else {
                     formData.headers = {};
                 }
-                
+
                 // Timeout
                 formData.timeout = parseInt(document.getElementById('serverTimeoutSse').value) || 30;
-                
+
             } else if (type === 'streamable-http') {
                 formData.url = document.getElementById('serverUrlHttp').value;
-                
+
                 // Headers
                 const headersText = document.getElementById('serverHeadersHttp').value;
                 if (headersText) {
@@ -981,14 +1300,14 @@
                 } else {
                     formData.headers = {};
                 }
-                
+
                 // Timeout
                 formData.timeout = parseInt(document.getElementById('serverTimeoutHttp').value) || 30;
-                
+
             } else if (type === 'openapi') {
                 formData.spec_url = document.getElementById('serverSpecUrl').value;
                 formData.api_base_url = document.getElementById('serverApiBaseUrl').value;
-                
+
                 // Route configurations
                 const routeConfigsText = document.getElementById('serverRouteConfigs').value;
                 if (routeConfigsText) {
@@ -1000,11 +1319,11 @@
                 } else {
                     formData.route_configs = [];
                 }
-                
+
                 // Timeout
                 formData.timeout = parseInt(document.getElementById('serverTimeoutOpenapi').value) || 30;
             }
-            
+
             return formData;
         }
 
@@ -1016,11 +1335,11 @@
                 { element: document.getElementById('streamableHttpConfig'), type: 'streamable-http', requiredFields: ['serverUrlHttp'] },
                 { element: document.getElementById('openapiConfig'), type: 'openapi', requiredFields: ['serverSpecUrl', 'serverApiBaseUrl'] }
             ];
-            
+
             configs.forEach(config => {
                 const isVisible = type === config.type;
                 config.element.classList.toggle('hidden', !isVisible);
-                
+
                 // 动态设置required属性
                 config.requiredFields.forEach(fieldId => {
                     const field = document.getElementById(fieldId);
@@ -1044,7 +1363,7 @@
             showServerTypeFields('');
 
             // 类型选择变化处理
-            typeSelect.addEventListener('change', function() {
+            typeSelect.addEventListener('change', function () {
                 const type = this.value;
                 showServerTypeFields(type);
                 updateConfigJson();
@@ -1053,21 +1372,21 @@
 
             // 表单字段变化时更新JSON配置和保存缓存
             const formFields = [
-                'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs', 
-                'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse', 
+                'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs',
+                'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse',
                 'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
                 'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
                 'serverConfigJson'
             ];
-            
+
             formFields.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
-                    element.addEventListener('input', function() {
+                    element.addEventListener('input', function () {
                         updateConfigJson();
                         saveFormCache();
                     });
-                    element.addEventListener('change', function() {
+                    element.addEventListener('change', function () {
                         updateConfigJson();
                         saveFormCache();
                     });
@@ -1081,11 +1400,11 @@
         // 更新配置JSON
         function updateConfigJson() {
             const formData = getFormData();
-            
+
             // Remove name field from preview as it's not part of the config
             const configData = { ...formData };
             delete configData.name;
-            
+
             document.getElementById('serverConfigJson').value = JSON.stringify(configData, null, 2);
         }
 
@@ -1094,20 +1413,20 @@
             try {
                 const formData = {};
                 const formFields = [
-                    'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs', 
-                    'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse', 
+                    'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs',
+                    'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse',
                     'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
                     'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
                     'serverConfigJson'
                 ];
-                
+
                 formFields.forEach(id => {
                     const element = document.getElementById(id);
                     if (element) {
                         formData[id] = element.value;
                     }
                 });
-                
+
                 localStorage.setItem('mcpcat_form_cache', JSON.stringify(formData));
             } catch (error) {
                 console.warn('保存表单缓存失败:', error);
@@ -1119,9 +1438,9 @@
             try {
                 const cachedData = localStorage.getItem('mcpcat_form_cache');
                 if (!cachedData) return;
-                
+
                 const formData = JSON.parse(cachedData);
-                
+
                 // 恢复表单字段值
                 Object.keys(formData).forEach(id => {
                     const element = document.getElementById(id);
@@ -1129,14 +1448,14 @@
                         element.value = formData[id];
                     }
                 });
-                
+
                 // 如果有服务器类型，显示对应的配置区域
                 const serverType = formData.serverType;
                 if (serverType) {
                     showServerTypeFields(serverType);
                     updateConfigJson();
                 }
-                
+
                 console.log('已恢复表单缓存数据');
             } catch (error) {
                 console.warn('加载表单缓存失败:', error);
@@ -1160,32 +1479,32 @@
             if (confirm('确定要清除表单内容和缓存数据吗？')) {
                 // 重置表单
                 document.getElementById('addServerForm').reset();
-                
+
                 // 隐藏所有配置区域
                 document.getElementById('stdioConfig').classList.add('hidden');
                 document.getElementById('sseConfig').classList.add('hidden');
                 document.getElementById('streamableHttpConfig').classList.add('hidden');
                 document.getElementById('openapiConfig').classList.add('hidden');
-                
+
                 // 清空所有文本域
                 document.getElementById('serverEnv').value = '';
                 document.getElementById('serverHeadersSse').value = '';
                 document.getElementById('serverHeadersHttp').value = '';
                 document.getElementById('serverRouteConfigs').value = '';
                 document.getElementById('serverConfigJson').value = '';
-                
+
                 // 重置超时时间为默认值
                 document.getElementById('serverTimeoutStdio').value = '30';
                 document.getElementById('serverTimeoutSse').value = '30';
                 document.getElementById('serverTimeoutHttp').value = '30';
                 document.getElementById('serverTimeoutOpenapi').value = '30';
-                
+
                 // 清除缓存
                 clearFormCache();
-                
+
                 // 重新设置required属性
                 showServerTypeFields('');
-                
+
                 alert('表单和缓存已清除');
             }
         }
@@ -1194,24 +1513,24 @@
         function validateForm() {
             const name = document.getElementById('serverName').value.trim();
             const type = document.getElementById('serverType').value;
-            
+
             if (!name) {
                 alert('请输入服务器名称');
                 return false;
             }
-            
+
             if (!type) {
                 alert('请选择服务器类型');
                 return false;
             }
-            
+
             if (type === 'stdio') {
                 const command = document.getElementById('serverCommand').value.trim();
                 if (!command) {
                     alert('请输入命令');
                     return false;
                 }
-                
+
                 // Validate environment variables JSON
                 const envText = document.getElementById('serverEnv').value.trim();
                 if (envText) {
@@ -1222,14 +1541,14 @@
                         return false;
                     }
                 }
-                
+
             } else if (type === 'sse') {
                 const url = document.getElementById('serverUrl').value.trim();
                 if (!url) {
                     alert('请输入服务器URL');
                     return false;
                 }
-                
+
                 // Validate headers JSON
                 const headersText = document.getElementById('serverHeadersSse').value.trim();
                 if (headersText) {
@@ -1240,14 +1559,14 @@
                         return false;
                     }
                 }
-                
+
             } else if (type === 'streamable-http') {
                 const url = document.getElementById('serverUrlHttp').value.trim();
                 if (!url) {
                     alert('请输入服务器URL');
                     return false;
                 }
-                
+
                 // Validate headers JSON
                 const headersText = document.getElementById('serverHeadersHttp').value.trim();
                 if (headersText) {
@@ -1258,21 +1577,21 @@
                         return false;
                     }
                 }
-                
+
             } else if (type === 'openapi') {
                 const specUrl = document.getElementById('serverSpecUrl').value.trim();
                 const apiBaseUrl = document.getElementById('serverApiBaseUrl').value.trim();
-                
+
                 if (!specUrl) {
                     alert('请输入OpenAPI规范URL');
                     return false;
                 }
-                
+
                 if (!apiBaseUrl) {
                     alert('请输入API基础URL');
                     return false;
                 }
-                
+
                 // Validate route configurations JSON
                 const routeConfigsText = document.getElementById('serverRouteConfigs').value.trim();
                 if (routeConfigsText) {
@@ -1282,7 +1601,7 @@
                             alert('路由配置必须是数组格式');
                             return false;
                         }
-                        
+
                         // Validate each route config
                         for (const config of routeConfigs) {
                             if (!config.methods || !Array.isArray(config.methods)) {
@@ -1300,23 +1619,315 @@
                     }
                 }
             }
-            
+
             return true;
+        }
+
+        // 查看服务器详情功能
+        async function viewServerDetails(serverName) {
+            try {
+                // 获取服务器配置
+                const response = await fetch(`${API_BASE}/servers/${serverName}/config`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showDetailsModal(serverName, data.config, data.status);
+                } else {
+                    throw new Error(data.detail || '获取配置失败');
+                }
+            } catch (error) {
+                alert(`获取服务器详情失败: ${error.message}`);
+            }
+        }
+
+        // 显示详情模态框（只读）
+        function showDetailsModal(serverName, config, status) {
+            // 创建模态框HTML
+            const modalHtml = `
+                <div id="detailsModal" class="modal-overlay" onclick="closeDetailsModal(event)">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h3>服务器详情: ${serverName}</h3>
+                            <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="details-info">
+                                <div class="detail-item">
+                                    <label class="detail-label">服务器名称</label>
+                                    <div class="detail-value">${serverName}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <label class="detail-label">当前状态</label>
+                                    <div class="detail-value">
+                                        <span class="status-badge ${getStatusClass(status)}">${getStatusText(status)}</span>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <label class="detail-label">服务器类型</label>
+                                    <div class="detail-value">${config.type || '未知'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <label class="detail-label">完整配置</label>
+                                    <div class="detail-value">
+                                        <pre class="config-display">${JSON.stringify(config, null, 2)}</pre>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <label class="detail-label">端点信息</label>
+                                    <div class="detail-value">
+                                        <div class="endpoint-list">
+                                            <div class="endpoint-item">
+                                                <span class="endpoint-type">MCP端点:</span>
+                                                <code class="endpoint-code">/mcp/${serverName}</code>
+                                            </div>
+                                            <div class="endpoint-item">
+                                                <span class="endpoint-type">SSE端点:</span>
+                                                <code class="endpoint-code">/sse/${serverName}</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeDetailsModal()">关闭</button>
+                            <button class="btn btn-primary" onclick="closeDetailsModal(); editServer('${serverName}')">编辑配置</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加到页面
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // 关闭详情模态框
+        function closeDetailsModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('detailsModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 编辑服务器功能
+        async function editServer(serverName) {
+            try {
+                // 获取服务器配置
+                const response = await fetch(`${API_BASE}/servers/${serverName}/config`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    showEditModal(serverName, data.config);
+                } else {
+                    throw new Error(data.detail || '获取配置失败');
+                }
+            } catch (error) {
+                alert(`获取服务器配置失败: ${error.message}`);
+            }
+        }
+
+        // 显示编辑模态框
+        function showEditModal(serverName, config) {
+            // 创建模态框HTML
+            const modalHtml = `
+                <div id="editModal" class="modal-overlay" onclick="closeEditModal(event)">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <h3>编辑服务器: ${serverName}</h3>
+                            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editServerForm">
+                                <div class="form-group">
+                                    <label class="form-label">服务器名称</label>
+                                    <input type="text" value="${serverName}" class="form-input" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="editServerType">服务器类型</label>
+                                    <select id="editServerType" name="serverType" class="form-input" required>
+                                        <option value="stdio" ${config.type === 'stdio' ? 'selected' : ''}>stdio</option>
+                                        <option value="sse" ${config.type === 'sse' ? 'selected' : ''}>sse</option>
+                                        <option value="streamable-http" ${config.type === 'streamable-http' ? 'selected' : ''}>Streamable HTTP</option>
+                                        <option value="openapi" ${config.type === 'openapi' ? 'selected' : ''}>OpenAPI</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="editConfigJson">配置 (JSON)</label>
+                                    <textarea id="editConfigJson" class="form-input form-textarea" rows="15" required>${JSON.stringify(config, null, 2)}</textarea>
+                                    <small>直接编辑JSON配置，保存时会验证格式</small>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeEditModal()">取消</button>
+                            <button class="btn btn-primary" onclick="saveServerEdit('${serverName}')">保存更改</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加到页面
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // 关闭编辑模态框
+        function closeEditModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // 保存服务器编辑
+        async function saveServerEdit(serverName) {
+            try {
+                const configText = document.getElementById('editConfigJson').value;
+                let config;
+
+                try {
+                    config = JSON.parse(configText);
+                } catch (e) {
+                    alert('配置格式错误，请输入有效的JSON格式');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE}/servers/${serverName}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: serverName,
+                        config: config
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`服务器 "${serverName}" 配置更新成功！`);
+                    closeEditModal();
+                    await loadServers(); // 刷新列表
+                } else {
+                    throw new Error(data.detail || '更新失败');
+                }
+            } catch (error) {
+                alert(`更新服务器配置失败: ${error.message}`);
+            }
+        }
+
+        // 重启服务器
+        async function restartServer(serverName) {
+            if (!confirm(`确定要重启服务器 "${serverName}" 吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/servers/${serverName}/restart`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`服务器 "${serverName}" 重启成功`);
+                    await loadServers(); // 刷新列表
+                } else {
+                    throw new Error(data.detail || '重启失败');
+                }
+            } catch (error) {
+                alert(`重启服务器失败: ${error.message}`);
+            }
+        }
+
+        // 启动服务器
+        async function startServer(serverName) {
+            try {
+                const response = await fetch(`${API_BASE}/servers/${serverName}/start`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`服务器 "${serverName}" 启动成功`);
+                    await loadServers(); // 刷新列表
+                } else {
+                    throw new Error(data.detail || '启动失败');
+                }
+            } catch (error) {
+                alert(`启动服务器失败: ${error.message}`);
+            }
+        }
+
+        // 停止服务器
+        async function stopServer(serverName) {
+            if (!confirm(`确定要停止服务器 "${serverName}" 吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/servers/${serverName}/stop`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`服务器 "${serverName}" 停止成功`);
+                    await loadServers(); // 刷新列表
+                } else {
+                    throw new Error(data.detail || '停止失败');
+                }
+            } catch (error) {
+                alert(`停止服务器失败: ${error.message}`);
+            }
+        }
+
+        // 删除服务器
+        async function deleteServer(serverName) {
+            if (!confirm(`确定要删除服务器 "${serverName}" 吗？\n\n此操作不可撤销！`)) {
+                return;
+            }
+
+            // 二次确认
+            if (!confirm(`请再次确认删除服务器 "${serverName}"？\n\n删除后配置文件中的相关配置也会被移除。`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/servers/${serverName}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`服务器 "${serverName}" 删除成功`);
+                    await loadServers(); // 刷新列表
+                } else {
+                    throw new Error(data.detail || '删除失败');
+                }
+            } catch (error) {
+                alert(`删除服务器失败: ${error.message}`);
+            }
         }
 
         // 处理添加服务器
         async function handleAddServer(event) {
             event.preventDefault();
-            
+
             // 验证表单
             if (!validateForm()) {
                 return;
             }
-            
+
             const alertDiv = document.getElementById('addServerAlert');
             const submitBtn = document.getElementById('addServerBtn');
             const originalBtnText = submitBtn.textContent;
-            
+
             // 显示加载状态
             submitBtn.innerHTML = '<span class="loading"></span> 添加中...';
             submitBtn.disabled = true;
@@ -1325,11 +1936,11 @@
             try {
                 const formData = getFormData();
                 const name = formData.name;
-                
+
                 if (!name.trim()) {
                     throw new Error('请输入服务器名称');
                 }
-                
+
                 // 构建配置对象（移除name字段）
                 const config = { ...formData };
                 delete config.name;
@@ -1366,14 +1977,14 @@
                 document.getElementById('sseConfig').classList.add('hidden');
                 document.getElementById('streamableHttpConfig').classList.add('hidden');
                 document.getElementById('openapiConfig').classList.add('hidden');
-                
+
                 // 清空所有文本域
                 document.getElementById('serverEnv').value = '';
                 document.getElementById('serverHeadersSse').value = '';
                 document.getElementById('serverHeadersHttp').value = '';
                 document.getElementById('serverRouteConfigs').value = '';
                 document.getElementById('serverConfigJson').value = '';
-                
+
                 // 重置超时时间为默认值
                 document.getElementById('serverTimeoutStdio').value = '30';
                 document.getElementById('serverTimeoutSse').value = '30';
@@ -1398,4 +2009,5 @@
         }
     </script>
 </body>
+
 </html>

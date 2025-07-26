@@ -5,11 +5,135 @@ import asyncio
 from typing import Dict, List, Any, Optional, Callable, Set
 from contextlib import AsyncExitStack, asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from app.services.config_service import ConfigService
 from app.services.mcp_factory import MCPServerFactory
 
 logger = logging.getLogger(__name__)
+
+
+class MCPProxyApp:
+    """
+    MCP服务器代理应用 - 允许动态切换底层MCP应用实例
+    
+    这个代理应用被FastAPI挂载，内部可以动态转发请求到不同的MCP应用实例，
+    从而实现配置热重载而无需重启整个应用。
+    """
+    
+    def __init__(self, server_name: str, server_manager: 'MCPServerManager', transport_type: str = 'mcp'):
+        """
+        初始化代理应用
+        
+        Args:
+            server_name: 服务器名称
+            server_manager: 服务器管理器实例
+            transport_type: 传输类型 ('mcp' 或 'sse')
+        """
+        self.server_name = server_name
+        self.server_manager = server_manager
+        self.transport_type = transport_type
+    
+    async def __call__(self, scope, receive, send):
+        """
+        ASGI应用接口 - 处理所有传入的请求
+        
+        Args:
+            scope: ASGI scope
+            receive: ASGI receive callable
+            send: ASGI send callable
+        """
+        try:
+            # 获取当前的服务器信息
+            server_info = self.server_manager.server_info.get(self.server_name)
+            
+            if not server_info:
+                # 服务器不存在
+                await self._send_error_response(
+                    scope, receive, send,
+                    status_code=404,
+                    message=f"MCP服务器 '{self.server_name}' 不存在"
+                )
+                return
+            
+            # 检查服务器状态
+            server_status = server_info.get('status', 'unknown')
+            if server_status != 'running':
+                # 服务器未运行
+                await self._send_error_response(
+                    scope, receive, send,
+                    status_code=503,
+                    message=f"MCP服务器 '{self.server_name}' 当前不可用 (状态: {server_status})"
+                )
+                return
+            
+            # 获取目标应用实例
+            if self.transport_type == 'mcp':
+                target_app = server_info.get('mcp_app')
+            elif self.transport_type == 'sse':
+                target_app = server_info.get('sse_app')
+            else:
+                await self._send_error_response(
+                    scope, receive, send,
+                    status_code=500,
+                    message=f"不支持的传输类型: {self.transport_type}"
+                )
+                return
+            
+            if not target_app:
+                # 目标应用不可用
+                await self._send_error_response(
+                    scope, receive, send,
+                    status_code=503,
+                    message=f"MCP服务器 '{self.server_name}' 的 {self.transport_type} 应用不可用"
+                )
+                return
+            
+            # 转发请求到目标应用
+            await target_app(scope, receive, send)
+            
+        except Exception as e:
+            # 处理代理层的异常
+            logger.error(f"MCP代理应用 {self.server_name} 处理请求时出错: {e}")
+            try:
+                await self._send_error_response(
+                    scope, receive, send,
+                    status_code=500,
+                    message=f"代理服务器内部错误: {str(e)}"
+                )
+            except:
+                # 如果连错误响应都发送失败，只能记录日志
+                logger.error(f"发送错误响应失败: {e}")
+    
+    async def _send_error_response(self, scope, receive, send, status_code: int, message: str):
+        """
+        发送错误响应
+        
+        Args:
+            scope: ASGI scope
+            receive: ASGI receive callable  
+            send: ASGI send callable
+            status_code: HTTP状态码
+            message: 错误消息
+        """
+        if scope['type'] == 'http':
+            # HTTP请求，返回JSON错误响应
+            response = JSONResponse(
+                content={"error": message, "server": self.server_name},
+                status_code=status_code
+            )
+            await response(scope, receive, send)
+        else:
+            # 其他类型的请求（如WebSocket），发送基本的错误响应
+            await send({
+                'type': 'http.response.start',
+                'status': status_code,
+                'headers': [[b'content-type', b'text/plain']],
+            })
+            await send({
+                'type': 'http.response.body',
+                'body': message.encode('utf-8'),
+            })
 
 
 class MCPServerManager:
@@ -80,9 +204,13 @@ class MCPServerManager:
             mcp_app = mcp.http_app(path='/')
             sse_app = mcp.http_app(path="/", transport="sse")
             
-            # 添加到挂载列表 - 与原逻辑完全一致
-            self.app_mount_list.append({"path": f'/mcp/{key}', "app": mcp_app})
-            self.app_mount_list.append({"path": f'/sse/{key}', "app": sse_app})
+            # 创建代理应用 - 关键改进：使用代理而不是直接挂载
+            mcp_proxy = MCPProxyApp(key, self, 'mcp')
+            sse_proxy = MCPProxyApp(key, self, 'sse')
+            
+            # 添加到挂载列表 - 挂载代理应用而不是直接的MCP应用
+            self.app_mount_list.append({"path": f'/mcp/{key}', "app": mcp_proxy})
+            self.app_mount_list.append({"path": f'/sse/{key}', "app": sse_proxy})
             
             # 重要：正确管理FastMCP的生命周期
             # FastMCP 应用的 lifespan 必须被父应用管理才能正确初始化
@@ -134,28 +262,30 @@ class MCPServerManager:
             return False
         
         try:
-            # 查找该服务器的挂载配置
-            server_mounts = [
-                mount for mount in self.app_mount_list 
-                if mount['path'] in [f'/mcp/{server_name}', f'/sse/{server_name}']
-            ]
+            # 为动态添加的服务器创建代理应用
+            mcp_proxy = MCPProxyApp(server_name, self, 'mcp')
+            sse_proxy = MCPProxyApp(server_name, self, 'sse')
             
-            if not server_mounts:
-                logger.error(f"未找到服务器 {server_name} 的挂载配置")
-                return False
+            # 动态挂载代理应用
+            mcp_path = f'/mcp/{server_name}'
+            sse_path = f'/sse/{server_name}'
             
-            # 动态挂载
-            for mount_config in server_mounts:
-                path = mount_config['path']
-                sub_app = mount_config['app']
+            try:
+                print(f"动态挂载 {mcp_path} 到应用")
+                app.mount(mcp_path, mcp_proxy)
+                logger.info(f"✓ 成功挂载 {mcp_path}")
                 
-                try:
-                    print(f"动态挂载 {path} 到应用")
-                    app.mount(path, sub_app)
-                    logger.info(f"✓ 成功挂载 {path}")
-                except Exception as mount_error:
-                    # 如果挂载失败（可能是路径冲突），记录但继续
-                    logger.warning(f"挂载 {path} 时出现警告: {mount_error}")
+                print(f"动态挂载 {sse_path} 到应用")
+                app.mount(sse_path, sse_proxy)
+                logger.info(f"✓ 成功挂载 {sse_path}")
+                
+                # 更新挂载列表
+                self.app_mount_list.append({"path": mcp_path, "app": mcp_proxy})
+                self.app_mount_list.append({"path": sse_path, "app": sse_proxy})
+                
+            except Exception as mount_error:
+                # 如果挂载失败（可能是路径冲突），记录但继续
+                logger.warning(f"挂载时出现警告: {mount_error}")
             
             # 更新服务器状态
             self._update_server_status(server_name, 'mounted')
@@ -243,6 +373,8 @@ class MCPServerManager:
                 task = asyncio.create_task(
                     self._run_dynamic_server_lifespan(key, self.main_app)
                 )
+                # 为任务添加服务器名称标识
+                task._server_name = key
                 self.dynamic_tasks.add(task)
                 
                 # 添加回调来清理完成的任务
@@ -379,4 +511,214 @@ class MCPServerManager:
         Returns:
             Dict[str, Callable]: 生命周期任务字典
         """
-        return self.lifespan_tasks.copy() 
+        return self.lifespan_tasks.copy()
+    
+    async def stop_server(self, server_name: str) -> bool:
+        """
+        停止指定服务器（保持路由挂载）
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            bool: 是否成功停止
+        """
+        if server_name not in self.server_info:
+            logger.error(f"服务器 {server_name} 不存在")
+            return False
+        
+        try:
+            # 查找并取消对应的动态任务
+            task_to_cancel = None
+            for task in self.dynamic_tasks:
+                if hasattr(task, '_server_name') and task._server_name == server_name:
+                    task_to_cancel = task
+                    break
+            
+            if task_to_cancel and not task_to_cancel.done():
+                task_to_cancel.cancel()
+                try:
+                    await asyncio.wait_for(task_to_cancel, timeout=5.0)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    pass
+                self.dynamic_tasks.discard(task_to_cancel)
+            
+            # 更新服务器状态
+            self._update_server_status(server_name, 'stopped')
+            logger.info(f"✓ 服务器 {server_name} 停止成功")
+            return True
+            
+        except Exception as e:
+            logger.error(f"停止服务器 {server_name} 失败: {e}")
+            self._update_server_status(server_name, 'failed', str(e))
+            return False
+    
+    async def start_server(self, server_name: str) -> bool:
+        """
+        启动指定服务器
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            bool: 是否成功启动
+        """
+        if server_name not in self.server_info:
+            logger.error(f"服务器 {server_name} 不存在")
+            return False
+        
+        try:
+            # 检查服务器是否已经在运行
+            if self.server_info[server_name]['status'] == 'running':
+                logger.info(f"服务器 {server_name} 已经在运行")
+                return True
+            
+            # 如果应用已经启动，启动服务器的生命周期
+            if self.app_started and self.main_app:
+                task = asyncio.create_task(
+                    self._run_dynamic_server_lifespan(server_name, self.main_app)
+                )
+                # 为任务添加服务器名称标识
+                task._server_name = server_name
+                self.dynamic_tasks.add(task)
+                task.add_done_callback(self.dynamic_tasks.discard)
+                
+                # 等待一小段时间确保服务器启动
+                await asyncio.sleep(0.1)
+                
+                logger.info(f"✓ 服务器 {server_name} 启动成功")
+                return True
+            else:
+                # 如果应用还没启动，只更新状态
+                self._update_server_status(server_name, 'loaded')
+                return True
+                
+        except Exception as e:
+            logger.error(f"启动服务器 {server_name} 失败: {e}")
+            self._update_server_status(server_name, 'failed', str(e))
+            return False
+    
+    async def restart_server(self, server_name: str, new_config: dict = None) -> bool:
+        """
+        重启服务器，可选择更新配置
+        
+        Args:
+            server_name: 服务器名称
+            new_config: 新的配置（可选）
+            
+        Returns:
+            bool: 是否成功重启
+        """
+        if server_name not in self.server_info:
+            logger.error(f"服务器 {server_name} 不存在")
+            return False
+        
+        try:
+            logger.info(f"开始重启服务器 {server_name}")
+            self._update_server_status(server_name, 'restarting')
+            
+            # 1. 停止当前服务
+            await self.stop_server(server_name)
+            
+            # 等待一小段时间确保旧的生命周期完全关闭
+            await asyncio.sleep(0.2)
+            
+            # 2. 更新配置（如果提供）
+            if new_config:
+                # 验证新配置
+                from app.services.config_service import ConfigService
+                is_valid, error_msg = ConfigService.validate_server_config(new_config)
+                if not is_valid:
+                    logger.error(f"新配置验证失败: {error_msg}")
+                    self._update_server_status(server_name, 'failed', f"配置验证失败: {error_msg}")
+                    return False
+                
+                # 更新配置文件
+                if not ConfigService.update_server_config(server_name, new_config):
+                    logger.error("更新配置文件失败")
+                    self._update_server_status(server_name, 'failed', "更新配置文件失败")
+                    return False
+                
+                # 更新内存中的配置
+                self.server_info[server_name]['config'] = new_config
+            
+            # 3. 重新创建服务器实例
+            config = new_config or self.server_info[server_name]['config']
+            mcp = MCPServerFactory.create_server(server_name, config)
+            if not mcp:
+                logger.error("重新创建MCP服务器实例失败")
+                self._update_server_status(server_name, 'failed', "创建服务器实例失败")
+                return False
+            
+            # 4. 更新服务器信息
+            self.server_info[server_name]['mcp'] = mcp
+            mcp_app = mcp.http_app(path='/')
+            sse_app = mcp.http_app(path="/", transport="sse")
+            self.server_info[server_name]['mcp_app'] = mcp_app
+            self.server_info[server_name]['sse_app'] = sse_app
+            
+            # 5. 重要：更新生命周期任务为新的MCP实例的生命周期
+            self.lifespan_tasks[server_name] = mcp_app.lifespan
+            
+            # 注意：不需要更新挂载列表，因为代理应用会自动使用server_info中的新应用实例
+            
+            # 7. 启动新的服务
+            success = await self.start_server(server_name)
+            
+            if success:
+                logger.info(f"✓ 服务器 {server_name} 重启成功")
+                return True
+            else:
+                logger.error(f"重启后启动服务器 {server_name} 失败")
+                return False
+                
+        except Exception as e:
+            logger.error(f"重启服务器 {server_name} 失败: {e}")
+            self._update_server_status(server_name, 'failed', str(e))
+            return False
+    
+    async def remove_server(self, server_name: str) -> bool:
+        """
+        完全移除服务器
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            bool: 是否成功移除
+        """
+        if server_name not in self.server_info:
+            logger.warning(f"服务器 {server_name} 不存在，跳过移除")
+            return True
+        
+        try:
+            logger.info(f"开始移除服务器 {server_name}")
+            
+            # 1. 停止服务
+            await self.stop_server(server_name)
+            
+            # 2. 清理内存数据
+            if server_name in self.server_info:
+                del self.server_info[server_name]
+            if server_name in self.lifespan_tasks:
+                del self.lifespan_tasks[server_name]
+            
+            # 3. 从配置文件中移除
+            from app.services.config_service import ConfigService
+            ConfigService.remove_server_from_config(server_name)
+            
+            # 4. 清理挂载列表（移除代理应用引用）
+            self.app_mount_list = [
+                mount for mount in self.app_mount_list 
+                if not mount['path'].endswith(f'/{server_name}')
+            ]
+            
+            # 注意：FastAPI不支持动态卸载路由，所以代理应用仍然存在
+            # 但由于server_info已被删除，代理会返回404错误
+            
+            logger.info(f"✓ 服务器 {server_name} 移除成功")
+            return True
+            
+        except Exception as e:
+            logger.error(f"移除服务器 {server_name} 失败: {e}")
+            return False 
