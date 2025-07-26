@@ -50,8 +50,6 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-logs/
-data/
 *.log
 .env.example
 

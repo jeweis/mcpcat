@@ -82,7 +82,7 @@ echo   • %FULL_IMAGE_NAME%:%VERSION%
 echo   • %FULL_IMAGE_NAME%:latest
 echo.
 echo 🚀 使用方法:
-echo   docker run -d -p 8000:8000 -v "%cd%\config.json:/app/config.json" %FULL_IMAGE_NAME%:latest
+echo   docker run -d -p 8000:8000 -v "%cd%\.mcpcat:/app/.mcpcat" %FULL_IMAGE_NAME%:latest
 echo.
 echo 🌐 Docker Hub 链接:
 echo   https://hub.docker.com/r/%DOCKER_USERNAME%/%IMAGE_NAME%

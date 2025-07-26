@@ -110,9 +110,7 @@ environment:
 
 默认配置会挂载以下目录：
 
-- `./config.json:/app/config.json:ro` - **配置文件（默认从宿主机挂载，只读）**
-- `./logs:/app/logs` - 日志目录
-- `./data:/app/data` - 数据目录（可选）
+- `./.mcpcat:/app/.mcpcat` - **配置目录（默认从宿主机挂载）**
 
 **重要说明**：
 - `config.json` 文件会默认从宿主机当前目录挂载到容器内

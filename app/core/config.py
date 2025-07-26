@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # MCP配置文件路径
-    mcpcat_config_path: str = "config.json"
+    mcpcat_config_path: str = ".mcpcat/config.json"
     
     # 日志配置（如果以后需要）
     log_level: str = "INFO"

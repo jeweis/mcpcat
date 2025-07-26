@@ -178,7 +178,6 @@ Desktop.ini
 *~
 
 # Logs
-logs/
 *.log
 
 # Database

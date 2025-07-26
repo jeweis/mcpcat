@@ -15,12 +15,33 @@ docker run -d \
   jeweis/mcpcat:latest
 
 # 使用自定义配置启动
+
+**Linux/Mac**:
+```bash
 docker run -d \
   --name mcpcat \
   -p 8000:8000 \
-  -v $(pwd)/config.json:/app/config.json:ro \
-  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/.mcpcat:/app/.mcpcat \
   jeweis/mcpcat:latest
+```
+
+**Windows PowerShell**:
+```powershell
+docker run -d `
+  --name mcpcat `
+  -p 8000:8000 `
+  -v ${PWD}/.mcpcat:/app/.mcpcat `
+  jeweis/mcpcat:latest
+```
+
+**Windows CMD**:
+```cmd
+docker run -d ^
+  --name mcpcat ^
+  -p 8000:8000 ^
+  -v %cd%/.mcpcat:/app/.mcpcat ^
+  jeweis/mcpcat:latest
+```
 ```
 
 ### 使用 Docker Compose
@@ -35,9 +56,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./config.json:/app/config.json:ro
-      - ./logs:/app/logs
-      - ./data:/app/data
+      - ./.mcpcat:/app/.mcpcat
     environment:
       - APP_NAME=mcpcat
       - LOG_LEVEL=INFO
@@ -58,15 +77,13 @@ services:
 | `HOST` | 0.0.0.0 | 监听地址 |
 | `PORT` | 8000 | 监听端口 |
 | `LOG_LEVEL` | INFO | 日志级别 |
-| `MCPCAT_CONFIG_PATH` | config.json | 配置文件路径 |
+| `MCPCAT_CONFIG_PATH` | .mcpcat/config.json | 配置文件路径 |
 
 ## 📁 卷挂载
 
 | 容器路径 | 描述 | 建议挂载 |
 |----------|------|----------|
-| `/app/config.json` | MCP服务器配置文件 | 必需 |
-| `/app/logs` | 应用日志目录 | 推荐 |
-| `/app/data` | 数据存储目录 | 可选 |
+| `/app/.mcpcat/config.json` | MCP服务器配置文件 | 必需 |
 
 ## 🏥 健康检查
 
@@ -83,8 +100,11 @@ docker inspect mcpcat --format='{{json .State.Health}}'
 ## 📊 监控和日志
 
 ```bash
-# 查看实时日志
+# 查看实时日志（推荐方式）
 docker logs -f mcpcat
+
+# 使用docker-compose查看日志
+docker-compose logs -f
 
 # 查看容器资源使用
 docker stats mcpcat
@@ -93,6 +113,8 @@ docker stats mcpcat
 docker exec -it mcpcat /bin/bash
 ```
 
+**注意**：MCPCat 的日志输出到标准输出流，通过 `docker logs` 命令查看，不会写入文件。
+
 ## 🔄 更新和维护
 
 ```bash
@@ -100,10 +122,10 @@ docker exec -it mcpcat /bin/bash
 docker pull jeweis/mcpcat:latest
 docker stop mcpcat
 docker rm mcpcat
-docker run -d --name mcpcat -p 8000:8000 -v $(pwd)/config.json:/app/config.json jeweis/mcpcat:latest
+docker run -d --name mcpcat -p 8000:8000 -v $(pwd)/.mcpcat:/app/.mcpcat jeweis/mcpcat:latest
 
 # 备份配置
-docker cp mcpcat:/app/config.json ./config-backup.json
+docker cp mcpcat:/app/.mcpcat/config.json ./config-backup.json
 
 # 清理旧镜像
 docker image prune -f
@@ -119,7 +141,7 @@ docker image prune -f
    docker logs mcpcat
    
    # 检查配置文件格式
-   docker run --rm -v $(pwd)/config.json:/app/config.json jeweis/mcpcat:latest python -c "import json; json.load(open('/app/config.json'))"
+   docker run --rm -v $(pwd)/.mcpcat:/app/.mcpcat jeweis/mcpcat:latest python -c "import json; json.load(open('/app/.mcpcat/config.json'))"
    ```
 
 2. **端口冲突**
@@ -131,21 +153,43 @@ docker image prune -f
 3. **权限问题**
    ```bash
    # 检查文件权限
-   ls -la config.json
+   ls -la .mcpcat/config.json
    
    # 修复权限
-   chmod 644 config.json
+   chmod 644 .mcpcat/config.json
    ```
 
 ### 调试模式
 
 ```bash
 # 以调试模式启动
+
+**Linux/Mac**:
+```bash
 docker run -it --rm \
   -p 8000:8000 \
-  -v $(pwd)/config.json:/app/config.json \
+  -v $(pwd)/.mcpcat:/app/.mcpcat \
   -e LOG_LEVEL=DEBUG \
   jeweis/mcpcat:latest
+```
+
+**Windows PowerShell**:
+```powershell
+docker run -it --rm `
+  -p 8000:8000 `
+  -v ${PWD}/.mcpcat:/app/.mcpcat `
+  -e LOG_LEVEL=DEBUG `
+  jeweis/mcpcat:latest
+```
+
+**Windows CMD**:
+```cmd
+docker run -it --rm ^
+  -p 8000:8000 ^
+  -v %cd%/.mcpcat:/app/.mcpcat ^
+  -e LOG_LEVEL=DEBUG ^
+  jeweis/mcpcat:latest
+```
 ```
 
 ## 🔗 相关链接

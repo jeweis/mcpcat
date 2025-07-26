@@ -74,7 +74,7 @@ if [ $? -eq 0 ]; then
     echo "  • ${FULL_IMAGE_NAME}:latest"
     echo ""
     echo -e "${BLUE}🚀 使用方法:${NC}"
-    echo "  docker run -d -p 8000:8000 -v \$(pwd)/config.json:/app/config.json ${FULL_IMAGE_NAME}:latest"
+    echo "  docker run -d -p 8000:8000 -v \$(pwd)/.mcpcat:/app/.mcpcat ${FULL_IMAGE_NAME}:latest"
     echo ""
     echo -e "${BLUE}🌐 Docker Hub 链接:${NC}"
     echo "  https://hub.docker.com/r/${DOCKER_USERNAME}/${IMAGE_NAME}"

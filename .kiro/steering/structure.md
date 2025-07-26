@@ -11,10 +11,10 @@ mcpcat/
 ├── Dockerfile             # 开发环境 Docker 镜像
 ├── Dockerfile.production  # 生产环境 Docker 镜像
 ├── .env.example           # 环境变量模板
+├── .mcpcat/               # 配置目录
+│   └── config.json        # MCP服务器配置文件
 ├── static/                # 静态 Web 资源
 │   └── index.html         # 前端管理界面
-├── logs/                  # 应用日志 (运行时创建)
-├── data/                  # 持久化数据存储
 └── app/                   # 主应用包
 ```
 
@@ -72,6 +72,6 @@ app/
 
 ## 部署结构
 - **Docker**: 多阶段构建，包含开发和生产版本
-- **卷挂载**: 配置、日志和数据目录
+- **卷挂载**: 配置目录
 - **健康检查**: 内置容器健康监控
 - **网络**: 用于服务通信的隔离 Docker 网络

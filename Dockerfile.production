@@ -64,9 +64,8 @@ COPY --chown=mcpcat:mcpcat static/ ./static/
 COPY --chown=mcpcat:mcpcat config.json ./
 COPY --chown=mcpcat:mcpcat .env.example ./
 
-# 创建必要的目录
-RUN mkdir -p /app/logs /app/data && \
-    chown -R mcpcat:mcpcat /app
+# 设置目录权限
+RUN chown -R mcpcat:mcpcat /app
 
 # 切换到非 root 用户
 USER mcpcat
