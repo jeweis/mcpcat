@@ -15,6 +15,9 @@ services:
       - PORT=8000
       - LOG_LEVEL=INFO
       - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json
+      # 可选：设置默认API Key
+      # - MCPCAT_DEFAULT_ADMIN_KEY=your-admin-key
+      # - MCPCAT_DEFAULT_READ_KEY=your-read-key
     volumes:
       # 挂载配置目录（默认从宿主机挂载）
       - ./.mcpcat:/app/.mcpcat:rw

@@ -67,7 +67,7 @@ docker-compose logs -f
 ```
 
 ### 配置管理
-- 主配置: `config.json` (MCP 服务器定义)
+- 主配置: `.mcpcat/config.json` (MCP 服务器定义和安全配置)
 - 环境变量: `.env` 文件 (可选，参考 `.env.example`)
 - 通过 Pydantic BaseSettings 管理设置，支持环境变量覆盖
 

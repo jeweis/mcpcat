@@ -15,22 +15,30 @@
 
 ### 1. 检查配置文件
 ```bash
-# 检查当前目录是否存在 config.json
-ls config.json
+# 检查当前目录是否存在配置目录和文件
+ls -la .mcpcat/config.json
 ```
 
 ### 2. 如果没有配置文件，创建一个
 ```bash
-# 复制示例配置文件（如果存在）
-cp config.json.example config.json
+# 创建配置目录
+mkdir -p .mcpcat
+
+# 复制示例配置文件
+cp config.example.json .mcpcat/config.json
 
 # 或者创建基本配置文件
-cat > config.json << EOF
+cat > .mcpcat/config.json << EOF
 {
-  "servers": [],
-  "settings": {
-    "auto_start": false,
-    "log_level": "INFO"
+  "mcpServers": {},
+  "security": {
+    "api_keys": [],
+    "auth_header_name": "Mcpcat-Key"
+  },
+  "app": {
+    "version": "0.1.1",
+    "log_level": "INFO",
+    "enable_metrics": true
   }
 }
 EOF
@@ -39,9 +47,9 @@ EOF
 ### 3. 编辑配置文件
 ```bash
 # 使用你喜欢的编辑器编辑配置
-nano config.json
+nano .mcpcat/config.json
 # 或
-vim config.json
+vim .mcpcat/config.json
 ```
 
 ## 快速开始
@@ -103,7 +111,7 @@ environment:
   - HOST=0.0.0.0                      # 监听地址
   - PORT=8000                         # 监听端口
   - LOG_LEVEL=INFO                    # 日志级别
-  - MCPCAT_CONFIG_PATH=/app/config.json # 配置文件路径
+  - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json # 配置文件路径
 ```
 
 ### 数据持久化
@@ -113,9 +121,9 @@ environment:
 - `./.mcpcat:/app/.mcpcat` - **配置目录（默认从宿主机挂载）**
 
 **重要说明**：
-- `config.json` 文件会默认从宿主机当前目录挂载到容器内
-- 请确保宿主机上存在 `config.json` 文件，否则容器启动可能失败
-- 如果没有配置文件，可以复制 `config.json` 示例文件进行修改
+- `.mcpcat/config.json` 文件会默认从宿主机当前目录挂载到容器内
+- 请确保宿主机上存在 `.mcpcat/config.json` 文件，否则容器启动可能失败
+- 如果没有配置文件，可以复制 `config.example.json` 示例文件到 `.mcpcat/config.json` 进行修改
 
 ## 常用命令
 
@@ -175,7 +183,7 @@ services:
       - APP_NAME=mcpcat
       - LOG_LEVEL=WARNING  # 生产环境减少日志输出
     volumes:
-      - ./config.json:/app/config.json:ro
+      - ./.mcpcat:/app/.mcpcat:rw
       - mcpcat-logs:/app/logs
     restart: always  # 生产环境自动重启
     deploy:
@@ -295,7 +303,7 @@ docker inspect mcpcat-app
 
 ```bash
 # 备份配置文件
-cp config.json config.json.backup
+cp .mcpcat/config.json .mcpcat/config.json.backup
 
 # 备份日志
 tar -czf logs-backup-$(date +%Y%m%d).tar.gz logs/

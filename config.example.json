@@ -1,27 +1,86 @@
 {
-  "fetch": {
-    "type": "stdio",
-    "command": "uvx",
-    "args": [
-      "mcp-server-fetch"
-    ]
+  "mcpServers": {
+    "fetch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ],
+      "require_auth": false
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "time": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-time",
+        "--local-timezone=Asia/Shanghai"
+      ],
+      "env": {},
+      "timeout": 30
+    },
+    "sse-example": {
+      "type": "sse",
+      "url": "http://localhost:3001/sse",
+      "headers": {
+        "Authorization": "Bearer your-token"
+      },
+      "timeout": 30,
+      "require_auth": true
+    },
+    "streamable-http-example": {
+      "type": "streamable-http",
+      "url": "http://localhost:3002/streamable",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "timeout": 60,
+      "require_auth": false
+    },
+    "openapi-example": {
+      "type": "openapi",
+      "spec_url": "https://api.example.com/openapi.json",
+      "api_base_url": "https://api.example.com",
+      "route_configs": [
+        {
+          "methods": [
+            "GET",
+            "POST"
+          ],
+          "pattern": "^/api/.*"
+        }
+      ],
+      "timeout": 120,
+      "require_auth": true
+    }
   },
-  "sequential-thinking": {
-    "type": "stdio",
-    "command": "npx",
-    "args": [
-      "-y",
-      "@modelcontextprotocol/server-sequential-thinking"
-    ]
-  },
-  "time": {
-    "type": "stdio",
-    "command": "uvx",
-    "args": [
-      "mcp-server-time",
-      "--local-timezone=Asia/Shanghai"
+  "security": {
+    "api_keys": [
+      {
+        "key": "admin-key-example-replace-with-secure-key",
+        "name": "Admin Key",
+        "permission": "write",
+        "enabled": true
+      },
+      {
+        "key": "read-key-example-replace-with-secure-key",
+        "name": "Monitor Key",
+        "permission": "read",
+        "enabled": true
+      }
     ],
-    "env": {},
-    "timeout": 30
+    "auth_header_name": "Mcpcat-Key"
+  },
+  "app": {
+    "version": "0.1.1",
+    "log_level": "INFO",
+    "enable_metrics": true
   }
 }

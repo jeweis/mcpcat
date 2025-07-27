@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Union, Literal
 from enum import Enum
+from datetime import datetime
 
 
 class MCPTransportType(str, Enum):
@@ -19,6 +20,7 @@ class MCPBaseConfig(BaseModel):
     name: Optional[str] = None
     enabled: bool = True
     timeout: int = Field(default=30, ge=1, le=300)
+    require_auth: bool = Field(default=True, description="是否需要API Key认证")
     
     class Config:
         extra = "allow"  # 允许额外字段，保持兼容性
@@ -112,4 +114,70 @@ def config_to_dict(config: MCPConfig) -> dict:
         result['route_configs'] = [route.dict() for route in config.route_configs]
         return result
     else:
-        return config.dict() 
+        return config.dict()
+
+
+# 安全配置模型
+class PermissionType(str, Enum):
+    """权限类型枚举"""
+    READ = "read"
+    WRITE = "write"
+
+
+class APIKeyConfig(BaseModel):
+    """API Key配置"""
+    key: str = Field(..., min_length=8, description="API Key，至少8位")
+    name: str = Field(..., min_length=1, description="API Key名称")
+    permission: PermissionType = Field(..., description="权限级别")
+    enabled: bool = Field(default=True, description="是否启用")
+    created_at: Optional[datetime] = Field(default=None, description="创建时间")
+    expires_at: Optional[datetime] = Field(default=None, description="过期时间")
+    
+    @validator('key')
+    def validate_key(cls, v):
+        if len(v.strip()) < 8:
+            raise ValueError('API Key长度至少为8位')
+        return v.strip()
+
+
+class SecurityConfig(BaseModel):
+    """安全配置"""
+    api_keys: List[APIKeyConfig] = Field(default_factory=list, description="API Key列表")
+    auth_header_name: str = Field(default="Mcpcat-Key", description="认证头名称")
+    
+    @validator('api_keys')
+    def validate_unique_keys(cls, v):
+        keys = [key.key for key in v if key.enabled]
+        if len(keys) != len(set(keys)):
+            raise ValueError('API Key必须唯一')
+        return v
+    
+    @validator('auth_header_name')
+    def validate_header_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError('认证头名称不能为空')
+        # 简单的HTTP头名称验证
+        if not all(c.isalnum() or c in '-_' for c in v):
+            raise ValueError('认证头名称只能包含字母、数字、连字符和下划线')
+        return v.strip()
+
+
+class AppConfig(BaseModel):
+    """应用配置"""
+    version: str = Field(default="0.1.1", description="应用版本")
+    log_level: str = Field(default="INFO", description="日志级别")
+    enable_metrics: bool = Field(default=True, description="是否启用指标")
+
+
+class MCPCatConfig(BaseModel):
+    """MCPCat完整配置"""
+    mcp_servers: Dict[str, dict] = Field(default_factory=dict, alias="mcpServers")
+    security: SecurityConfig = Field(default_factory=SecurityConfig)
+    app: AppConfig = Field(default_factory=AppConfig)
+    
+    class Config:
+        allow_population_by_field_name = True  # 允许使用别名
+        extra = "allow"  # 允许额外字段
+
+
+ 

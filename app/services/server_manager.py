@@ -171,8 +171,8 @@ class MCPServerManager:
         """
         从配置文件加载所有MCP服务器 - 保持与原有逻辑完全一致
         """
-        # 使用 ConfigService.load_config() 保持向后兼容
-        mcp_server_list = ConfigService.load_config()
+        # 加载MCP服务器配置
+        mcp_server_list = ConfigService.load_mcp_servers_config()
         
         print("Loading MCP server list...")
         print("MCP server list loaded.")
@@ -488,6 +488,7 @@ class MCPServerManager:
             name: {
                 'status': info.get('status', 'unknown'),
                 'type': info.get('config', {}).get('type', 'unknown'),
+                'require_auth': info.get('config', {}).get('require_auth', True),
                 'error': info.get('error'),
                 'mcp_endpoint': f"/mcp/{name}",
                 'sse_endpoint': f"/sse/{name}"

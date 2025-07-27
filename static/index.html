@@ -44,6 +44,142 @@
             border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
+        /* 登录页面样式 */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-form h2 {
+            color: #1f2937;
+            margin-bottom: 32px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .login-form .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .login-form label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-form button:hover {
+            background: #2563eb;
+        }
+
+        .login-form button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .success-message {
+            color: #059669;
+            font-size: 14px;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* 主界面样式 */
+        .main-page {
+            display: none;
+        }
+
+        .main-page.authenticated {
+            display: flex;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .user-info span {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .user-info button {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            color: #374151;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .user-info button:hover {
+            background: #e5e7eb;
+        }
+
+        .readonly-notice {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+
         .logo-icon {
             width: 40px;
             height: 40px;
@@ -827,7 +963,21 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <!-- 登录页面 -->
+    <div id="login-container" class="login-page">
+        <div class="login-form">
+            <h2>MCPCat 管理控制台</h2>
+            <div class="form-group">
+                <label for="api-key-input">API Key</label>
+                <input type="password" id="api-key-input" placeholder="请输入API Key" autocomplete="current-password">
+            </div>
+            <button id="login-btn" onclick="login()">登录</button>
+            <div id="login-error" class="error-message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- 主应用界面 -->
+    <div id="main-container" class="app-container main-page">
         <!-- 侧边栏 -->
         <div class="sidebar">
             <div class="sidebar-header">
@@ -845,7 +995,7 @@
                     <span class="nav-icon">🖥️</span>
                     <span class="nav-text">服务器</span>
                 </a>
-                <a href="#add-server" class="nav-item" onclick="showSection('add-server')">
+                <a href="#add-server" class="nav-item add-server-nav" onclick="showSection('add-server')" style="display: none;">
                     <span class="nav-icon">➕</span>
                     <span class="nav-text">添加服务器</span>
                 </a>
@@ -865,8 +1015,19 @@
         <!-- 主内容区域 -->
         <div class="main-container">
             <div class="header">
-                <h1>mcpcat</h1>
-                <p>管理您的 MCP 服务器</p>
+                <div>
+                    <h1>mcpcat</h1>
+                    <p>管理您的 MCP 服务器</p>
+                </div>
+                <div class="user-info">
+                    <span id="current-user">用户</span>
+                    <button onclick="logout()">退出</button>
+                </div>
+            </div>
+            
+            <!-- 只读权限提示 -->
+            <div id="readonly-notice" class="readonly-notice" style="display: none;">
+                您当前使用只读权限，无法执行修改操作
             </div>
 
             <div class="main-content">
@@ -943,6 +1104,13 @@
                                         <select id="serverEnabled" name="serverEnabled" class="form-input">
                                             <option value="true">启用</option>
                                             <option value="false">禁用</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="serverRequireAuth">认证要求</label>
+                                        <select id="serverRequireAuth" name="serverRequireAuth" class="form-input">
+                                            <option value="true">需要API Key</option>
+                                            <option value="false">公开访问</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1062,6 +1230,255 @@
     </div>
 
     <script>
+        // 认证管理类
+        class AuthManager {
+            constructor() {
+                this.apiKey = localStorage.getItem('mcpcat_api_key');
+                this.userInfo = JSON.parse(localStorage.getItem('mcpcat_user_info') || '{}');
+                this.authHeaderName = 'Mcpcat-Key'; // 默认值，会动态获取
+                this.authConfigLoaded = false;
+                this.authConfigPromise = null;
+            }
+
+            async loadAuthConfig() {
+                // 避免重复加载
+                if (this.authConfigLoaded) {
+                    return;
+                }
+                
+                // 如果正在加载，等待现有的Promise
+                if (this.authConfigPromise) {
+                    return this.authConfigPromise;
+                }
+                
+                this.authConfigPromise = this._loadAuthConfigInternal();
+                return this.authConfigPromise;
+            }
+            
+            async _loadAuthConfigInternal() {
+                try {
+                    const response = await fetch('/api/auth/config');
+                    if (response.ok) {
+                        const config = await response.json();
+                        this.authHeaderName = config.auth_header_name || 'Mcpcat-Key';
+                        this.authConfigLoaded = true;
+                    }
+                } catch (error) {
+                    console.warn('Failed to load auth config, using default header name');
+                } finally {
+                    this.authConfigPromise = null;
+                }
+            }
+
+            async login(apiKey) {
+                try {
+                    // 确保已加载认证配置
+                    await this.loadAuthConfig();
+                    
+                    const headers = {
+                        'Content-Type': 'application/json'
+                    };
+                    headers[this.authHeaderName] = apiKey;
+                    
+                    const response = await fetch('/api/auth/verify', {
+                        method: 'POST',
+                        headers: headers
+                    });
+
+                    if (response.ok) {
+                        const userInfo = await response.json();
+                        this.apiKey = apiKey;
+                        this.userInfo = userInfo;
+
+                        // 保存到localStorage
+                        localStorage.setItem('mcpcat_api_key', apiKey);
+                        localStorage.setItem('mcpcat_user_info', JSON.stringify(userInfo));
+
+                        this.showMainInterface();
+                        return { success: true };
+                    } else {
+                        const error = await response.json();
+                        return { success: false, error: error.detail || 'Invalid API Key' };
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    return { success: false, error: 'Network error' };
+                }
+            }
+
+            logout() {
+                this.apiKey = null;
+                this.userInfo = {};
+                localStorage.removeItem('mcpcat_api_key');
+                localStorage.removeItem('mcpcat_user_info');
+                this.showLoginInterface();
+            }
+
+            getAuthHeaders() {
+                if (!this.apiKey) return {};
+                const headers = {};
+                headers[this.authHeaderName] = this.apiKey;
+                return headers;
+            }
+
+            hasPermission(permission) {
+                return this.userInfo.permission === 'write' || this.userInfo.permission === permission;
+            }
+
+            isAuthenticated() {
+                return !!this.apiKey && !!this.userInfo.name;
+            }
+
+            showLoginInterface() {
+                document.getElementById('login-container').style.display = 'flex';
+                document.getElementById('main-container').style.display = 'none';
+                document.getElementById('main-container').classList.remove('authenticated');
+            }
+
+            showMainInterface() {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('main-container').style.display = 'flex';
+                document.getElementById('main-container').classList.add('authenticated');
+                
+                // 更新用户信息显示
+                document.getElementById('current-user').textContent = 
+                    `${this.userInfo.name} (${this.userInfo.permission})`;
+                
+                // 根据权限显示/隐藏功能
+                this.updateUIBasedOnPermissions();
+                
+                // 刷新服务器列表
+                loadServers();
+            }
+
+            updateUIBasedOnPermissions() {
+                const isReadonly = this.userInfo.permission === 'read';
+                
+                // 显示/隐藏只读提示
+                const readonlyNotice = document.getElementById('readonly-notice');
+                if (readonlyNotice) {
+                    readonlyNotice.style.display = isReadonly ? 'block' : 'none';
+                }
+                
+                if (isReadonly) {
+                    // 隐藏所有操作按钮
+                    const actionButtons = document.querySelectorAll(
+                        '.edit-btn, .add-btn, .delete-btn, .start-btn, .stop-btn, .restart-btn, .action-btn'
+                    );
+                    actionButtons.forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                    
+                    // 隐藏添加服务器导航和按钮
+                    const addServerNav = document.querySelector('.add-server-nav');
+                    if (addServerNav) {
+                        addServerNav.style.display = 'none';
+                    }
+                    
+                    const addServerBtn = document.getElementById('addServerBtn');
+                    if (addServerBtn) {
+                        addServerBtn.style.display = 'none';
+                    }
+                } else {
+                    // 显示所有功能
+                    const addServerNav = document.querySelector('.add-server-nav');
+                    if (addServerNav) {
+                        addServerNav.style.display = 'flex';
+                    }
+                }
+            }
+
+            async autoLogin() {
+                if (this.apiKey) {
+                    const result = await this.login(this.apiKey);
+                    if (!result.success) {
+                        // 自动登录失败，清除存储的信息
+                        this.logout();
+                    }
+                } else {
+                    this.showLoginInterface();
+                }
+            }
+        }
+
+        // 全局认证管理器实例
+        const authManager = new AuthManager();
+
+        // 登录函数
+        async function login() {
+            const apiKeyInput = document.getElementById('api-key-input');
+            const loginBtn = document.getElementById('login-btn');
+            const errorDiv = document.getElementById('login-error');
+            
+            const apiKey = apiKeyInput.value.trim();
+            if (!apiKey) {
+                showLoginError('请输入API Key');
+                return;
+            }
+
+            // 显示加载状态
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+            errorDiv.style.display = 'none';
+
+            const result = await authManager.login(apiKey);
+            
+            // 恢复按钮状态
+            loginBtn.disabled = false;
+            loginBtn.textContent = '登录';
+
+            if (!result.success) {
+                showLoginError(result.error);
+            }
+        }
+
+        // 退出登录函数
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                authManager.logout();
+            }
+        }
+
+        // 显示登录错误
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 重写fetch函数，自动添加认证头
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            if (authManager.isAuthenticated()) {
+                options.headers = {
+                    ...options.headers,
+                    ...authManager.getAuthHeaders()
+                };
+            }
+
+            return originalFetch(url, options).then(response => {
+                if (response.status === 401) {
+                    // 认证失败，跳转到登录页面
+                    authManager.logout();
+                    throw new Error('Authentication required');
+                }
+                return response;
+            });
+        };
+
+        // 页面加载时自动尝试登录
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加回车键登录支持
+            document.getElementById('api-key-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+            
+            // 尝试自动登录
+            authManager.autoLogin();
+        });
+
         // Section切换功能
         function showSection(sectionName) {
             // 隐藏所有section
@@ -1174,6 +1591,11 @@
                         <div class="server-details">
                             <div class="server-basic-info">
                                 <p><strong>类型:</strong> ${server.type || '未知'}</p>
+                                <p><strong>认证:</strong> 
+                                    <span style="color: ${server.require_auth !== false ? '#059669' : '#dc2626'};">
+                                        ${server.require_auth !== false ? '需要API Key' : '公开访问'}
+                                    </span>
+                                </p>
                                 ${server.error ? `<p><strong>错误:</strong> <span style="color: #dc2626;">${server.error}</span></p>` : ''}
                             </div>
                             <div class="server-endpoints">
@@ -1196,19 +1618,21 @@
                             <button class="btn btn-secondary" onclick="viewServerDetails('${name}')">
                                 查看详情
                             </button>
-                            <button class="btn btn-secondary" onclick="editServer('${name}')">
+                            ${authManager.hasPermission('write') ? `
+                            <button class="btn btn-secondary edit-btn" onclick="editServer('${name}')">
                                 编辑配置
                             </button>
-                            <button class="btn btn-success" onclick="restartServer('${name}')">
+                            <button class="btn btn-success restart-btn" onclick="restartServer('${name}')">
                                 重启服务
                             </button>
                             ${server.status === 'running' ?
-                        `<button class="btn btn-danger" onclick="stopServer('${name}')">停止</button>` :
-                        `<button class="btn btn-success" onclick="startServer('${name}')">启动</button>`
+                        `<button class="btn btn-danger stop-btn" onclick="stopServer('${name}')">停止</button>` :
+                        `<button class="btn btn-success start-btn" onclick="startServer('${name}')">启动</button>`
                     }
-                            <button class="btn btn-danger" onclick="deleteServer('${name}')">
+                            <button class="btn btn-danger delete-btn" onclick="deleteServer('${name}')">
                                 删除
                             </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1293,7 +1717,9 @@
         function getFormData() {
             const formData = {
                 name: document.getElementById('serverName').value,
-                type: document.getElementById('serverType').value
+                type: document.getElementById('serverType').value,
+                enabled: document.getElementById('serverEnabled').value === 'true',
+                require_auth: document.getElementById('serverRequireAuth').value === 'true'
             };
 
             const type = formData.type;
@@ -1421,7 +1847,7 @@
 
             // 表单字段变化时更新JSON配置和保存缓存
             const formFields = [
-                'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs',
+                'serverName', 'serverType', 'serverEnabled', 'serverRequireAuth', 'serverCommand', 'serverArgs',
                 'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse',
                 'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
                 'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
@@ -1462,7 +1888,7 @@
             try {
                 const formData = {};
                 const formFields = [
-                    'serverName', 'serverType', 'serverEnabled', 'serverCommand', 'serverArgs',
+                    'serverName', 'serverType', 'serverEnabled', 'serverRequireAuth', 'serverCommand', 'serverArgs',
                     'serverUrl', 'serverEnv', 'serverTimeoutStdio', 'serverHeadersSse',
                     'serverTimeoutSse', 'serverUrlHttp', 'serverHeadersHttp', 'serverTimeoutHttp',
                     'serverSpecUrl', 'serverApiBaseUrl', 'serverRouteConfigs', 'serverTimeoutOpenapi',
@@ -1716,6 +2142,14 @@
                                     <div class="detail-value">${config.type || '未知'}</div>
                                 </div>
                                 <div class="detail-item">
+                                    <label class="detail-label">认证要求</label>
+                                    <div class="detail-value">
+                                        <span style="color: ${config.require_auth !== false ? '#059669' : '#dc2626'};">
+                                            ${config.require_auth !== false ? '需要API Key' : '公开访问'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
                                     <label class="detail-label">完整配置</label>
                                     <div class="detail-value">
                                         <pre class="config-display">${JSON.stringify(config, null, 2)}</pre>
@@ -1740,7 +2174,10 @@
                         </div>
                         <div class="modal-footer">
                             <button class="btn btn-secondary" onclick="closeDetailsModal()">关闭</button>
-                            <button class="btn btn-primary" onclick="closeDetailsModal(); editServer('${serverName}')">编辑配置</button>
+                            ${authManager.hasPermission('write') ? 
+                                `<button class="btn btn-primary" onclick="closeDetailsModal(); editServer('${serverName}')">编辑配置</button>` : 
+                                ''
+                            }
                         </div>
                     </div>
                 </div>
@@ -1792,14 +2229,37 @@
                                     <label class="form-label">服务器名称</label>
                                     <input type="text" value="${serverName}" class="form-input" disabled>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="editServerType">服务器类型</label>
-                                    <select id="editServerType" name="serverType" class="form-input" required>
-                                        <option value="stdio" ${config.type === 'stdio' ? 'selected' : ''}>stdio</option>
-                                        <option value="sse" ${config.type === 'sse' ? 'selected' : ''}>sse</option>
-                                        <option value="streamable-http" ${config.type === 'streamable-http' ? 'selected' : ''}>Streamable HTTP</option>
-                                        <option value="openapi" ${config.type === 'openapi' ? 'selected' : ''}>OpenAPI</option>
-                                    </select>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="editServerType">服务器类型</label>
+                                        <select id="editServerType" name="serverType" class="form-input" required>
+                                            <option value="stdio" ${config.type === 'stdio' ? 'selected' : ''}>stdio</option>
+                                            <option value="sse" ${config.type === 'sse' ? 'selected' : ''}>sse</option>
+                                            <option value="streamable-http" ${config.type === 'streamable-http' ? 'selected' : ''}>Streamable HTTP</option>
+                                            <option value="openapi" ${config.type === 'openapi' ? 'selected' : ''}>OpenAPI</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="editServerEnabled">启用状态</label>
+                                        <select id="editServerEnabled" name="serverEnabled" class="form-input">
+                                            <option value="true" ${config.enabled !== false ? 'selected' : ''}>启用</option>
+                                            <option value="false" ${config.enabled === false ? 'selected' : ''}>禁用</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="editServerRequireAuth">认证要求</label>
+                                        <select id="editServerRequireAuth" name="serverRequireAuth" class="form-input">
+                                            <option value="true" ${config.require_auth !== false ? 'selected' : ''}>需要API Key</option>
+                                            <option value="false" ${config.require_auth === false ? 'selected' : ''}>公开访问</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="editServerTimeout">超时时间 (秒)</label>
+                                        <input type="number" id="editServerTimeout" name="serverTimeout" class="form-input" 
+                                               value="${config.timeout || 30}" min="1" max="300">
+                                    </div>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="editConfigJson">配置 (JSON)</label>
@@ -1818,6 +2278,81 @@
 
             // 添加到页面
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 添加事件监听器
+            setupEditModalListeners();
+        }
+
+        // 从快速编辑字段更新JSON
+        function updateJsonFromQuickEdit() {
+            try {
+                const configText = document.getElementById('editConfigJson').value;
+                let config = JSON.parse(configText);
+                
+                // 更新基本字段
+                const serverType = document.getElementById('editServerType').value;
+                const serverEnabled = document.getElementById('editServerEnabled').value === 'true';
+                const serverRequireAuth = document.getElementById('editServerRequireAuth').value === 'true';
+                const serverTimeout = parseInt(document.getElementById('editServerTimeout').value) || 30;
+                
+                // 更新配置对象
+                config.type = serverType;
+                config.enabled = serverEnabled;
+                config.require_auth = serverRequireAuth;
+                config.timeout = serverTimeout;
+                
+                // 更新JSON文本框
+                document.getElementById('editConfigJson').value = JSON.stringify(config, null, 2);
+            } catch (e) {
+                console.warn('更新JSON时出错:', e);
+            }
+        }
+        
+        // 从JSON更新快速编辑字段
+        function updateQuickEditFromJson() {
+            try {
+                const configText = document.getElementById('editConfigJson').value;
+                const config = JSON.parse(configText);
+                
+                // 更新快速编辑字段
+                if (config.type) document.getElementById('editServerType').value = config.type;
+                document.getElementById('editServerEnabled').value = config.enabled !== false ? 'true' : 'false';
+                document.getElementById('editServerRequireAuth').value = config.require_auth !== false ? 'true' : 'false';
+                document.getElementById('editServerTimeout').value = config.timeout || 30;
+            } catch (e) {
+                console.warn('从JSON更新快速编辑字段时出错:', e);
+            }
+        }
+
+        // 设置编辑模态框的事件监听器
+        function setupEditModalListeners() {
+            // 快速编辑字段变化时更新JSON
+            const quickEditFields = ['editServerType', 'editServerEnabled', 'editServerRequireAuth', 'editServerTimeout'];
+            quickEditFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('change', updateJsonFromQuickEdit);
+                }
+            });
+            
+            // JSON文本框变化时更新快速编辑字段
+            const jsonTextarea = document.getElementById('editConfigJson');
+            if (jsonTextarea) {
+                jsonTextarea.addEventListener('input', debounce(updateQuickEditFromJson, 500));
+            }
+        }
+        
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
         }
 
         // 关闭编辑模态框
@@ -1832,6 +2367,9 @@
         // 保存服务器编辑
         async function saveServerEdit(serverName) {
             try {
+                // 先从快速编辑字段更新JSON
+                updateJsonFromQuickEdit();
+                
                 const configText = document.getElementById('editConfigJson').value;
                 let config;
 

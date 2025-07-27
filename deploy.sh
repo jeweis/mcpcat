@@ -20,22 +20,28 @@ fi
 
 # 检查配置文件是否存在
 echo "📋 检查配置文件..."
-if [ ! -f "config.json" ]; then
-    echo "⚠️ 配置文件 config.json 不存在"
+if [ ! -f ".mcpcat/config.json" ]; then
+    echo "⚠️ 配置文件 .mcpcat/config.json 不存在"
     echo "正在创建默认配置文件..."
-    cat > config.json << 'EOF'
+    mkdir -p .mcpcat
+    cat > .mcpcat/config.json << 'EOF'
 {
-  "servers": [],
-  "settings": {
-    "auto_start": false,
-    "log_level": "INFO"
+  "mcpServers": {},
+  "security": {
+    "api_keys": [],
+    "auth_header_name": "Mcpcat-Key"
+  },
+  "app": {
+    "version": "0.1.1",
+    "log_level": "INFO",
+    "enable_metrics": true
   }
 }
 EOF
-    echo "✅ 已创建默认配置文件 config.json"
-    echo "💡 提示：您可以编辑 config.json 文件来配置 MCP 服务器"
+    echo "✅ 已创建默认配置文件 .mcpcat/config.json"
+    echo "💡 提示：您可以编辑 .mcpcat/config.json 文件来配置 MCP 服务器"
 else
-    echo "✅ 配置文件 config.json 已存在"
+    echo "✅ 配置文件 .mcpcat/config.json 已存在"
 fi
 
 # 停止现有容器（如果存在）

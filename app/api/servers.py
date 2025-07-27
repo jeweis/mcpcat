@@ -3,6 +3,9 @@
 from fastapi import APIRouter, Request, HTTPException
 from typing import Dict, Any
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -340,7 +343,12 @@ async def get_server_config(server_name: str, request: Request):
     
     # 从配置文件中获取原始配置
     from app.services.config_service import ConfigService
-    config = ConfigService.load_raw_config().get(server_name, {})
+    full_config = ConfigService.load_raw_config()
+    mcp_servers = full_config.get('mcpServers', {})
+    config = mcp_servers.get(server_name, {})
+    
+    # 添加调试日志
+    logger.info(f"获取服务器 {server_name} 配置: {config}")
     
     return {
         "server_name": server_name,

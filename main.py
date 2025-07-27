@@ -15,7 +15,9 @@ import os
 # 导入新的服务类
 from app.core.config import settings
 from app.services.server_manager import MCPServerManager
-from app.api import health, servers
+from app.services.security_service import security_service
+from app.middleware.auth import AuthMiddleware
+from app.api import health, servers, auth
 
 # 创建全局服务器管理器
 server_manager = MCPServerManager()
@@ -37,7 +39,7 @@ logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
 def load_config():
     """保持向后兼容的配置加载函数"""
     from app.services.config_service import ConfigService
-    return ConfigService.load_config()
+    return ConfigService.load_mcp_servers_config()
 
 
 def add_mcp_server(key, value):
@@ -58,7 +60,18 @@ async def lifespan_manager(app: FastAPI):
 print("Loading MCP server list...")
 mcpServerList = load_config()
 print("MCP server list loaded.")
-print(mcpServerList)
+
+# 确保默认API Key存在
+default_keys = security_service.ensure_default_keys()
+if default_keys:
+    print("\n=== 默认API Key已创建 ===")
+    for key in default_keys:
+        print(f"名称: {key.name}")
+        print(f"权限: {key.permission.value}")
+        print(f"Key: {key.key}")
+        print("---")
+    print("请保存这些API Key，它们将用于访问管理界面")
+    print("================================\n")
 
 # 创建服务器管理器并加载服务器
 server_manager.load_servers_from_config()
@@ -71,6 +84,9 @@ app = FastAPI(
     lifespan=lifespan_manager
 )
 
+# 添加认证中间件
+app.add_middleware(AuthMiddleware)
+
 # 存储服务器管理器到应用状态，供API使用
 app.state.server_manager = server_manager
 
@@ -80,6 +96,7 @@ server_manager.mount_all_servers(app)
 # 注册API路由
 app.include_router(health.router, prefix="/api", tags=["健康检查"])
 app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
+app.include_router(auth.router, prefix="/api", tags=["认证"])
 
 
 # 挂载静态文件

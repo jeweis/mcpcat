@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from app.core.config import settings
-from app.models.mcp_config import MCPConfig, create_config_from_dict
+from app.models.mcp_config import MCPConfig, create_config_from_dict, MCPCatConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +16,18 @@ class ConfigService:
     """配置服务 - 负责加载和验证MCP服务器配置"""
     
     @staticmethod
-    def load_raw_config() -> Dict[str, dict]:
+    def load_raw_config() -> Dict:
         """
-        加载原始配置文件 - 与现有的 load_config() 逻辑完全一致
+        加载原始配置文件
         
         Returns:
-            Dict[str, dict]: 原始配置字典
+            Dict: 配置字典
         """
-        # 从config.py获取配置文件路径 - 与原逻辑一致
+        # 从config.py获取配置文件路径
         config_path = settings.mcpcat_config_path
         print(f"配置文件路径: {config_path}")
         
-        # 如果是相对路径，则相对于项目根目录 - 与原逻辑一致
+        # 如果是相对路径，则相对于项目根目录
         if not os.path.isabs(config_path):
             config_file = Path(__file__).parent.parent.parent / config_path
         else:
@@ -37,16 +37,34 @@ class ConfigService:
             try:
                 with open(config_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
+                
             except (json.JSONDecodeError, IOError) as e:
                 print(f"读取配置文件失败: {e}")
-                return {}
+                return ConfigService._create_default_config()
         else:
-            # 如果配置文件不存在，创建空配置文件 - 与原逻辑一致
+            # 如果配置文件不存在，创建默认配置文件
+            default_config = ConfigService._create_default_config()
             config_file.parent.mkdir(parents=True, exist_ok=True)
             with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump({}, f, indent=2)
-            print(f"已创建配置文件: {config_file}")
-            return {}
+                json.dump(default_config, f, indent=2, ensure_ascii=False)
+            print(f"已创建默认配置文件: {config_file}")
+            return default_config
+    
+    @staticmethod
+    def _create_default_config() -> Dict:
+        """创建默认配置"""
+        return {
+            "mcpServers": {},
+            "security": {
+                "api_keys": [],
+                "auth_header_name": "Mcpcat-Key"
+            },
+            "app": {
+                "version": "0.1.1",
+                "log_level": "INFO",
+                "enable_metrics": True
+            }
+        }
     
     @staticmethod
     def load_validated_configs() -> Dict[str, MCPConfig]:
@@ -56,10 +74,11 @@ class ConfigService:
         Returns:
             Dict[str, MCPConfig]: 验证后的配置字典
         """
-        raw_configs = ConfigService.load_raw_config()
+        full_config = ConfigService.load_raw_config()
+        mcp_servers = full_config.get('mcpServers', {})
         validated_configs = {}
         
-        for name, config_data in raw_configs.items():
+        for name, config_data in mcp_servers.items():
             try:
                 # 使用 Pydantic 验证配置
                 validated_config = create_config_from_dict(config_data)
@@ -73,17 +92,28 @@ class ConfigService:
         return validated_configs
     
     @staticmethod
-    def load_config() -> Dict[str, dict]:
+    def load_config() -> Dict:
         """
-        向后兼容的配置加载方法 - 与原有 load_config() 完全一致
+        向后兼容的配置加载方法，现在返回完整配置
         
         Returns:
-            Dict[str, dict]: 原始配置字典
+            Dict: 完整配置字典
         """
         return ConfigService.load_raw_config()
     
     @staticmethod
-    def save_config(config_dict: Dict[str, dict]) -> bool:
+    def load_mcp_servers_config() -> Dict[str, dict]:
+        """
+        加载MCP服务器配置（向后兼容）
+        
+        Returns:
+            Dict[str, dict]: MCP服务器配置字典
+        """
+        full_config = ConfigService.load_raw_config()
+        return full_config.get('mcpServers', {})
+    
+    @staticmethod
+    def save_config(config_dict: Dict) -> bool:
         """
         保存配置到文件
         
@@ -133,8 +163,12 @@ class ConfigService:
             # 加载现有配置
             current_config = ConfigService.load_raw_config()
             
+            # 确保mcpServers字段存在
+            if 'mcpServers' not in current_config:
+                current_config['mcpServers'] = {}
+            
             # 添加新服务器
-            current_config[server_name] = server_config
+            current_config['mcpServers'][server_name] = server_config
             
             # 保存配置
             return ConfigService.save_config(current_config)
@@ -159,13 +193,17 @@ class ConfigService:
             # 加载现有配置
             current_config = ConfigService.load_raw_config()
             
+            # 确保mcpServers字段存在
+            if 'mcpServers' not in current_config:
+                current_config['mcpServers'] = {}
+            
             # 检查服务器是否存在
-            if server_name not in current_config:
+            if server_name not in current_config['mcpServers']:
                 logger.error(f"服务器 {server_name} 不存在")
                 return False
             
             # 更新服务器配置
-            current_config[server_name] = new_config
+            current_config['mcpServers'][server_name] = new_config
             
             # 保存配置
             success = ConfigService.save_config(current_config)
@@ -192,9 +230,13 @@ class ConfigService:
             # 加载现有配置
             current_config = ConfigService.load_raw_config()
             
+            # 确保mcpServers字段存在
+            if 'mcpServers' not in current_config:
+                current_config['mcpServers'] = {}
+            
             # 检查服务器是否存在
-            if server_name in current_config:
-                del current_config[server_name]
+            if server_name in current_config['mcpServers']:
+                del current_config['mcpServers'][server_name]
                 success = ConfigService.save_config(current_config)
                 if success:
                     logger.info(f"✓ 服务器 {server_name} 从配置中移除成功")

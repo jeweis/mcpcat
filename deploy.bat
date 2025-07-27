@@ -22,22 +22,28 @@ if errorlevel 1 (
 
 REM 检查配置文件是否存在
 echo 📋 检查配置文件...
-if not exist "config.json" (
-    echo ⚠️ 配置文件 config.json 不存在
+if not exist ".mcpcat\config.json" (
+    echo ⚠️ 配置文件 .mcpcat\config.json 不存在
     echo 正在创建默认配置文件...
+    mkdir .mcpcat 2>nul
     (
         echo {
-        echo   "servers": [],
-        echo   "settings": {
-        echo     "auto_start": false,
-        echo     "log_level": "INFO"
+        echo   "mcpServers": {},
+        echo   "security": {
+        echo     "api_keys": [],
+        echo     "auth_header_name": "Mcpcat-Key"
+        echo   },
+        echo   "app": {
+        echo     "version": "0.1.1",
+        echo     "log_level": "INFO",
+        echo     "enable_metrics": true
         echo   }
         echo }
-    ) > config.json
-    echo ✅ 已创建默认配置文件 config.json
-    echo 💡 提示：您可以编辑 config.json 文件来配置 MCP 服务器
+    ) > .mcpcat\config.json
+    echo ✅ 已创建默认配置文件 .mcpcat\config.json
+    echo 💡 提示：您可以编辑 .mcpcat\config.json 文件来配置 MCP 服务器
 ) else (
-    echo ✅ 配置文件 config.json 已存在
+    echo ✅ 配置文件 .mcpcat\config.json 已存在
 )
 
 REM 停止现有容器（如果存在）

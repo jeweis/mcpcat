@@ -4,7 +4,7 @@
 ```
 mcpcat/
 ├── main.py                 # FastAPI 应用入口点
-├── config.json            # MCP 服务器配置
+├── config.example.json     # MCP 服务器配置示例
 ├── requirements.txt       # Python 依赖
 ├── pyproject.toml         # 现代 Python 包配置
 ├── docker-compose.yml     # Docker Compose 配置
@@ -12,7 +12,7 @@ mcpcat/
 ├── Dockerfile.production  # 生产环境 Docker 镜像
 ├── .env.example           # 环境变量模板
 ├── .mcpcat/               # 配置目录
-│   └── config.json        # MCP服务器配置文件
+│   └── config.json        # MCP服务器配置文件（包含安全配置）
 ├── static/                # 静态 Web 资源
 │   └── index.html         # 前端管理界面
 └── app/                   # 主应用包
@@ -54,7 +54,7 @@ app/
 - **Health & Server APIs**: 用于监控和管理的 RESTful 端点
 
 ### 配置管理
-- **config.json**: 主要的 MCP 服务器定义，支持多种传输类型
+- **.mcpcat/config.json**: 主要的 MCP 服务器定义和安全配置，支持多种传输类型
 - **Settings**: 基于 Pydantic 的配置，支持环境变量覆盖
 - **环境变量**: 可选的 `.env` 文件用于部署特定设置
 
