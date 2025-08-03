@@ -28,8 +28,8 @@ RUN apt-get update && \
 # 验证 Node.js 和 npm 安装
 RUN node --version && npm --version
 
-# 安装 uvx（用于运行 Python MCP 服务器）
-RUN pip install --no-cache-dir uvx
+# 安装 uv 和 uvx（用于运行 Python MCP 服务器）
+RUN pip install --no-cache-dir uv
 
 # 复制依赖文件
 COPY requirements.txt .
