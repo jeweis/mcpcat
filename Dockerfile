@@ -28,7 +28,7 @@ RUN apt-get update && \
 # 验证 Node.js 和 npm 安装
 RUN node --version && npm --version
 
-# 安装 uv 和 uvx（用于运行 Python MCP 服务器）
+# 安装 uv（包含 uvx）
 RUN pip install --no-cache-dir uv
 
 # 复制依赖文件
@@ -38,26 +38,33 @@ COPY pyproject.toml .
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
-COPY . .
-
 # 创建非 root 用户 (统一使用UID=1000)
 RUN groupadd -r app --gid=1000 && \
-    useradd -r -g app --uid=1000 --home-dir=/home/app --create-home app \
-    && chown -R app:app /app
+    useradd -r -g app --uid=1000 --home-dir=/home/app --create-home app
 
-# 创建配置目录并设置权限
-RUN mkdir -p /app/.mcpcat && chown -R app:app /app/.mcpcat
+# 创建必要的目录并设置权限
+RUN mkdir -p /app/.mcpcat /home/app/.npm-global /home/app/.npm /tmp/npm-cache \
+    && chown -R app:app /app /home/app /tmp/npm-cache
 
-# 确保用户可以访问全局 npm 包
-RUN mkdir -p /home/app/.npm-global \
-    && chown -R app:app /home/app/.npm-global
+# 复制应用代码
+COPY . .
+RUN chown -R app:app /app
 
 USER app
 
-# 设置用户级的 npm 配置
-ENV PATH="/home/app/.npm-global/bin:$PATH"
-RUN npm config set prefix '/home/app/.npm-global'
+# 设置 npm 相关环境变量
+ENV PATH="/home/app/.npm-global/bin:$PATH" \
+    NPM_CONFIG_PREFIX="/home/app/.npm-global" \
+    NPM_CONFIG_CACHE="/tmp/npm-cache" \
+    NPM_CONFIG_INIT_MODULE="/home/app/.npm-init.js"
+
+# 配置 npm
+RUN npm config set prefix '/home/app/.npm-global' \
+    && npm config set cache '/tmp/npm-cache' \
+    && npm config set init-module '/home/app/.npm-init.js'
+
+# 测试 npx 是否工作
+RUN npx --version
 
 # 暴露端口
 EXPOSE 8000
