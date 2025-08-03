@@ -38,33 +38,23 @@ COPY pyproject.toml .
 # 安装 Python 依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 预安装 Node.js MCP 服务器（避免 npx 问题）
+RUN npm install -g @modelcontextprotocol/server-sequential-thinking
+
 # 创建非 root 用户 (统一使用UID=1000)
 RUN groupadd -r app --gid=1000 && \
     useradd -r -g app --uid=1000 --home-dir=/home/app --create-home app
 
 # 创建必要的目录并设置权限
-RUN mkdir -p /app/.mcpcat /home/app/.npm-global /home/app/.npm /tmp/npm-cache \
-    && chown -R app:app /app /home/app /tmp/npm-cache
+RUN mkdir -p /app/.mcpcat \
+    && chown -R app:app /app /home/app \
+    && chmod -R 755 /usr/local/lib/node_modules
 
 # 复制应用代码
 COPY . .
 RUN chown -R app:app /app
 
 USER app
-
-# 设置 npm 相关环境变量
-ENV PATH="/home/app/.npm-global/bin:$PATH" \
-    NPM_CONFIG_PREFIX="/home/app/.npm-global" \
-    NPM_CONFIG_CACHE="/tmp/npm-cache" \
-    NPM_CONFIG_INIT_MODULE="/home/app/.npm-init.js"
-
-# 配置 npm
-RUN npm config set prefix '/home/app/.npm-global' \
-    && npm config set cache '/tmp/npm-cache' \
-    && npm config set init-module '/home/app/.npm-init.js'
-
-# 测试 npx 是否工作
-RUN npx --version
 
 # 暴露端口
 EXPOSE 8000
