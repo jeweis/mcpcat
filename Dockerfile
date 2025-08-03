@@ -1,4 +1,4 @@
-# 使用官方 Python 3.13.4 slim 镜像作为基础镜像
+# 使用官方 Python 3.12 slim 镜像作为基础镜像
 FROM python:3.12-slim-bookworm
 
 # 设置工作目录
@@ -8,15 +8,28 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    NODE_VERSION=20.x
 
-# 安装系统依赖
+# 安装系统依赖和 Node.js
 RUN apt-get update && \
     apt-get install -y --fix-missing --no-install-recommends \
     gcc \
     curl \
-    && apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    gnupg \
+    ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && apt-get update \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 验证 Node.js 和 npm 安装
+RUN node --version && npm --version
+
+# 安装 uvx（用于运行 Python MCP 服务器）
+RUN pip install --no-cache-dir uvx
 
 # 复制依赖文件
 COPY requirements.txt .
@@ -36,7 +49,15 @@ RUN groupadd -r app --gid=1000 && \
 # 创建配置目录并设置权限
 RUN mkdir -p /app/.mcpcat && chown -R app:app /app/.mcpcat
 
+# 确保用户可以访问全局 npm 包
+RUN mkdir -p /home/app/.npm-global \
+    && chown -R app:app /home/app/.npm-global
+
 USER app
+
+# 设置用户级的 npm 配置
+ENV PATH="/home/app/.npm-global/bin:$PATH"
+RUN npm config set prefix '/home/app/.npm-global'
 
 # 暴露端口
 EXPOSE 8000
