@@ -15,13 +15,15 @@
 
 ### 快速启动
 
-最简单的启动方式，系统会自动生成 API Key（首次启动时在日志中显示）：
+最简单的启动方式，系统会自动生成 API Key：
 
 ```bash
 docker run -d --name mcpcat -p 8000:8000 -v mcpcat_data:/app/.mcpcat --restart unless-stopped jeweis/mcpcat:latest
 ```
 
-查看自动生成的 API Key：
+#### 查看API Key的方式
+1. 方式一：首次打开控制台网址时，会在页面上展示自动生成的 API Key
+3. 方式二：首次启动时会在日志中显示，可通过该命令从日志中查看
 ```bash
 docker logs mcpcat
 ```
