@@ -1,4 +1,4 @@
-# mcapcat
+# mcpcat
 
 一个MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
 
@@ -27,9 +27,9 @@ docker run -d --name mcpcat -p 8000:8000 -v mcpcat_data:/app/.mcpcat --restart u
 
 - 控制台页面: http://localhost:8000
 - API文档: http://localhost:8000/docs
-- 健康检查: http://localhost:8000/health
-- streamable http访问端点：http://{本机ip}:8000/sse/{Mcp Server名称}
-- sse访问端点：http://{本机ip}:8000/mcp/{Mcp Server名称}
+- 健康检查: http://localhost:8000/api/health
+- Streamable HTTP访问端点：http://{本机ip}:8000/mcp/{Mcp Server名称}
+- SSE访问端点：http://{本机ip}:8000/sse/{Mcp Server名称}
 
 #### 完整配置启动
 
@@ -106,26 +106,48 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ```
 mcpcat/
-├── main.py              # FastAPI应用入口
-├── requirements.txt     # Python依赖
-├── README.md           # 项目说明
-├── .gitignore          # Git忽略文件
-├── .env.example        # 环境变量示例
-└── app/                # 应用代码目录
+├── main.py                 # FastAPI应用入口
+├── requirements.txt        # Python依赖
+├── config.example.json     # 配置文件示例
+├── pyproject.toml          # Python包配置
+├── docker-compose.yml      # Docker Compose配置
+├── Dockerfile              # Docker镜像配置
+├── Dockerfile.production   # 生产环境Docker镜像
+├── .env.example            # 环境变量模板
+├── .mcpcat/                # 配置目录
+│   └── config.json         # MCP服务器配置文件
+├── static/                 # 静态Web资源
+│   └── index.html          # 前端管理界面
+└── app/                    # 应用代码目录
     ├── __init__.py
-    ├── api/            # API路由
-    ├── core/           # 核心功能
-    ├── models/         # 数据模型
-    └── services/       # 业务服务
+    ├── api/                # API路由
+    │   ├── auth.py         # 认证端点
+    │   ├── health.py       # 健康检查端点
+    │   └── servers.py      # 服务器管理端点
+    ├── core/               # 核心功能
+    │   └── config.py       # 应用配置
+    ├── middleware/         # 中间件
+    │   └── auth.py         # 认证中间件
+    ├── models/             # 数据模型
+    │   └── mcp_config.py   # MCP配置模型
+    ├── services/           # 业务服务
+    │   ├── config_service.py    # 配置服务
+    │   ├── mcp_factory.py       # MCP工厂
+    │   ├── security_service.py  # 安全服务
+    │   └── server_manager.py    # 服务器管理器
+    └── exceptions/         # 自定义异常
+        └── auth.py         # 认证异常
 ```
 
 ## 开发计划
 
-- [ ] MCP协议支持
-- [ ] 服务管理界面
-- [ ] 配置管理
-- [ ] 监控和日志
+- [x] MCP协议支持
+- [x] 服务管理界面
+- [x] 配置管理
+- [x] 监控和日志
 - [x] 部署文档
+- [x] API Key认证
+- [x] 动态服务器管理
 
 
 ## 许可证

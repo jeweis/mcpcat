@@ -12,9 +12,11 @@
 - `uvicorn[standard]>=0.32.0` - ASGI 服务器
 - `pydantic>=2.10.0` - 数据验证
 - `fastmcp>=2.8.1` - MCP 协议支持
-- `httpx>=0.24.0` - 外部服务 HTTP 客户端
+- `httpx>=0.24.0` - 异步 HTTP 客户端（用于 OpenAPI 类型）
 - `aiofiles>=24.1.0` - 异步文件操作
 - `python-dotenv>=1.0.1` - 环境变量管理
+- `python-multipart>=0.0.12` - 表单数据解析
+- `requests>=2.32.0` - 同步 HTTP 客户端（用于获取 OpenAPI spec）
 
 ## 开发工具
 - **Black**: 代码格式化 (行长度: 88)

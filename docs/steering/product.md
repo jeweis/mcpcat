@@ -14,6 +14,9 @@ mcpcat 是一个基于 Python 的 MCP（Model Context Protocol）聚合平台，
 - 带健康监控的 Web 管理界面
 - Docker 容器化，便于部署
 - 自动生成文档的 RESTful API
+- API Key 认证和权限管理（READ/WRITE 权限级别）
+- 动态服务器管理（运行时添加/删除/重启服务器）
+- 每个 MCP 服务器可独立配置认证需求
 
 ## 目标用户
 - 使用 MCP 协议的开发者
