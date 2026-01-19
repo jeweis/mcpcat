@@ -150,7 +150,8 @@ mcpcat 是一个 MCP（Model Context Protocol）聚合平台，通过统一的 F
   },
   "app": {
     "version": "0.1.1",
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "enable_metrics": true
   }
 }
 ```
