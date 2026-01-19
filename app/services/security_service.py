@@ -6,6 +6,7 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from app.models.mcp_config import APIKeyConfig, PermissionType, SecurityConfig
 from app.services.config_service import ConfigService
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 class SecurityService:
     """安全服务类"""
-    
+
     def __init__(self):
         self._config_service = ConfigService()
+        # 临时存储首次生成的 Key（仅展示一次）
+        self._first_run_keys: Optional[dict] = None
     
     def get_auth_header_name(self) -> str:
         """
@@ -291,26 +294,54 @@ class SecurityService:
         created_keys = []
         
         try:
-            # 创建默认的write权限Key
+            # 检查是否通过环境变量设置了 Key
+            admin_key_from_env = settings.mcpcat_default_admin_key is not None
+            read_key_from_env = settings.mcpcat_default_read_key is not None
+
+            # 创建默认的write权限Key（优先使用环境变量配置）
             admin_key = self.add_api_key(
                 name="Default Admin Key",
-                permission=PermissionType.WRITE
+                permission=PermissionType.WRITE,
+                key=settings.mcpcat_default_admin_key  # None 时自动生成
             )
             created_keys.append(admin_key)
-            
-            # 创建默认的read权限Key
+
+            # 创建默认的read权限Key（优先使用环境变量配置）
             read_key = self.add_api_key(
-                name="Default Read Key", 
-                permission=PermissionType.READ
+                name="Default Read Key",
+                permission=PermissionType.READ,
+                key=settings.mcpcat_default_read_key  # None 时自动生成
             )
             created_keys.append(read_key)
-            
+
+            # 如果是自动生成的 Key（非环境变量设置），保存用于首次展示
+            if not admin_key_from_env or not read_key_from_env:
+                self._first_run_keys = {
+                    'admin_key': admin_key.key if not admin_key_from_env else None,
+                    'read_key': read_key.key if not read_key_from_env else None,
+                    'admin_key_name': admin_key.name,
+                    'read_key_name': read_key.name
+                }
+
             logger.info("已创建默认API Key")
-            
+
         except Exception as e:
             logger.error(f"创建默认API Key时出错: {e}")
-        
+
         return created_keys
+
+    def get_first_run_keys(self) -> Optional[dict]:
+        """
+        获取首次运行时生成的 Key（仅返回一次）
+
+        Returns:
+            Optional[dict]: 首次生成的 Key 信息，如果没有或已获取过则返回 None
+        """
+        return self._first_run_keys
+
+    def clear_first_run_keys(self) -> None:
+        """清除首次运行的 Key 信息（获取后调用）"""
+        self._first_run_keys = None
 
 
 # 全局安全服务实例

@@ -97,3 +97,28 @@ async def get_auth_config():
     return {
         "auth_header_name": security_service.get_auth_header_name()
     }
+
+
+@router.get("/auth/first-run-keys")
+async def get_first_run_keys():
+    """
+    获取首次运行时自动生成的 API Key（公开接口，仅返回一次）
+
+    用于前端首次登录时展示自动生成的 Key，调用后立即清除。
+    如果用户通过环境变量设置了 Key，则不会返回。
+    """
+    keys = security_service.get_first_run_keys()
+
+    if keys is None:
+        return {"has_keys": False}
+
+    # 获取后立即清除，确保只展示一次
+    security_service.clear_first_run_keys()
+
+    return {
+        "has_keys": True,
+        "admin_key": keys.get("admin_key"),
+        "read_key": keys.get("read_key"),
+        "admin_key_name": keys.get("admin_key_name"),
+        "read_key_name": keys.get("read_key_name")
+    }

@@ -32,6 +32,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             r"^/api/health$",                # 健康检查
             r"^/api/auth/verify$",           # 登录验证
             r"^/api/auth/config$",           # 认证配置
+            r"^/api/auth/first-run-keys$",   # 首次运行Key获取
         ]
         
         # 编译正则表达式

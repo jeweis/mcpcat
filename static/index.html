@@ -119,6 +119,114 @@
             cursor: not-allowed;
         }
 
+        /* 首次运行 Key 弹框样式 */
+        .first-run-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .first-run-modal.hidden {
+            display: none;
+        }
+
+        .first-run-content {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .first-run-content h3 {
+            color: #eab308;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+
+        .first-run-content .warning-text {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .first-run-key-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .first-run-key-item:last-child {
+            margin-bottom: 20px;
+        }
+
+        .first-run-key-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .first-run-key-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .first-run-key-value code {
+            flex: 1;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #1e293b;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #2563eb;
+        }
+
+        .copy-btn.copied {
+            background: #22c55e;
+        }
+
+        .first-run-content .confirm-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .first-run-content .confirm-btn:hover {
+            opacity: 0.9;
+        }
+
         .error-message {
             color: #dc2626;
             font-size: 14px;
@@ -976,6 +1084,32 @@
         </div>
     </div>
 
+    <!-- 首次运行 Key 弹框 -->
+    <div id="first-run-modal" class="first-run-modal hidden">
+        <div class="first-run-content">
+            <h3>首次使用，系统已自动生成密钥</h3>
+            <p class="warning-text">
+                检测到您是首次使用，系统已自动生成了管理员密钥和只读密钥。<br>
+                <strong>请务必复制并妥善保管，此弹框只会展示一次！</strong>
+            </p>
+            <div class="first-run-key-item">
+                <div class="first-run-key-label">管理员密钥（可读写）</div>
+                <div class="first-run-key-value">
+                    <code id="first-run-admin-key">-</code>
+                    <button class="copy-btn" onclick="copyFirstRunKey('admin')">复制</button>
+                </div>
+            </div>
+            <div class="first-run-key-item">
+                <div class="first-run-key-label">只读密钥（仅可查看）</div>
+                <div class="first-run-key-value">
+                    <code id="first-run-read-key">-</code>
+                    <button class="copy-btn" onclick="copyFirstRunKey('read')">复制</button>
+                </div>
+            </div>
+            <button class="confirm-btn" onclick="closeFirstRunModal()">我知道了</button>
+        </div>
+    </div>
+
     <!-- 主应用界面 -->
     <div id="main-container" class="app-container main-page">
         <!-- 侧边栏 -->
@@ -1397,6 +1531,8 @@
                     }
                 } else {
                     this.showLoginInterface();
+                    // 显示登录界面后，检查是否有首次运行的 Key 需要展示
+                    await fetchFirstRunKeys();
                 }
             }
         }
@@ -1478,6 +1614,55 @@
             // 尝试自动登录
             authManager.autoLogin();
         });
+
+        // 首次运行 Key 相关功能
+        let firstRunKeys = null;
+
+        async function fetchFirstRunKeys() {
+            try {
+                const response = await fetch('/api/auth/first-run-keys');
+                const data = await response.json();
+                if (data.has_keys) {
+                    firstRunKeys = {
+                        admin: data.admin_key,
+                        read: data.read_key
+                    };
+                    // 更新弹框内容
+                    document.getElementById('first-run-admin-key').textContent = data.admin_key || '未设置';
+                    document.getElementById('first-run-read-key').textContent = data.read_key || '未设置';
+                    // 显示弹框
+                    document.getElementById('first-run-modal').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('获取首次运行 Key 失败:', error);
+            }
+        }
+
+        function copyFirstRunKey(type) {
+            const key = firstRunKeys && firstRunKeys[type];
+            if (!key) return;
+
+            navigator.clipboard.writeText(key).then(() => {
+                // 找到对应的按钮并更新状态
+                const btn = document.querySelector(`#first-run-modal .copy-btn[onclick="copyFirstRunKey('${type}')"]`);
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = '已复制';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }
+            }).catch(err => {
+                console.error('复制失败:', err);
+            });
+        }
+
+        function closeFirstRunModal() {
+            document.getElementById('first-run-modal').classList.add('hidden');
+            firstRunKeys = null; // 清除引用
+        }
 
         // Section切换功能
         function showSection(sectionName) {

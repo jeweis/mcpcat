@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-本文件为 Claude Code (claude.ai/code) 在此代码仓库中工作时提供指导。
+本文件为 AI 在此代码仓库中工作时提供指导。
 
 **请始终使用中文输出。**
 
@@ -161,3 +161,15 @@ mcpcat 是一个 MCP（Model Context Protocol）聚合平台，通过统一的 F
 - **代理模式**：`MCPProxyApp` 是 ASGI 应用，根据 `server_info` 动态转发请求，支持运行时实例切换
 - **动态服务器管理**：`add_and_mount_server()` 在运行时添加服务器，创建独立 `asyncio.Task` 管理生命周期
 - **统一生命周期**：启动时的服务器通过 `AsyncExitStack` 管理，动态添加的服务器存储在 `dynamic_tasks` 集合中
+
+## 遵循规范
+### 严格遵循PEP8规范，精通DRY/KISS/YAGNI原则，熟悉OWASP安全最佳实践。擅长将任务拆解为最小单元，采用分步式开发方法。
+### 代码风格
+1. **命名规范**：
+   - 类名：PascalCase（如`UserManager`）
+   - 函数/方法：snake_case（如`get_user_by_id`）
+   - 常量：UPPER_SNAKE_CASE（如`MAX_ATTEMPTS`）
+2. **缩进**：4个空格，禁止使用Tab
+3. **文件长度**：单文件不超过500行，复杂类拆分为多个模块
+4. **注释**：所有公共方法必须有类型注解和docstring
+5. **代码行数**：方法行数≤50行，类行数≤200行

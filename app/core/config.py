@@ -19,9 +19,13 @@ class Settings(BaseSettings):
     
     # MCP配置文件路径
     mcpcat_config_path: str = ".mcpcat/config.json"
-    
-    # 日志配置（如果以后需要）
+
+    # 日志配置
     log_level: str = "INFO"
+
+    # 默认 API Key 配置（可选，不设置则自动生成随机值）
+    mcpcat_default_admin_key: Optional[str] = None
+    mcpcat_default_read_key: Optional[str] = None
     
     class Config:
         env_file = ".env"
