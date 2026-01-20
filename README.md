@@ -111,6 +111,11 @@ python main.py
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+或使用 uv
+```bash
+uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
 
 ## 项目结构
 
