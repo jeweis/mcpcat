@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 from typing import Dict, Callable
 import os
@@ -103,13 +104,13 @@ app.include_router(auth.router, prefix="/api", tags=["认证"])
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/ui", StaticFiles(directory=static_dir, html=True), name="ui")
 
 @app.get("/")
 async def root():
     """根路径 - 返回前端页面"""
-    static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
-    if os.path.exists(static_file):
-        return FileResponse(static_file)
+    if os.path.exists(static_dir):
+        return RedirectResponse(url="/ui/")
     return {"message": f"Welcome to {settings.app_name} - {settings.description}"}
 
 

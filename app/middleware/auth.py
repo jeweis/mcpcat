@@ -28,6 +28,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # 公开路径（无需认证）
         self.public_paths = public_paths or [
             r"^/$",                          # 根路径
+            r"^/ui/.*",                      # 前端资源
             r"^/static/.*",                  # 静态文件
             r"^/api/health$",                # 健康检查
             r"^/api/auth/verify$",           # 登录验证
