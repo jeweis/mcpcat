@@ -17,4 +17,4 @@ def _get_market_service(request: Request):
 @router.get("/servers")
 async def get_market_servers(request: Request):
     market_service = _get_market_service(request)
-    return market_service.get_market()
+    return await market_service.get_market()
