@@ -18,7 +18,8 @@ from app.core.config import settings
 from app.services.server_manager import MCPServerManager
 from app.services.security_service import security_service
 from app.middleware.auth import AuthMiddleware
-from app.api import health, servers, auth
+from app.api import health, servers, auth, inspector
+from app.services.inspector_service import inspector_service
 
 # 创建全局服务器管理器
 server_manager = MCPServerManager()
@@ -53,6 +54,8 @@ async def lifespan_manager(app: FastAPI):
     """
     应用生命周期管理器 - 使用服务器管理器的统一生命周期管理
     """
+    # 启动 Inspector 清理任务
+    inspector_service.start_cleanup_task()
     async with server_manager.create_unified_lifespan(app):
         yield
 
@@ -90,6 +93,7 @@ app.add_middleware(AuthMiddleware)
 
 # 存储服务器管理器到应用状态，供API使用
 app.state.server_manager = server_manager
+app.state.port = settings.port
 
 # 挂载所有服务器
 server_manager.mount_all_servers(app)
@@ -98,6 +102,7 @@ server_manager.mount_all_servers(app)
 app.include_router(health.router, prefix="/api", tags=["健康检查"])
 app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
 app.include_router(auth.router, prefix="/api", tags=["认证"])
+app.include_router(inspector.router, prefix="/api/inspector", tags=["测试工具"])
 
 
 # 挂载静态文件
