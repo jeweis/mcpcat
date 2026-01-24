@@ -2,12 +2,10 @@ version: '3.8'
 
 services:
   mcpcat:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: jeweis/mcpcat:latest
     container_name: mcpcat-app
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     environment:
       - APP_NAME=mcpcat
       - APP_VERSION=0.1.1
@@ -15,12 +13,8 @@ services:
       - PORT=8000
       - LOG_LEVEL=INFO
       - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json
-      # 默认 API Key 配置（可选，不设置则系统自动生成随机值）
-      # - MCPCAT_DEFAULT_ADMIN_KEY=your-admin-key
-      # - MCPCAT_DEFAULT_READ_KEY=your-read-key
     volumes:
-      # 挂载配置目录（默认从宿主机挂载）
-      - ./.mcpcat:/app/.mcpcat:rw
+      - mcpcat_config:/app/.mcpcat
     user: "1000:1000"
     restart: unless-stopped
     healthcheck:
@@ -29,13 +23,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - mcpcat-network
-
-networks:
-  mcpcat-network:
-    driver: bridge
 
 volumes:
-  mcpcat-logs:
-    driver: local
+  mcpcat_config:
