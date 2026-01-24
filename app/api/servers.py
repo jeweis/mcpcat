@@ -50,13 +50,15 @@ async def list_servers(request: Request):
     try:
         manager = _get_server_manager(request)
         server_status = manager.get_server_status()
-        
+
+        if hasattr(request.app.state, 'market_service'):
+            request.app.state.market_service.refresh_async()
+
         return {
             "servers": server_status,
             "total": len(server_status)
         }
     except HTTPException:
-        # 如果是服务不可用，返回兼容性响应
         return {
             "servers": {},
             "total": 0,

@@ -4,6 +4,7 @@ MCPCat主应用 - 重构版本
 """
 
 import logging
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +21,7 @@ from app.services.security_service import security_service
 from app.middleware.auth import AuthMiddleware
 from app.api import health, servers, auth, inspector, market
 from app.services.inspector_service import inspector_service
+from app.services.market_service import MarketService, MARKET_DATA_URL_PRIMARY, MARKET_DATA_URL_FALLBACK, MARKET_DATA_TTL
 
 # 创建全局服务器管理器
 server_manager = MCPServerManager()
@@ -80,6 +82,15 @@ if default_keys:
 # 创建服务器管理器并加载服务器
 server_manager.load_servers_from_config()
 
+# 创建并初始化市场服务
+market_service = MarketService(
+    remote_url=MARKET_DATA_URL_PRIMARY,
+    remote_url_fallback=MARKET_DATA_URL_FALLBACK,
+    ttl_seconds=MARKET_DATA_TTL,
+    local_path=Path(__file__).resolve().parent / "data" / "mcp_market.json"
+)
+market_service.refresh_async()
+
 # 创建 FastAPI 应用
 app = FastAPI(
     title=settings.app_name,
@@ -94,6 +105,7 @@ app.add_middleware(AuthMiddleware)
 # 存储服务器管理器到应用状态，供API使用
 app.state.server_manager = server_manager
 app.state.port = settings.port
+app.state.market_service = market_service
 
 # 挂载所有服务器
 server_manager.mount_all_servers(app)

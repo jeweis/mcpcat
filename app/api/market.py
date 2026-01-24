@@ -1,17 +1,20 @@
-import json
-from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Request
 
 router = APIRouter()
 
-@router.get("/servers")
-async def get_market_servers():
-    data_path = Path(__file__).resolve().parents[2] / "data" / "mcp_market.json"
-    if not data_path.exists():
-        raise HTTPException(status_code=404, detail="市场数据不存在")
+def _get_market_service(request: Request):
+    if not hasattr(request.app.state, 'market_service'):
+        from app.services.market_service import MarketService, MARKET_DATA_URL_PRIMARY, MARKET_DATA_URL_FALLBACK, MARKET_DATA_TTL
+        from pathlib import Path
+        return MarketService(
+            remote_url=MARKET_DATA_URL_PRIMARY,
+            remote_url_fallback=MARKET_DATA_URL_FALLBACK,
+            ttl_seconds=MARKET_DATA_TTL,
+            local_path=Path(__file__).resolve().parents[2] / "data" / "mcp_market.json"
+        )
+    return request.app.state.market_service
 
-    try:
-        data = json.loads(data_path.read_text())
-        return data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"市场数据读取失败: {e}")
+@router.get("/servers")
+async def get_market_servers(request: Request):
+    market_service = _get_market_service(request)
+    return market_service.get_market()
