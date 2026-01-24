@@ -5,7 +5,7 @@ services:
     image: jeweis/mcpcat:latest
     container_name: mcpcat-app
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${host_port:-8000}:${container_port:-8000}"
     environment:
       - APP_NAME=mcpcat
       - APP_VERSION=0.1.1

@@ -1,6 +1,12 @@
-# mcpcat
+<div align="center">
+  <img src="assets/mcpcat-logo.png" alt="mcpcat" width="200"/>
 
-一个MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
+  # mcpcat
+
+  一个MCP（Model Context Protocol）聚合平台，支持多种MCP协议的统一管理和运行。
+</div>
+
+---
 
 ## 功能特性
 
