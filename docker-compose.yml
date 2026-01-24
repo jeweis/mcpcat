@@ -5,7 +5,7 @@ services:
     image: jeweis/mcpcat:latest
     container_name: mcpcat-app
     ports:
-      - "${host_port:-8000}:${container_port:-8000}"
+      - "${HOST_PORT:-8000}:8000"
     environment:
       - APP_NAME=mcpcat
       - APP_VERSION=0.1.1
@@ -18,7 +18,7 @@ services:
     user: "1000:1000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
