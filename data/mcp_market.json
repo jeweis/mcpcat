@@ -1,0 +1,385 @@
+{
+  "servers": [
+    {
+      "id": "context7",
+      "name": "Context7",
+      "description": "Upstash Context7 MCP server for context-aware retrieval.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@upstash/context7-mcp"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [],
+        "headers": []
+      },
+      "tags": [
+        "context",
+        "search"
+      ],
+      "homepage": "https://github.com/upstash/context7"
+    },
+    {
+      "id": "jewei-mssql-mcp-server",
+      "name": "jewei-mssql-mcp-server",
+      "description": "Jewei MSSQL MCP server for SQL Server access.",
+      "type": "stdio",
+      "install": {
+        "command": "uvx",
+        "args": [
+          "jewei-mssql-mcp-server"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "DB_HOST",
+            "label": "数据库主机",
+            "placeholder": "your_db_host"
+          },
+          {
+            "key": "DB_USER",
+            "label": "数据库用户",
+            "placeholder": "your_db_user"
+          },
+          {
+            "key": "DB_PASSWORD",
+            "label": "数据库密码",
+            "placeholder": "your_db_password"
+          },
+          {
+            "key": "DB_NAME",
+            "label": "数据库名称",
+            "placeholder": "your_db_name"
+          },
+          {
+            "key": "DB_PORT",
+            "label": "数据库端口",
+            "placeholder": "1433"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "database",
+        "mssql"
+      ],
+      "homepage": "https://github.com/jeweis/jewei-mssql-mcp-server"
+    },
+    {
+      "id": "jewei-mysql-mcp-server",
+      "name": "jewei-mysql-mcp-server",
+      "description": "Jewei MySQL MCP server for MySQL access.",
+      "type": "stdio",
+      "install": {
+        "command": "uvx",
+        "args": [
+          "jewei-mysql-mcp-server"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "DB_HOST",
+            "label": "数据库主机",
+            "placeholder": "your_db_host"
+          },
+          {
+            "key": "DB_USER",
+            "label": "数据库用户",
+            "placeholder": "your_db_user"
+          },
+          {
+            "key": "DB_PASSWORD",
+            "label": "数据库密码",
+            "placeholder": "your_db_password"
+          },
+          {
+            "key": "DB_NAME",
+            "label": "数据库名称",
+            "placeholder": "your_db_name"
+          },
+          {
+            "key": "DB_PORT",
+            "label": "数据库端口",
+            "placeholder": "3306"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "database",
+        "mysql"
+      ],
+      "homepage": "https://github.com/jeweis/jewei-mysql-mcp-server"
+    },
+    {
+      "id": "jewei-mcp-nacos",
+      "name": "jewei-mcp-nacos",
+      "description": "Jewei Nacos MCP server for service discovery and config.",
+      "type": "stdio",
+      "install": {
+        "command": "uvx",
+        "args": [
+          "jewei-mcp-nacos"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "NACOS_HOST",
+            "label": "Nacos 主机",
+            "placeholder": "localhost"
+          },
+          {
+            "key": "NACOS_PORT",
+            "label": "API 端口 (v1/v2)",
+            "placeholder": "8848"
+          },
+          {
+            "key": "NACOS_API_PORT",
+            "label": "API 端口 (v3)",
+            "placeholder": "8848"
+          },
+          {
+            "key": "NACOS_CONSOLE_PORT",
+            "label": "Console 端口 (v3)",
+            "placeholder": "8080"
+          },
+          {
+            "key": "NACOS_NAMESPACE",
+            "label": "命名空间",
+            "placeholder": "public"
+          },
+          {
+            "key": "NACOS_USERNAME",
+            "label": "用户名",
+            "placeholder": ""
+          },
+          {
+            "key": "NACOS_PASSWORD",
+            "label": "密码",
+            "placeholder": ""
+          },
+          {
+            "key": "NACOS_VERSION",
+            "label": "Nacos 版本 (1/2/3)",
+            "placeholder": "3"
+          },
+          {
+            "key": "NACOS_READ_ONLY",
+            "label": "只读模式 (true/false)",
+            "placeholder": "false"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "nacos",
+        "config"
+      ],
+      "homepage": "https://github.com/jeweis/jewei-mcp-nacos"
+    },
+    {
+      "id": "sequential-thinking",
+      "name": "Sequential Thinking",
+      "description": "MCP server for sequential thinking and reasoning tools.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-sequential-thinking"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [],
+        "headers": []
+      },
+      "tags": [
+        "reasoning",
+        "tools"
+      ],
+      "homepage": "https://github.com/modelcontextprotocol/server-sequential-thinking"
+    },
+    {
+      "id": "time",
+      "name": "Time",
+      "description": "MCP server providing time-related utilities.",
+      "type": "stdio",
+      "install": {
+        "command": "uvx",
+        "args": [
+          "mcp-server-time",
+          "--local-timezone=Asia/Shanghai"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [],
+        "headers": []
+      },
+      "tags": [
+        "time",
+        "utilities"
+      ],
+      "homepage": "https://github.com/modelcontextprotocol/server-time"
+    },
+    {
+      "id": "redis-ssx-dev",
+      "name": "Redis SSX Dev",
+      "description": "Redis MCP server for cache access.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-redis",
+          "redis://:your_password@your_host:6379"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "REDIS_URL",
+            "label": "Redis 连接串",
+            "placeholder": "redis://:password@host:6379"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "redis",
+        "cache"
+      ],
+      "homepage": "https://github.com/modelcontextprotocol/server-redis"
+    },
+    {
+      "id": "figma",
+      "name": "Figma",
+      "description": "Figma Developer MCP server for design asset access.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "figma-developer-mcp",
+          "--stdio"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "FIGMA_API_KEY",
+            "label": "Figma API Key",
+            "placeholder": "your_figma_api_key"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "figma",
+        "design"
+      ],
+      "homepage": "https://github.com/figma/figma-developer-mcp"
+    },
+    {
+      "id": "gitlab",
+      "name": "GitLab",
+      "description": "GitLab MCP server for repository access.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-gitlab"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "GITLAB_PERSONAL_ACCESS_TOKEN",
+            "label": "GitLab Token",
+            "placeholder": "your_gitlab_token"
+          },
+          {
+            "key": "GITLAB_API_URL",
+            "label": "GitLab API URL",
+            "placeholder": "https://gitlab.example.com/api/v4"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "gitlab",
+        "devops"
+      ],
+      "homepage": "https://github.com/modelcontextprotocol/server-gitlab"
+    }
+  ]
+}

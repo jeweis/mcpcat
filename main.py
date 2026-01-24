@@ -18,7 +18,7 @@ from app.core.config import settings
 from app.services.server_manager import MCPServerManager
 from app.services.security_service import security_service
 from app.middleware.auth import AuthMiddleware
-from app.api import health, servers, auth, inspector
+from app.api import health, servers, auth, inspector, market
 from app.services.inspector_service import inspector_service
 
 # 创建全局服务器管理器
@@ -103,6 +103,7 @@ app.include_router(health.router, prefix="/api", tags=["健康检查"])
 app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
 app.include_router(auth.router, prefix="/api", tags=["认证"])
 app.include_router(inspector.router, prefix="/api/inspector", tags=["测试工具"])
+app.include_router(market.router, prefix="/api/market", tags=["发现市场"])
 
 
 # 挂载静态文件
