@@ -24,7 +24,7 @@
 最简单的启动方式，系统会自动生成 API Key：
 
 ```bash
-docker run -d --name mcpcat -p 8000:8000 -v mcpcat_data:/app/.mcpcat --restart unless-stopped jeweis/mcpcat:latest
+docker run -d --name mcpcat -p 8000:8000 -v mcpcat_data:/app/.mcpcat --restart always jeweis/mcpcat:latest
 ```
 
 #### 查看API Key的方式

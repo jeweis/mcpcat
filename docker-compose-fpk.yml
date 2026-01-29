@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mcpcat:
+    image: jeweis/mcpcat:latest
+    container_name: mcpcat-app
+    ports:
+      - "${TRIM_SERVICE_PORT:-8000}:8000"
+    environment:
+      - APP_NAME=mcpcat
+      - APP_VERSION=0.1.1
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json
+    volumes:
+      - mcpcat_config:/app/.mcpcat
+    user: "1000:1000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PORT:-8000}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mcpcat_config:
