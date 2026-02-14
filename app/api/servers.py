@@ -1,13 +1,16 @@
 """服务器监控和管理API"""
 
-from fastapi import APIRouter, Request, HTTPException
-from typing import Dict, Any
-from pydantic import BaseModel
 import logging
+import re
+from typing import Dict, Any
+
+from fastapi import APIRouter, Request, HTTPException
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+SERVER_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$")
 
 
 class AddServerRequest(BaseModel):
@@ -42,6 +45,18 @@ def _validate_server_exists(manager, server_name: str):
     if server_name not in server_status:
         raise HTTPException(status_code=404, detail=f"服务器 '{server_name}' 不存在")
     return server_status
+
+
+def _validate_server_name(name: str) -> None:
+    """验证服务器名称格式"""
+    if not SERVER_NAME_PATTERN.fullmatch(name):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "服务器名称格式无效：仅支持字母、数字、点、下划线、连字符，"
+                "且需以字母或数字开头，长度不超过64"
+            )
+        )
 
 
 @router.get("/servers")
@@ -100,6 +115,7 @@ async def check_server_health(server_name: str, request: Request):
 async def add_server(server_request: AddServerRequest, request: Request):
     """动态添加新的MCP服务器并立即挂载"""
     manager = _get_server_manager(request)
+    _validate_server_name(server_request.name)
     
     # 检查服务器名称是否已存在
     existing_servers = manager.get_server_status()
@@ -356,4 +372,4 @@ async def get_server_config(server_name: str, request: Request):
         "server_name": server_name,
         "config": config,
         "status": server_status[server_name]['status']
-    } 
+    }
