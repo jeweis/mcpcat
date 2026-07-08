@@ -490,11 +490,33 @@ class MCPServerManager:
                 'type': info.get('config', {}).get('type', 'unknown'),
                 'require_auth': info.get('config', {}).get('require_auth', True),
                 'error': info.get('error'),
+                'note': info.get('config', {}).get('note'),
+                'tags': info.get('config', {}).get('tags', []),
                 'mcp_endpoint': f"/mcp/{name}",
                 'sse_endpoint': f"/sse/{name}"
             }
             for name, info in self.server_info.items()
         }
+
+    def update_server_meta(self, server_name: str, note=None, tags=None) -> bool:
+        """
+        仅更新服务器的备注/标签元数据，不触发重启。
+
+        同步更新内存中的 server_info 配置与 config.json，使下次 get_server_status
+        立即反映变更。
+        """
+        if server_name not in self.server_info:
+            return False
+        from app.services.config_service import ConfigService
+        cfg = self.server_info[server_name].get('config')
+        if not isinstance(cfg, dict):
+            cfg = {}
+            self.server_info[server_name]['config'] = cfg
+        if note is not None:
+            cfg['note'] = note
+        if tags is not None:
+            cfg['tags'] = tags
+        return ConfigService.update_server_meta(server_name, note=note, tags=tags)
     
     def get_mount_list(self) -> List[Dict[str, Any]]:
         """

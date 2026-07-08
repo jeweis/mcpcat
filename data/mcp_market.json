@@ -30,14 +30,14 @@
       "homepage": "https://github.com/upstash/context7"
     },
     {
-      "id": "jewei-mssql-mcp-server",
-      "name": "jewei-mssql-mcp-server",
-      "description": "Jewei MSSQL MCP server for SQL Server access.",
+      "id": "jewei-mcp-mssql",
+      "name": "MSSQL (jewei)",
+      "description": "SQL Server MCP 服务器，无需安装 ODBC 驱动，默认只读模式，安全可控。",
       "type": "stdio",
       "install": {
         "command": "uvx",
         "args": [
-          "jewei-mssql-mcp-server"
+          "jewei-mcp-mssql"
         ]
       },
       "defaults": {
@@ -52,36 +52,57 @@
           {
             "key": "DB_HOST",
             "label": "数据库主机",
-            "placeholder": "your_db_host"
-          },
-          {
-            "key": "DB_USER",
-            "label": "数据库用户",
-            "placeholder": "your_db_user"
-          },
-          {
-            "key": "DB_PASSWORD",
-            "label": "数据库密码",
-            "placeholder": "your_db_password"
-          },
-          {
-            "key": "DB_NAME",
-            "label": "数据库名称",
-            "placeholder": "your_db_name"
+            "placeholder": "localhost"
           },
           {
             "key": "DB_PORT",
             "label": "数据库端口",
             "placeholder": "1433"
+          },
+          {
+            "key": "DB_NAME",
+            "label": "数据库名称",
+            "placeholder": "master"
+          },
+          {
+            "key": "DB_USER",
+            "label": "数据库用户",
+            "placeholder": "sa"
+          },
+          {
+            "key": "DB_PASSWORD",
+            "label": "数据库密码",
+            "placeholder": "your_password"
+          },
+          {
+            "key": "DB_ALLOW_INSERT",
+            "label": "允许 INSERT",
+            "placeholder": "false"
+          },
+          {
+            "key": "DB_ALLOW_UPDATE",
+            "label": "允许 UPDATE",
+            "placeholder": "false"
+          },
+          {
+            "key": "DB_ALLOW_DELETE",
+            "label": "允许 DELETE",
+            "placeholder": "false"
+          },
+          {
+            "key": "DB_ALLOW_DDL",
+            "label": "允许 DDL",
+            "placeholder": "false"
           }
         ],
         "headers": []
       },
       "tags": [
         "database",
-        "mssql"
+        "mssql",
+        "sql-server"
       ],
-      "homepage": "https://github.com/jeweis/jewei-mssql-mcp-server"
+      "homepage": "https://github.com/jeweis/jewei-mcp-mssql"
     },
     {
       "id": "jewei-mysql-mcp-server",
@@ -380,6 +401,76 @@
         "devops"
       ],
       "homepage": "https://github.com/modelcontextprotocol/server-gitlab"
+    },
+    {
+      "id": "benborla-mcp-server-mysql",
+      "name": "mcp-server-mysql (benborla)",
+      "description": "Read-only MySQL MCP server by benborla for schema inspection and SQL queries.",
+      "type": "stdio",
+      "install": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@benborla29/mcp-server-mysql"
+        ]
+      },
+      "defaults": {
+        "enabled": true,
+        "require_auth": false,
+        "timeout": 30,
+        "env": {},
+        "headers": {}
+      },
+      "fields": {
+        "env": [
+          {
+            "key": "MYSQL_HOST",
+            "label": "MySQL Host",
+            "placeholder": "127.0.0.1"
+          },
+          {
+            "key": "MYSQL_PORT",
+            "label": "MySQL Port",
+            "placeholder": "3306"
+          },
+          {
+            "key": "MYSQL_USER",
+            "label": "MySQL User",
+            "placeholder": "root"
+          },
+          {
+            "key": "MYSQL_PASS",
+            "label": "MySQL Password",
+            "placeholder": "your_password"
+          },
+          {
+            "key": "MYSQL_DB",
+            "label": "MySQL Database",
+            "placeholder": "your_database"
+          },
+          {
+            "key": "ALLOW_INSERT_OPERATION",
+            "label": "Allow INSERT",
+            "placeholder": "false"
+          },
+          {
+            "key": "ALLOW_UPDATE_OPERATION",
+            "label": "Allow UPDATE",
+            "placeholder": "false"
+          },
+          {
+            "key": "ALLOW_DELETE_OPERATION",
+            "label": "Allow DELETE",
+            "placeholder": "false"
+          }
+        ],
+        "headers": []
+      },
+      "tags": [
+        "database",
+        "mysql"
+      ],
+      "homepage": "https://github.com/benborla/mcp-server-mysql"
     }
   ]
 }

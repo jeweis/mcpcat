@@ -21,7 +21,9 @@ class MCPBaseConfig(BaseModel):
     enabled: bool = True
     timeout: int = Field(default=30, ge=1, le=300)
     require_auth: bool = Field(default=True, description="是否需要API Key认证")
-    
+    note: Optional[str] = Field(default=None, description="服务器备注")
+    tags: List[str] = Field(default_factory=list, description="服务器标签")
+
     class Config:
         extra = "allow"  # 允许额外字段，保持兼容性
 
@@ -132,7 +134,11 @@ class APIKeyConfig(BaseModel):
     enabled: bool = Field(default=True, description="是否启用")
     created_at: Optional[datetime] = Field(default=None, description="创建时间")
     expires_at: Optional[datetime] = Field(default=None, description="过期时间")
-    
+    feishu_union_id: Optional[str] = Field(default=None, description="飞书用户唯一标识")
+    feishu_open_id: Optional[str] = Field(default=None, description="飞书应用内用户标识")
+    avatar_url: Optional[str] = Field(default=None, description="用户头像地址")
+    source: Literal["manual", "feishu"] = Field(default="manual", description="账号来源")
+
     @validator('key')
     def validate_key(cls, v):
         if len(v.strip()) < 8:
@@ -144,14 +150,21 @@ class SecurityConfig(BaseModel):
     """安全配置"""
     api_keys: List[APIKeyConfig] = Field(default_factory=list, description="API Key列表")
     auth_header_name: str = Field(default="Mcpcat-Key", description="认证头名称")
-    
+
     @validator('api_keys')
     def validate_unique_keys(cls, v):
         keys = [key.key for key in v if key.enabled]
         if len(keys) != len(set(keys)):
             raise ValueError('API Key必须唯一')
         return v
-    
+
+    @validator('api_keys')
+    def validate_unique_feishu_union_ids(cls, v):
+        union_ids = [key.feishu_union_id for key in v if key.feishu_union_id]
+        if len(union_ids) != len(set(union_ids)):
+            raise ValueError('同一飞书 union_id 不可重复绑定')
+        return v
+
     @validator('auth_header_name')
     def validate_header_name(cls, v):
         if not v or not v.strip():
@@ -167,6 +180,16 @@ class AppConfig(BaseModel):
     version: str = Field(default="0.1.1", description="应用版本")
     log_level: str = Field(default="INFO", description="日志级别")
     enable_metrics: bool = Field(default=True, description="是否启用指标")
+    public_base_url: Optional[str] = Field(default=None, description="对外规范域名，复制 MCP 地址时拼接使用")
+
+
+class FeishuConfig(BaseModel):
+    """飞书登录配置"""
+    enabled: bool = Field(default=False, description="是否启用飞书登录")
+    app_id: Optional[str] = Field(default=None, description="飞书应用 App ID")
+    app_secret: Optional[str] = Field(default=None, description="飞书应用 App Secret（加密存储）")
+    base_url: str = Field(default="https://open.feishu.cn", description="飞书开放平台 API 基础地址")
+    default_permission: PermissionType = Field(default=PermissionType.READ, description="新用户默认权限")
 
 
 class MCPCatConfig(BaseModel):
@@ -174,7 +197,8 @@ class MCPCatConfig(BaseModel):
     mcp_servers: Dict[str, dict] = Field(default_factory=dict, alias="mcpServers")
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     app: AppConfig = Field(default_factory=AppConfig)
-    
+    feishu: FeishuConfig = Field(default_factory=FeishuConfig)
+
     class Config:
         allow_population_by_field_name = True  # 允许使用别名
         extra = "allow"  # 允许额外字段

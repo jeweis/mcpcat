@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
@@ -30,6 +30,12 @@ class AddServerRequest(BaseModel):
                 }
             }
         }
+
+
+class UpdateServerMetaRequest(BaseModel):
+    """更新服务器备注/标签的请求模型（仅传入字段被更新，不触发重启）"""
+    note: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 def _get_server_manager(request: Request):
@@ -373,3 +379,22 @@ async def get_server_config(server_name: str, request: Request):
         "config": config,
         "status": server_status[server_name]['status']
     }
+
+
+@router.patch("/servers/{server_name}/meta")
+async def update_server_meta(server_name: str, payload: UpdateServerMetaRequest, request: Request):
+    """更新服务器备注/标签（仅元数据，不触发重启）"""
+    manager = _get_server_manager(request)
+    _validate_server_exists(manager, server_name)
+
+    try:
+        success = manager.update_server_meta(
+            server_name, note=payload.note, tags=payload.tags
+        )
+        if not success:
+            raise HTTPException(status_code=500, detail="更新服务器元数据失败")
+        return manager.get_server_status()[server_name]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新服务器元数据时发生错误: {str(e)}")

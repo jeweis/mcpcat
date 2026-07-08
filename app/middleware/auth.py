@@ -27,13 +27,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         # 公开路径（无需认证）
         self.public_paths = public_paths or [
-            r"^/$",                          # 根路径
-            r"^/ui/.*",                      # 前端资源
-            r"^/static/.*",                  # 静态文件
-            r"^/api/health$",                # 健康检查
-            r"^/api/auth/verify$",           # 登录验证
-            r"^/api/auth/config$",           # 认证配置
-            r"^/api/auth/first-run-keys$",   # 首次运行Key获取
+            r"^/$",                                  # 根路径
+            r"^/ui/.*",                              # 前端资源
+            r"^/static/.*",                          # 静态文件
+            r"^/api/health$",                        # 健康检查
+            r"^/api/auth/verify$",                   # 登录验证
+            r"^/api/auth/config$",                   # 认证配置
+            r"^/api/auth/first-run-keys$",           # 首次运行Key获取
+            r"^/api/auth/feishu/status$",            # 飞书登录状态查询
+            r"^/api/auth/feishu/authorize-url$",     # 飞书授权链接生成
+            r"^/api/auth/feishu/login$",             # 飞书授权码登录
         ]
         
         # 编译正则表达式
@@ -44,10 +47,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # 权限映射：路径模式 -> 所需权限
         # 注意：更具体的模式应该放在前面，因为会按顺序匹配
         self.permission_map = {
+            # 管理API - write权限 (飞书登录与团队成员管理)
+            r"^/api/admin/.*": PermissionType.WRITE,
+
             # 管理API - write权限 (具体的操作端点)
             r"^/api/servers/[^/]+/start$": PermissionType.WRITE,
             r"^/api/servers/[^/]+/stop$": PermissionType.WRITE,
             r"^/api/servers/[^/]+/restart$": PermissionType.WRITE,
+            r"^/api/servers/[^/]+/meta$": PermissionType.WRITE,
             
             # 管理API - read权限 (查看端点)
             r"^/api/servers/[^/]+/health$": PermissionType.READ,

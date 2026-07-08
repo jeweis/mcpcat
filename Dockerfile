@@ -28,7 +28,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 # 验证 Node.js 和 pnpm 安装
 RUN node --version && pnpm --version
@@ -61,8 +61,8 @@ USER app
 ENV PNPM_HOME="/home/app/.local/share/pnpm" \
     PATH="/home/app/.local/share/pnpm:$PATH"
 
-# 验证 pnpm 在用户下工作正常
-RUN pnpm --version
+# 验证 pnpm 在用户下工作正常（app 用户需重新激活 pnpm@9，否则 corepack 会拉取不兼容 Node 20 的最新版）
+RUN corepack prepare pnpm@9 --activate && pnpm --version
 
 # 暴露端口
 EXPOSE 8000

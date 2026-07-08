@@ -4,7 +4,7 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from app.core.config import settings
 from app.models.mcp_config import MCPConfig, create_config_from_dict, MCPCatConfig
@@ -215,7 +215,36 @@ class ConfigService:
             logger.error(f"✗ 更新服务器配置失败: {e}")
             return False
     
-    @staticmethod  
+    @staticmethod
+    def update_server_meta(server_name: str, note: Optional[str] = None,
+                           tags: Optional[List[str]] = None) -> bool:
+        """
+        仅更新服务器的备注/标签等元数据（不触碰运行时配置、不触发重启）
+
+        Args:
+            server_name: 服务器名称
+            note: 备注（None 表示不更新）
+            tags: 标签列表（None 表示不更新）
+
+        Returns:
+            bool: 是否更新成功
+        """
+        try:
+            current_config = ConfigService.load_raw_config()
+            servers = current_config.get('mcpServers', {})
+            if server_name not in servers:
+                logger.error(f"服务器 {server_name} 不存在")
+                return False
+            if note is not None:
+                servers[server_name]['note'] = note
+            if tags is not None:
+                servers[server_name]['tags'] = tags
+            return ConfigService.save_config(current_config)
+        except Exception as e:
+            logger.error(f"✗ 更新服务器元数据失败: {e}")
+            return False
+
+    @staticmethod
     def remove_server_from_config(server_name: str) -> bool:
         """
         从配置文件中移除服务器

@@ -6,7 +6,9 @@
       "args": [
         "mcp-server-fetch"
       ],
-      "require_auth": false
+      "require_auth": false,
+      "note": "网页抓取工具",
+      "tags": ["工具", "只读"]
     },
     "sequential-thinking": {
       "type": "stdio",
@@ -74,6 +76,16 @@
         "name": "Monitor Key",
         "permission": "read",
         "enabled": true
+      },
+      {
+        "key": "feishu-issued-key-example-do-not-edit-manually",
+        "name": "张三",
+        "permission": "read",
+        "enabled": true,
+        "feishu_union_id": "on_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "feishu_open_id": "ou_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "avatar_url": "https://example.com/avatar.png",
+        "source": "feishu"
       }
     ],
     "auth_header_name": "Mcpcat-Key"
@@ -81,6 +93,14 @@
   "app": {
     "version": "0.1.1",
     "log_level": "INFO",
-    "enable_metrics": true
+    "enable_metrics": true,
+    "public_base_url": ""
+  },
+  "feishu": {
+    "enabled": false,
+    "app_id": "cli_xxxxxxxxxxxxxxxxxx",
+    "app_secret": "",
+    "base_url": "https://open.feishu.cn",
+    "default_permission": "read"
   }
 }

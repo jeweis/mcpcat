@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.services.server_manager import MCPServerManager
 from app.services.security_service import security_service
 from app.middleware.auth import AuthMiddleware
-from app.api import health, servers, auth, inspector, market
+from app.api import health, servers, auth, inspector, market, admin
 from app.services.inspector_service import inspector_service
 from app.services.market_service import MarketService, MARKET_DATA_URL_PRIMARY, MARKET_DATA_URL_FALLBACK, MARKET_DATA_TTL
 
@@ -58,6 +58,8 @@ async def lifespan_manager(app: FastAPI):
     """
     # 启动 Inspector 清理任务
     inspector_service.start_cleanup_task()
+    # 在事件循环内触发市场数据异步刷新（模块导入期无运行循环，须放到此处）
+    market_service.refresh_async()
     async with server_manager.create_unified_lifespan(app):
         yield
 
@@ -89,7 +91,6 @@ market_service = MarketService(
     ttl_seconds=MARKET_DATA_TTL,
     local_path=Path(__file__).resolve().parent / "data" / "mcp_market.json"
 )
-market_service.refresh_async()
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -116,6 +117,7 @@ app.include_router(servers.router, prefix="/api", tags=["服务器管理"])
 app.include_router(auth.router, prefix="/api", tags=["认证"])
 app.include_router(inspector.router, prefix="/api/inspector", tags=["测试工具"])
 app.include_router(market.router, prefix="/api/market", tags=["发现市场"])
+app.include_router(admin.router, prefix="/api", tags=["全局设置"])
 
 
 # 挂载静态文件

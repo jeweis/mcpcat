@@ -26,7 +26,10 @@ class Settings(BaseSettings):
     # 默认 API Key 配置（可选，不设置则自动生成随机值）
     mcpcat_default_admin_key: Optional[str] = None
     mcpcat_default_read_key: Optional[str] = None
-    
+
+    # 全局加密密钥（可选，用于加密飞书 app_secret 等敏感配置；不设置则自动生成并持久化）
+    mcpcat_secret_key: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False
