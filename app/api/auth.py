@@ -1,5 +1,6 @@
 """认证相关API"""
 
+import json
 from datetime import datetime
 from typing import List, Optional
 from urllib.parse import urlencode
@@ -296,7 +297,7 @@ async def feishu_login(payload: FeishuLoginRequest):
             user_access_token=user_access_token,
         )
     except FeishuAPIError as e:
-        logger.warning(f"飞书登录失败: {e.code} - {e.message}")
+        logger.warning(f"飞书登录失败: {e.code} - {e.message} | details: {json.dumps(e.details, ensure_ascii=False)}")
         raise HTTPException(status_code=400, detail={"code": e.code, "message": e.message})
 
     key_config, first_login = security_service.find_or_create_feishu_key(

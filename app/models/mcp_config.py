@@ -14,6 +14,38 @@ class MCPTransportType(str, Enum):
     OPENAPI = "openapi"
 
 
+class AuthStatus(str, Enum):
+    """MCP服务器认证状态枚举"""
+    NONE = "none"                          # 无需认证
+    AUTHORIZED = "authorized"              # OAuth 已授权，token 有效
+    AUTH_REQUIRED = "auth_required"        # 需要 OAuth 授权
+    AUTH_EXPIRED = "auth_expired"          # OAuth token 过期且无法刷新
+    AUTH_UNSUPPORTED = "auth_unsupported"  # 401 但无 OAuth 元数据
+
+
+class OAuthToken(BaseModel):
+    """OAuth Token 信息"""
+    access_token: str = Field(..., description="访问令牌")
+    refresh_token: Optional[str] = Field(default=None, description="刷新令牌")
+    expires_at: Optional[str] = Field(default=None, description="过期时间 ISO 8601 格式")
+    token_type: str = Field(default="Bearer", description="令牌类型")
+
+
+class OAuthConfig(BaseModel):
+    """OAuth 客户端认证配置"""
+    authorization_endpoint: Optional[str] = Field(default=None, description="授权端点 URL")
+    token_endpoint: Optional[str] = Field(default=None, description="令牌端点 URL")
+    registration_endpoint: Optional[str] = Field(default=None, description="动态客户端注册端点 URL")
+    client_id: Optional[str] = Field(default=None, description="客户端 ID（DCR 获取或手动填写）")
+    client_secret: Optional[str] = Field(default=None, description="客户端密钥（DCR 获取或手动填写）")
+    scopes: List[str] = Field(default_factory=list, description="请求的 OAuth scope 列表")
+    redirect_mode: str = Field(default="manual", description="回调模式：auto（自动回调）或 manual（手动粘贴）")
+    token: Optional[OAuthToken] = Field(default=None, description="OAuth Token 信息")
+
+    class Config:
+        extra = "allow"
+
+
 class MCPBaseConfig(BaseModel):
     """MCP服务器基础配置"""
     type: MCPTransportType
@@ -23,6 +55,7 @@ class MCPBaseConfig(BaseModel):
     require_auth: bool = Field(default=True, description="是否需要API Key认证")
     note: Optional[str] = Field(default=None, description="服务器备注")
     tags: List[str] = Field(default_factory=list, description="服务器标签")
+    oauth: Optional[OAuthConfig] = Field(default=None, description="OAuth 客户端认证配置")
 
     class Config:
         extra = "allow"  # 允许额外字段，保持兼容性

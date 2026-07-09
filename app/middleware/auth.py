@@ -37,6 +37,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             r"^/api/auth/feishu/status$",            # 飞书登录状态查询
             r"^/api/auth/feishu/authorize-url$",     # 飞书授权链接生成
             r"^/api/auth/feishu/login$",             # 飞书授权码登录
+            r"^/api/oauth/callback/",                 # OAuth 自动回调（第三方重定向，无 Key header）
         ]
         
         # 编译正则表达式

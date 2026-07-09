@@ -46,6 +46,18 @@
       "timeout": 60,
       "require_auth": false
     },
+    "figma": {
+      "type": "streamable-http",
+      "url": "https://mcp.figma.com/mcp",
+      "headers": {},
+      "timeout": 60,
+      "require_auth": false,
+      "oauth": {
+        "redirect_mode": "manual",
+        "scopes": ["user"],
+        "token": null
+      }
+    },
     "openapi-example": {
       "type": "openapi",
       "spec_url": "https://api.example.com/openapi.json",

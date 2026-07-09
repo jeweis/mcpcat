@@ -16,15 +16,15 @@ import os
 
 # 导入新的服务类
 from app.core.config import settings
-from app.services.server_manager import MCPServerManager
+from app.services.server_manager import MCPServerManager, server_manager
 from app.services.security_service import security_service
 from app.middleware.auth import AuthMiddleware
-from app.api import health, servers, auth, inspector, market, admin
+from app.api import health, servers, auth, inspector, market, admin, oauth
 from app.services.inspector_service import inspector_service
 from app.services.market_service import MarketService, MARKET_DATA_URL_PRIMARY, MARKET_DATA_URL_FALLBACK, MARKET_DATA_TTL
 
 # 创建全局服务器管理器
-server_manager = MCPServerManager()
+# server_manager 实例从 server_manager 模块导入（模块级单例）
 
 # 设置日志
 logging.basicConfig(
@@ -118,6 +118,7 @@ app.include_router(auth.router, prefix="/api", tags=["认证"])
 app.include_router(inspector.router, prefix="/api/inspector", tags=["测试工具"])
 app.include_router(market.router, prefix="/api/market", tags=["发现市场"])
 app.include_router(admin.router, prefix="/api", tags=["全局设置"])
+app.include_router(oauth.router, prefix="/api", tags=["OAuth 认证"])
 
 
 # 挂载静态文件

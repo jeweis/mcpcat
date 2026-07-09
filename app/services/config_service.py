@@ -4,7 +4,7 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 from app.models.mcp_config import MCPConfig, create_config_from_dict, MCPCatConfig
@@ -243,6 +243,49 @@ class ConfigService:
         except Exception as e:
             logger.error(f"✗ 更新服务器元数据失败: {e}")
             return False
+
+    @staticmethod
+    def update_server_oauth(server_name: str, oauth_config: Any) -> bool:
+        """
+        持久化服务器的 OAuth 配置和 token 到 config.json。
+
+        Args:
+            server_name: 服务器名称
+            oauth_config: OAuthConfig 对象或 dict
+
+        Returns:
+            bool: 是否更新成功
+        """
+        try:
+            current_config = ConfigService.load_raw_config()
+            servers = current_config.get('mcpServers', {})
+            if server_name not in servers:
+                logger.error(f"服务器 {server_name} 不存在")
+                return False
+
+            # 转为 dict
+            if hasattr(oauth_config, 'dict'):
+                oauth_dict = oauth_config.dict(exclude_none=True)
+            elif hasattr(oauth_config, 'model_dump'):
+                oauth_dict = oauth_config.model_dump(exclude_none=True)
+            else:
+                oauth_dict = oauth_config
+
+            servers[server_name]['oauth'] = oauth_dict
+            return ConfigService.save_config(current_config)
+        except Exception as e:
+            logger.error(f"✗ 更新服务器 OAuth 配置失败: {e}")
+            return False
+
+    @staticmethod
+    def get_public_base_url() -> Optional[str]:
+        """获取全局 public_base_url 配置"""
+        try:
+            config = ConfigService.load_raw_config()
+            app_cfg = config.get('app') or {}
+            return app_cfg.get('public_base_url') or None
+        except Exception:
+            return None
 
     @staticmethod
     def remove_server_from_config(server_name: str) -> bool:

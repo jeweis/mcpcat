@@ -222,9 +222,10 @@ class MCPServerManager:
                 'mcp': mcp,
                 'mcp_app': mcp_app,
                 'sse_app': sse_app,
-                'status': 'loaded'
+                'status': 'loaded',
+                'auth_status': 'none'
             }
-            
+
             logger.info(f"✓ MCP服务器 {key} 配置成功")
             return True
             
@@ -376,19 +377,22 @@ class MCPServerManager:
                 # 为任务添加服务器名称标识
                 task._server_name = key
                 self.dynamic_tasks.add(task)
-                
+
                 # 添加回调来清理完成的任务
                 task.add_done_callback(self.dynamic_tasks.discard)
-                
+
                 # 等待一小段时间确保服务器启动完成
                 await asyncio.sleep(0.1)
-                
+
                 # 检查服务器是否成功启动
                 if self.server_info[key]['status'] == 'running':
                     print(f"✅ 动态服务器 {key} 已挂载并启动，完整功能立即可用")
                 else:
                     print(f"⚠️  动态服务器 {key} 已挂载，生命周期启动中...")
-                
+
+                # 异步检测 OAuth 授权需求（不阻塞添加流程）
+                asyncio.create_task(self._detect_auth_status(key, value))
+
             except Exception as e:
                 print(f"✗ 动态服务器 {key} 启动失败: {e}")
                 logger.error(f"启动服务器 {key} 失败: {e}")
@@ -433,6 +437,11 @@ class MCPServerManager:
                     
                     # 更新服务器状态
                     self._update_server_status(task_name, 'running')
+                    
+                    # 异步检测 OAuth 授权需求（不阻塞启动）
+                    cfg = self.server_info.get(task_name, {}).get('config', {})
+                    if isinstance(cfg, dict) and cfg.get('type') in ('sse', 'streamable-http'):
+                        asyncio.create_task(self._detect_auth_status(task_name, cfg))
                         
                 except Exception as e:
                     print(f"✗ MCP服务器 {task_name} 生命周期启动失败: {e}")
@@ -477,10 +486,64 @@ class MCPServerManager:
                 self.main_app = None
                 self.dynamic_tasks.clear()
     
+    async def _detect_auth_status(self, key: str, value: Dict[str, Any]) -> None:
+        """异步检测服务器的 OAuth 授权需求，更新 auth_status 字段"""
+        server_type = value.get('type', '')
+        if server_type not in ('sse', 'streamable-http'):
+            return
+
+        # 如果已有 OAuth token，检查是否有效
+        oauth_config = value.get('oauth')
+        if oauth_config and oauth_config.get('token'):
+            from app.services.oauth_flow import oauth_flow_service
+            from app.models.mcp_config import OAuthToken
+            token = OAuthToken(**oauth_config['token'])
+            if oauth_flow_service.is_token_expired(token):
+                # 尝试刷新
+                from app.models.mcp_config import OAuthConfig
+                cfg = OAuthConfig(**oauth_config)
+                new_token = await oauth_flow_service.refresh_oauth_token(key, cfg)
+                if new_token:
+                    cfg.token = new_token
+                    value['oauth'] = cfg.dict()
+                    self.server_info[key]['auth_status'] = 'authorized'
+                    from app.services.config_service import ConfigService
+                    ConfigService.update_server_oauth(key, cfg)
+                else:
+                    self.server_info[key]['auth_status'] = 'auth_expired'
+            else:
+                self.server_info[key]['auth_status'] = 'authorized'
+            return
+
+        # 无 token，检测是否需要 OAuth
+        url = value.get('url', '')
+        if not url:
+            return
+
+        from app.services.oauth_flow import oauth_flow_service
+        from app.models.mcp_config import AuthStatus
+        status = await oauth_flow_service.detect_auth_requirement(url)
+        self.server_info[key]['auth_status'] = status.value
+
+        # 如果需要授权，自动发现端点并存入配置
+        if status == AuthStatus.AUTH_REQUIRED:
+            endpoints = await oauth_flow_service.discover_endpoints(url)
+            if endpoints:
+                value['oauth'] = {
+                    'authorization_endpoint': endpoints.get('authorization_endpoint'),
+                    'token_endpoint': endpoints.get('token_endpoint'),
+                    'registration_endpoint': endpoints.get('registration_endpoint'),
+                    'scopes': endpoints.get('scopes_supported', []),
+                    'redirect_mode': 'manual',
+                    'token': None,
+                }
+                from app.services.config_service import ConfigService
+                ConfigService.update_server_oauth(key, value['oauth'])
+
     def get_server_status(self) -> Dict[str, Dict[str, Any]]:
         """
         获取所有服务器状态 - 新增的监控功能
-        
+
         Returns:
             Dict[str, Dict[str, Any]]: 服务器状态信息
         """
@@ -492,6 +555,7 @@ class MCPServerManager:
                 'error': info.get('error'),
                 'note': info.get('config', {}).get('note'),
                 'tags': info.get('config', {}).get('tags', []),
+                'auth_status': info.get('auth_status', 'none'),
                 'mcp_endpoint': f"/mcp/{name}",
                 'sse_endpoint': f"/sse/{name}"
             }
@@ -744,4 +808,8 @@ class MCPServerManager:
             
         except Exception as e:
             logger.error(f"移除服务器 {server_name} 失败: {e}")
-            return False 
+            return False
+
+
+# 模块级单例
+server_manager = MCPServerManager()
