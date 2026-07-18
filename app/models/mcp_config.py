@@ -56,6 +56,7 @@ class MCPBaseConfig(BaseModel):
     note: Optional[str] = Field(default=None, description="服务器备注")
     tags: List[str] = Field(default_factory=list, description="服务器标签")
     oauth: Optional[OAuthConfig] = Field(default=None, description="OAuth 客户端认证配置")
+    expose_in_catalog: bool = Field(default=False, description="是否纳入公共 Catalog 索引")
 
     class Config:
         extra = "allow"  # 允许额外字段，保持兼容性
@@ -208,6 +209,18 @@ class SecurityConfig(BaseModel):
         return v.strip()
 
 
+class CatalogConfig(BaseModel):
+    """公共搜索 Catalog 配置"""
+    enabled: bool = Field(default=True, description="是否启用 catalog 端点")
+    path_name: str = Field(default="mcpcat", description="端点路径名")
+    require_auth: bool = Field(default=True, description="是否需要 API Key 认证")
+    max_results: int = Field(default=5, ge=1, le=50, description="每次搜索最大返回工具数")
+    search_strategy: Literal["bm25", "regex"] = Field(default="bm25", description="搜索策略")
+    always_visible: List[str] = Field(default_factory=list, description="始终可见的 pinned tools")
+    refresh_interval_sec: int = Field(default=60, ge=10, le=3600, description="兜底刷新间隔（秒）")
+    include_server_meta_in_search: bool = Field(default=True, description="是否将 server note/tags 纳入搜索文本")
+
+
 class AppConfig(BaseModel):
     """应用配置"""
     version: str = Field(default="0.1.1", description="应用版本")
@@ -231,6 +244,7 @@ class MCPCatConfig(BaseModel):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     app: AppConfig = Field(default_factory=AppConfig)
     feishu: FeishuConfig = Field(default_factory=FeishuConfig)
+    catalog: Optional[CatalogConfig] = Field(default=None, description="公共搜索 Catalog 配置")
 
     class Config:
         allow_population_by_field_name = True  # 允许使用别名

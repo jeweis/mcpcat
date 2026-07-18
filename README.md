@@ -19,6 +19,8 @@
 
 ## Docker 部署（推荐）
 
+> Catalog 工具搜索依赖进程内的动态 MCP 服务目录。当前版本请保持单容器、单 Uvicorn worker 部署；在引入共享服务 registry 前，不支持通过 `--workers` 或多副本横向扩容。
+
 ### 快速启动
 
 最简单的启动方式，系统会自动生成 API Key：

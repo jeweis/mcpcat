@@ -7,6 +7,8 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 
+from app.services.server_manager import is_reserved_name
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -122,6 +124,13 @@ async def add_server(server_request: AddServerRequest, request: Request):
     """动态添加新的MCP服务器并立即挂载"""
     manager = _get_server_manager(request)
     _validate_server_name(server_request.name)
+
+    if is_reserved_name(server_request.name):
+        raise HTTPException(
+            status_code=400,
+            detail=f"名称 '{server_request.name}' 为系统保留名，不可使用。"
+                   "以下划线开头或以 reserved 名称为 mcpcat 的名称均被保留。"
+        )
     
     # 检查服务器名称是否已存在
     existing_servers = manager.get_server_status()
@@ -202,6 +211,13 @@ async def update_server(server_name: str, server_request: AddServerRequest, requ
     """更新服务器配置并重启"""
     manager = _get_server_manager(request)
     _validate_server_exists(manager, server_name)
+
+    if server_request.name != server_name and is_reserved_name(server_request.name):
+        raise HTTPException(
+            status_code=400,
+            detail=f"名称 '{server_request.name}' 为系统保留名，不可使用。"
+                   "以下划线开头或命名为 mcpcat 的名称均被保留。"
+        )
     
     # 验证配置
     from app.services.config_service import ConfigService

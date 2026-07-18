@@ -18,10 +18,13 @@ import os
 from app.core.config import settings
 from app.services.server_manager import MCPServerManager, server_manager
 from app.services.security_service import security_service
+from app.services.config_service import ConfigService
 from app.middleware.auth import AuthMiddleware
-from app.api import health, servers, auth, inspector, market, admin, oauth
+from app.api import health, servers, auth, inspector, market, admin, oauth, catalog
 from app.services.inspector_service import inspector_service
 from app.services.market_service import MarketService, MARKET_DATA_URL_PRIMARY, MARKET_DATA_URL_FALLBACK, MARKET_DATA_TTL
+from app.services.catalog_service import CatalogService
+from app.models.mcp_config import CatalogConfig
 
 # 创建全局服务器管理器
 # server_manager 实例从 server_manager 模块导入（模块级单例）
@@ -84,6 +87,18 @@ if default_keys:
 # 创建服务器管理器并加载服务器
 server_manager.load_servers_from_config()
 
+# 初始化 Catalog 服务
+_config_service = ConfigService()
+raw_config = _config_service.load_raw_config()
+catalog_config_dict = raw_config.get("catalog", {})
+if catalog_config_dict:
+    catalog_config = CatalogConfig(**catalog_config_dict)
+else:
+    catalog_config = CatalogConfig()
+if catalog_config.enabled:
+    server_manager.catalog_service = CatalogService(server_manager, catalog_config)
+    print("Catalog 服务已初始化")
+
 # 创建并初始化市场服务
 market_service = MarketService(
     remote_url=MARKET_DATA_URL_PRIMARY,
@@ -119,6 +134,7 @@ app.include_router(inspector.router, prefix="/api/inspector", tags=["测试工�
 app.include_router(market.router, prefix="/api/market", tags=["发现市场"])
 app.include_router(admin.router, prefix="/api", tags=["全局设置"])
 app.include_router(oauth.router, prefix="/api", tags=["OAuth 认证"])
+app.include_router(catalog.router, prefix="/api", tags=["Catalog 搜索"])
 
 
 # 挂载静态文件

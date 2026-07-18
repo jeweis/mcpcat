@@ -7,6 +7,7 @@
         "mcp-server-fetch"
       ],
       "require_auth": false,
+      "expose_in_catalog": true,
       "note": "网页抓取工具",
       "tags": ["工具", "只读"]
     },
@@ -107,6 +108,16 @@
     "log_level": "INFO",
     "enable_metrics": true,
     "public_base_url": ""
+  },
+  "catalog": {
+    "enabled": true,
+    "path_name": "mcpcat",
+    "require_auth": true,
+    "max_results": 5,
+    "search_strategy": "bm25",
+    "always_visible": [],
+    "refresh_interval_sec": 60,
+    "include_server_meta_in_search": true
   },
   "feishu": {
     "enabled": false,

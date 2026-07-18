@@ -56,10 +56,18 @@ class AuthMiddleware(BaseHTTPMiddleware):
             r"^/api/servers/[^/]+/stop$": PermissionType.WRITE,
             r"^/api/servers/[^/]+/restart$": PermissionType.WRITE,
             r"^/api/servers/[^/]+/meta$": PermissionType.WRITE,
-            
+
             # 管理API - read权限 (查看端点)
             r"^/api/servers/[^/]+/health$": PermissionType.READ,
             r"^/api/servers/[^/]+/config$": PermissionType.READ,
+
+            # Catalog API - read权限
+            r"^/api/catalog/status$": PermissionType.READ,
+            r"^/api/catalog/search": PermissionType.READ,
+
+            # Catalog API - write权限
+            r"^/api/catalog/refresh$": PermissionType.WRITE,
+            r"^/api/catalog/call$": PermissionType.READ,
             
             # MCP协议端点 - read权限
             r"^/mcp/[^/]+/.*": PermissionType.READ,
@@ -88,19 +96,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
         Returns:
             bool: 如果服务器配置为不需要认证则返回True
         """
-        # 匹配MCP端点: /mcp/server_name/...
         mcp_match = re.match(r"^/mcp/([^/]+)", path)
-        if mcp_match:
-            server_name = mcp_match.group(1)
-            return self._check_server_auth_config(server_name)
-        
-        # 匹配SSE端点: /sse/server_name/...
         sse_match = re.match(r"^/sse/([^/]+)", path)
-        if sse_match:
-            server_name = sse_match.group(1)
-            return self._check_server_auth_config(server_name)
-        
-        return False
+        match = mcp_match or sse_match
+        if not match:
+            return False
+
+        server_name = match.group(1)
+        if self._is_catalog_server(server_name):
+            return self._check_catalog_auth_config()
+        return self._check_server_auth_config(server_name)
     
     def _check_server_auth_config(self, server_name: str) -> bool:
         """
@@ -124,6 +129,30 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             logger.error(f"检查服务器认证配置时出错: {e}")
             # 出错时默认需要认证，更安全
+            return False
+
+    def _is_catalog_server(self, server_name: str) -> bool:
+        """判断是否为 Catalog 端点"""
+        try:
+            config = self.config_service.load_config()
+            catalog = config.get('catalog', {})
+            if isinstance(catalog, dict):
+                return server_name == catalog.get('path_name', 'mcpcat')
+            return server_name == 'mcpcat'
+        except Exception:
+            return server_name == 'mcpcat'
+
+    def _check_catalog_auth_config(self) -> bool:
+        """检查 Catalog 认证配置"""
+        try:
+            config = self.config_service.load_config()
+            catalog = config.get('catalog', {})
+            if isinstance(catalog, dict):
+                require_auth = catalog.get('require_auth', True)
+                return not require_auth
+            return False
+        except Exception as e:
+            logger.error(f"检查 Catalog 认证配置时出错: {e}")
             return False
     
     def get_required_permission(self, path: str, method: str) -> PermissionType:
