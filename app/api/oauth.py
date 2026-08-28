@@ -2,14 +2,15 @@
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
+from app.models.mcp_config import OAuthConfig
+from app.services.config_service import ConfigService
 from app.services.oauth_flow import oauth_flow_service
 from app.services.server_manager import server_manager
-from app.services.config_service import ConfigService
-from app.models.mcp_config import OAuthConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,13 @@ router = APIRouter()
 
 class ManualCallbackRequest(BaseModel):
     """手动粘贴回调请求"""
+
     callback_url: str
 
 
 class SetCredentialsRequest(BaseModel):
     """手动设置 client_id / client_secret 请求"""
+
     client_id: str
     client_secret: Optional[str] = None
 
@@ -63,14 +66,18 @@ async def authorize_server(server_name: str, request: Request):
             scopes=endpoints.get("scopes_supported", []),
         )
 
-    public_base_url = ConfigService.get_public_base_url() or str(request.base_url).rstrip("/")
+    public_base_url = ConfigService.get_public_base_url() or str(
+        request.base_url
+    ).rstrip("/")
 
     # 如果没有 client_id，尝试 DCR
     if not oauth_config.client_id:
         if oauth_config.registration_endpoint:
             redirect_mode = oauth_config.redirect_mode
             if redirect_mode == "auto" and public_base_url:
-                redirect_uri = f"{public_base_url.rstrip('/')}/api/oauth/callback/{server_name}"
+                redirect_uri = (
+                    f"{public_base_url.rstrip('/')}/api/oauth/callback/{server_name}"
+                )
             else:
                 redirect_uri = "http://localhost:8765/callback"
 
@@ -176,7 +183,9 @@ async def oauth_callback_manual(server_name: str, body: ManualCallbackRequest):
     """手动粘贴回调端点 - 用户粘贴回调 URL"""
     parsed = oauth_flow_service.handle_manual_callback(server_name, body.callback_url)
     if not parsed:
-        raise HTTPException(status_code=400, detail="回调 URL 格式错误，缺少 code 或 state")
+        raise HTTPException(
+            status_code=400, detail="回调 URL 格式错误，缺少 code 或 state"
+        )
 
     code, state = parsed
     token = await oauth_flow_service.exchange_code_for_token(server_name, code, state)
@@ -202,7 +211,7 @@ async def get_oauth_status(server_name: str):
 
 
 def _persist_token(server_name: str, token):
-    """将 token 持久化到 server_info 和 config.json"""
+    """将 token 持久化到 server_info 和 SQLite"""
     server_info = server_manager.server_info.get(server_name)
     if not server_info or not server_info.get("config"):
         return

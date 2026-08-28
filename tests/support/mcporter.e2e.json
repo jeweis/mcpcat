@@ -1,0 +1,11 @@
+{
+  "imports": [],
+  "mcpServers": {
+    "mcpcat-e2e": {
+      "url": "http://127.0.0.1:18765/mcp",
+      "allowedTools": ["echo"],
+      "lifecycle": "ephemeral",
+      "protocolVersion": "auto"
+    }
+  }
+}

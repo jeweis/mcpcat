@@ -17,6 +17,10 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "fastmcp==3.4.4",
     "httpx>=0.24.0",
+    "sqlalchemy>=2.0,<3",
+    "alembic>=1.13,<2",
+    "filelock>=3.16,<4",
+    "pyyaml>=6,<7",
 ]
 
 [project.optional-dependencies]

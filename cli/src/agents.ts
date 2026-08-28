@@ -1,0 +1,24 @@
+export {
+  AGENT_ADAPTERS,
+  claudeAdapter,
+  codexAdapter,
+  detectAgents,
+  genericAdapter,
+  getAgentAdapter,
+  openClawAdapter,
+} from "./agents/adapters.js";
+export { AgentStore } from "./agents/store.js";
+export {
+  AGENT_IDS,
+  assertAgentId,
+  assertScope,
+  createAgentEnvironment as createAgentContext,
+  createAgentEnvironment,
+  normalizeTarget,
+  type AgentAdapter,
+  type AgentEnvironment as AgentContext,
+  type AgentEnvironment,
+  type AgentId,
+  type InstallScope,
+  type TargetRequest,
+} from "./agents/types.js";

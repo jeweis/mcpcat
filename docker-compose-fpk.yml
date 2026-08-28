@@ -13,6 +13,11 @@ services:
       - PORT=8000
       - LOG_LEVEL=INFO
       - MCPCAT_CONFIG_PATH=/app/.mcpcat/config.json
+      - MCPCAT_DATABASE_PATH=/app/.mcpcat/mcpcat.db
+      - MCPCAT_ARTIFACTS_PATH=/app/.mcpcat/skills/artifacts
+      - MCPCAT_BACKUPS_PATH=/app/.mcpcat/backups
+      - MCPCAT_SQLITE_BUSY_TIMEOUT_MS=5000
+      - MCPCAT_SKILLS_ENABLED=${MCPCAT_SKILLS_ENABLED:-true}
     volumes:
       - mcpcat_config:/app/.mcpcat
     user: "1000:1000"

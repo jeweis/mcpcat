@@ -18,20 +18,21 @@ _ORIGIN_PATTERN = re.compile(r"^https?://[a-zA-Z0-9.\-]+(:\d+)?$")
 
 class BaseUrlResponse(BaseModel):
     """规范域名响应"""
+
     public_base_url: str = ""
 
 
 class UpdateBaseUrlRequest(BaseModel):
     """更新规范域名请求"""
+
     public_base_url: str = ""
 
 
 @router.get("/admin/settings/base-url", response_model=BaseUrlResponse)
 async def get_base_url():
     """获取对外规范域名（复制 MCP 地址时拼接使用）"""
-    config = ConfigService.load_raw_config()
-    app_cfg = config.get('app') or {}
-    return BaseUrlResponse(public_base_url=app_cfg.get('public_base_url') or "")
+    app_config = ConfigService.get_setting_section("app", {}) or {}
+    return BaseUrlResponse(public_base_url=app_config.get("public_base_url") or "")
 
 
 @router.put("/admin/settings/base-url", response_model=BaseUrlResponse)
@@ -44,9 +45,9 @@ async def update_base_url(payload: UpdateBaseUrlRequest):
             detail="域名格式无效：需为 http(s)://host[:port]，无尾斜杠",
         )
 
-    config = ConfigService.load_raw_config()
-    config.setdefault('app', {})
-    config['app']['public_base_url'] = value or None
-    ConfigService.save_config(config)
+    app_config = ConfigService.get_setting_section("app", {}) or {}
+    app_config["public_base_url"] = value or None
+    if not ConfigService.update_setting_section("app", app_config):
+        raise HTTPException(status_code=500, detail="设置保存失败")
     logger.info(f"规范域名已更新: {value or '(空，回退浏览器 origin)'}")
     return BaseUrlResponse(public_base_url=value)

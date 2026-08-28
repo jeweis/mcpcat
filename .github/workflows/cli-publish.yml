@@ -1,0 +1,96 @@
+name: Publish CLI to npm
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "cli-v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-cli-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate and publish with OIDC
+    runs-on: ubuntu-latest
+    environment: npm
+    defaults:
+      run:
+        working-directory: cli
+
+    steps:
+      - name: Checkout the release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - name: Set up Node.js 24 and npm registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify Trusted Publishing toolchain
+        run: node ../.github/scripts/cli-verify-toolchain.mjs
+
+      - name: Resolve version and dist-tag
+        id: release
+        env:
+          MCPCAT_RELEASE_EVENT: ${{ github.event_name }}
+          MCPCAT_RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+          MCPCAT_RELEASE_PRERELEASE: ${{ toJSON(github.event.release.prerelease) }}
+        run: node ../.github/scripts/cli-resolve-release.mjs
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify package metadata, contents, and secrets
+        run: node ../.github/scripts/cli-verify-package.mjs
+
+      - name: Verify Gate C documentation and compatibility matrix
+        run: node ../.github/scripts/cli-verify-gate-c-docs.mjs
+
+      - name: Test packed CLI end to end
+        run: node ../.github/scripts/cli-package-e2e.mjs
+
+      - name: Check whether this immutable version already exists
+        id: existing
+        env:
+          PACKAGE_NAME: ${{ steps.release.outputs.package_name }}
+          PACKAGE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "${PACKAGE_NAME}@${PACKAGE_VERSION} already exists; skipping duplicate publish."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish immutable version with provenance
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          DIST_TAG: ${{ steps.release.outputs.dist_tag }}
+        run: npm publish --access public --provenance --tag "$DIST_TAG"

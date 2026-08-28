@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "verified_on": "2026-08-29",
+  "versions": {
+    "service_application": { "current": "0.1.1", "compatibility_gate": false },
+    "registry_api": { "server": "v1", "cli_supported": "v1", "rule": "exact" },
+    "registry_schema": { "server": "1.0.0", "cli_supported_major": 1, "rule": "same-major" },
+    "cli": {
+      "current": "0.1.0",
+      "server_minimum": "0.1.0",
+      "server_recommended": "0.1.0",
+      "request_header": "X-Mcpcat-CLI-Version"
+    },
+    "skill": { "rule": "independent-semver", "published_versions_immutable": true },
+    "generated_mcp_skill": { "generator": "1.0.0", "node": ">=24", "mcporter": "0.13.7" }
+  },
+  "scenarios": [
+    { "id": "current-baseline", "api": "v1", "schema": "1.0.0", "cli": "0.1.0", "outcome": "allow" },
+    { "id": "service-version-independent", "service": "0.2.0", "api": "v1", "schema": "1.0.0", "cli": "0.1.0", "outcome": "allow" },
+    { "id": "compatible-schema-minor", "api": "v1", "schema": "1.9.0", "cli": "0.1.0", "outcome": "allow-if-required-fields-remain" },
+    { "id": "api-major-mismatch", "api": "v2", "schema": "1.0.0", "cli": "0.1.0", "outcome": "reject" },
+    { "id": "schema-major-mismatch", "api": "v1", "schema": "2.0.0", "cli": "0.1.0", "outcome": "reject" },
+    { "id": "cli-below-server-minimum", "api": "v1", "schema": "1.0.0", "cli": "0.0.9", "outcome": "reject-426" },
+    { "id": "skill-version-independent", "api": "v1", "schema": "1.0.0", "cli": "0.1.0", "skill": "9.4.2", "outcome": "allow-if-artifact-and-compatibility-valid" }
+  ]
+}

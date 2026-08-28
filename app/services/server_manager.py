@@ -219,9 +219,7 @@ class MCPServerManager:
         # 加载MCP服务器配置
         mcp_server_list = ConfigService.load_mcp_servers_config()
 
-        print("Loading MCP server list...")
-        print("MCP server list loaded.")
-        print(mcp_server_list)
+        logger.info("正在加载 %d 个 MCP 服务", len(mcp_server_list))
 
         # 遍历配置并添加服务器 - 与原逻辑一致
         for key, value in mcp_server_list.items():
@@ -437,12 +435,12 @@ class MCPServerManager:
         if not self.mount_server(app, key):
             return False
 
-        # 保存配置到文件，确保持久化
+        # 通过 MCP Repository 持久化
         try:
             if ConfigService.add_server_to_config(key, value):
-                print(f"✓ 服务器 {key} 配置已保存到文件")
+                logger.info("✓ 服务器 %s 配置已保存到 SQLite", key)
             else:
-                print(f"⚠️  服务器 {key} 配置保存失败，但服务器已添加")
+                logger.warning("服务器 %s 配置持久化失败，但内存实例已添加", key)
         except Exception as e:
             logger.warning(f"保存服务器 {key} 配置时出现警告: {e}")
 
@@ -677,7 +675,7 @@ class MCPServerManager:
         """
         仅更新服务器的备注/标签元数据，不触发重启。
 
-        同步更新内存中的 server_info 配置与 config.json，使下次 get_server_status
+        同步更新内存中的 server_info 配置与 SQLite，使下次 get_server_status
         立即反映变更。
         """
         if server_name not in self.server_info:
@@ -843,11 +841,11 @@ class MCPServerManager:
                     )
                     return False
 
-                # 更新配置文件
+                # 更新 SQLite 配置
                 if not ConfigService.update_server_config(server_name, new_config):
-                    logger.error("更新配置文件失败")
+                    logger.error("更新 SQLite 配置失败")
                     self._update_server_status(
-                        server_name, "failed", "更新配置文件失败"
+                        server_name, "failed", "更新 SQLite 配置失败"
                     )
                     return False
 
@@ -916,10 +914,12 @@ class MCPServerManager:
             if server_name in self.lifespan_tasks:
                 del self.lifespan_tasks[server_name]
 
-            # 3. 从配置文件中移除
+            # 3. 从 SQLite 中移除
             from app.services.config_service import ConfigService
+            from app.services.skill_artifact_service import mark_mcp_source_missing
 
             ConfigService.remove_server_from_config(server_name)
+            mark_mcp_source_missing(ConfigService._require_database(), server_name)
 
             # 4. 清理挂载列表（移除代理应用引用）
             self.app_mount_list = [

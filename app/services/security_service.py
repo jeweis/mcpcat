@@ -3,16 +3,23 @@
 import base64
 import hashlib
 import hmac
+import logging
 import os
 import secrets
 import string
 import threading
-from typing import Optional, List, Dict, Tuple
 from datetime import datetime
-from app.models.mcp_config import APIKeyConfig, PermissionType, SecurityConfig, FeishuConfig
-from app.services.config_service import ConfigService
+from typing import Dict, List, Optional, Tuple
+
 from app.core.config import settings
-import logging
+from app.models.mcp_config import (
+    APIKeyConfig,
+    FeishuConfig,
+    PermissionType,
+    SecurityConfig,
+)
+from app.services.config_service import ConfigService
+from app.storage.unit_of_work import UnitOfWork
 
 logger = logging.getLogger(__name__)
 
@@ -33,276 +40,247 @@ class SecurityService:
     def get_auth_header_name(self) -> str:
         """
         获取认证头名称
-        
+
         Returns:
             str: 认证头名称
         """
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            return security_config.get('auth_header_name', 'Mcpcat-Key')
+            security_config = self._config_service.get_setting_section("security", {})
+            return security_config.get("auth_header_name", "Mcpcat-Key")
         except Exception as e:
             logger.error(f"获取认证头名称时出错: {e}")
-            return 'Mcpcat-Key'  # 默认值
-    
+            return "Mcpcat-Key"  # 默认值
+
     def _process_datetime_fields(self, key_data: dict) -> dict:
         """
         处理datetime字段的序列化和反序列化
-        
+
         Args:
             key_data: API Key数据字典
-            
+
         Returns:
             dict: 处理后的数据字典
         """
         processed_data = key_data.copy()
-        
+
         # 处理created_at字段
-        if processed_data.get('created_at'):
-            if isinstance(processed_data['created_at'], str):
+        if processed_data.get("created_at"):
+            if isinstance(processed_data["created_at"], str):
                 try:
-                    processed_data['created_at'] = datetime.fromisoformat(processed_data['created_at'])
+                    processed_data["created_at"] = datetime.fromisoformat(
+                        processed_data["created_at"]
+                    )
                 except:
-                    processed_data['created_at'] = None
-        
+                    processed_data["created_at"] = None
+
         # 处理expires_at字段
-        if processed_data.get('expires_at'):
-            if isinstance(processed_data['expires_at'], str):
+        if processed_data.get("expires_at"):
+            if isinstance(processed_data["expires_at"], str):
                 try:
-                    processed_data['expires_at'] = datetime.fromisoformat(processed_data['expires_at'])
+                    processed_data["expires_at"] = datetime.fromisoformat(
+                        processed_data["expires_at"]
+                    )
                 except:
-                    processed_data['expires_at'] = None
-        
+                    processed_data["expires_at"] = None
+
         return processed_data
-    
+
     def generate_api_key(self, length: int = 32) -> str:
         """
         生成安全的API Key
-        
+
         Args:
             length: API Key长度
-            
+
         Returns:
             str: 生成的API Key
         """
         alphabet = string.ascii_letters + string.digits
-        return ''.join(secrets.choice(alphabet) for _ in range(length))
-    
+        return "".join(secrets.choice(alphabet) for _ in range(length))
+
     def verify_api_key(self, api_key: str) -> Optional[APIKeyConfig]:
         """
         验证API Key
-        
+
         Args:
             api_key: 要验证的API Key
-            
+
         Returns:
             APIKeyConfig: 如果验证成功返回API Key配置，否则返回None
         """
         if not api_key or not api_key.strip():
             return None
-            
+
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            api_keys = security_config.get('api_keys', [])
-            
-            for key_data in api_keys:
-                processed_data = self._process_datetime_fields(key_data)
-                key_config = APIKeyConfig(**processed_data)
-                
-                # 检查Key是否匹配且启用
-                if key_config.key == api_key.strip() and key_config.enabled:
-                    # 检查是否过期
-                    if key_config.expires_at and datetime.now() > key_config.expires_at:
-                        logger.warning(f"API Key已过期: {key_config.name}")
-                        return None
-                    
-                    return key_config
-            
-            return None
-            
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                key_data = unit.api_keys.get_by_key(api_key.strip())
+            if key_data is None:
+                return None
+            key_config = APIKeyConfig(**self._process_datetime_fields(key_data))
+            if not key_config.enabled:
+                return None
+            if key_config.expires_at and datetime.now() > key_config.expires_at:
+                logger.warning("API Key 已过期: %s", key_config.name)
+                return None
+            return key_config
+
         except Exception as e:
             logger.error(f"验证API Key时出错: {e}")
             return None
-    
-    def has_permission(self, api_key_config: APIKeyConfig, required_permission: PermissionType) -> bool:
+
+    def has_permission(
+        self, api_key_config: APIKeyConfig, required_permission: PermissionType
+    ) -> bool:
         """
         检查API Key是否有指定权限
-        
+
         Args:
             api_key_config: API Key配置
             required_permission: 需要的权限
-            
+
         Returns:
             bool: 是否有权限
         """
         if not api_key_config or not api_key_config.enabled:
             return False
-        
+
         # write权限包含read权限
         if api_key_config.permission == PermissionType.WRITE:
             return True
-        
+
         # 检查具体权限
         return api_key_config.permission == required_permission
-    
+
     def get_all_api_keys(self) -> List[APIKeyConfig]:
         """
         获取所有API Key配置
-        
+
         Returns:
             List[APIKeyConfig]: API Key配置列表
         """
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            api_keys = security_config.get('api_keys', [])
-            
-            return [APIKeyConfig(**self._process_datetime_fields(key_data)) for key_data in api_keys]
-            
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                api_keys = unit.api_keys.list_all()
+            return [
+                APIKeyConfig(**self._process_datetime_fields(key_data))
+                for key_data in api_keys
+            ]
+
         except Exception as e:
             logger.error(f"获取API Key列表时出错: {e}")
             return []
-    
-    def add_api_key(self, name: str, permission: PermissionType, 
-                   key: Optional[str] = None, expires_at: Optional[datetime] = None) -> APIKeyConfig:
+
+    def add_api_key(
+        self,
+        name: str,
+        permission: PermissionType,
+        key: Optional[str] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> APIKeyConfig:
         """
         添加新的API Key
-        
+
         Args:
             name: API Key名称
             permission: 权限级别
             key: 指定的Key，如果为None则自动生成
             expires_at: 过期时间
-            
+
         Returns:
             APIKeyConfig: 创建的API Key配置
-            
+
         Raises:
             ValueError: 如果Key已存在或配置无效
         """
         if not key:
             key = self.generate_api_key()
-        
+
         # 检查Key是否已存在
         if self.verify_api_key(key):
             raise ValueError(f"API Key已存在")
-        
+
         new_key = APIKeyConfig(
             key=key,
             name=name,
             permission=permission,
             enabled=True,
             created_at=datetime.now(),
-            expires_at=expires_at
+            expires_at=expires_at,
         )
-        
-        # 加载当前配置
-        config = self._config_service.load_config()
-        
-        # 确保security配置存在
-        if 'security' not in config:
-            config['security'] = {
-                'api_keys': [],
-                'auth_header_name': 'Mcpcat-Key'
-            }
-        if 'api_keys' not in config['security']:
-            config['security']['api_keys'] = []
-        if 'auth_header_name' not in config['security']:
-            config['security']['auth_header_name'] = 'Mcpcat-Key'
-        
-        # 添加新Key（处理datetime序列化）
-        key_dict = new_key.dict()
-        if key_dict.get('created_at'):
-            key_dict['created_at'] = key_dict['created_at'].isoformat()
-        if key_dict.get('expires_at'):
-            key_dict['expires_at'] = key_dict['expires_at'].isoformat()
-        
-        config['security']['api_keys'].append(key_dict)
-        
-        # 保存配置
-        self._config_service.save_config(config)
-        
+
+        key_dict = new_key.model_dump()
+        if key_dict.get("created_at"):
+            key_dict["created_at"] = key_dict["created_at"].isoformat()
+        if key_dict.get("expires_at"):
+            key_dict["expires_at"] = key_dict["expires_at"].isoformat()
+        with UnitOfWork(ConfigService._require_database()) as unit:
+            unit.api_keys.add(key_dict)
+            unit.commit()
+
         logger.info(f"添加新API Key: {name} ({permission.value})")
         return new_key
-    
+
     def remove_api_key(self, key: str) -> bool:
         """
         删除API Key
-        
+
         Args:
             key: 要删除的API Key
-            
+
         Returns:
             bool: 是否删除成功
         """
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            api_keys = security_config.get('api_keys', [])
-            
-            # 查找并删除Key
-            original_count = len(api_keys)
-            api_keys[:] = [k for k in api_keys if k.get('key') != key]
-            
-            if len(api_keys) < original_count:
-                config['security']['api_keys'] = api_keys
-                self._config_service.save_config(config)
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                removed = unit.api_keys.remove(key)
+                unit.commit()
+            if removed:
                 logger.info(f"删除API Key: {key[:8]}...")
                 return True
-            
             return False
-            
+
         except Exception as e:
             logger.error(f"删除API Key时出错: {e}")
             return False
-    
+
     def update_api_key(self, key: str, **updates) -> bool:
         """
         更新API Key配置
-        
+
         Args:
             key: 要更新的API Key
             **updates: 要更新的字段
-            
+
         Returns:
             bool: 是否更新成功
         """
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            api_keys = security_config.get('api_keys', [])
-            
-            # 查找并更新Key
-            for key_data in api_keys:
-                if key_data.get('key') == key:
-                    key_data.update(updates)
-                    config['security']['api_keys'] = api_keys
-                    self._config_service.save_config(config)
-                    logger.info(f"更新API Key: {key[:8]}...")
-                    return True
-            
-            return False
-            
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                updated = unit.api_keys.update(key, updates)
+                unit.commit()
+            if updated:
+                logger.info(f"更新API Key: {key[:8]}...")
+            return updated
+
         except Exception as e:
             logger.error(f"更新API Key时出错: {e}")
             return False
-    
+
     def ensure_default_keys(self) -> List[APIKeyConfig]:
         """
         确保存在默认的API Key，如果不存在则创建
-        
+
         Returns:
             List[APIKeyConfig]: 创建的默认Key列表
         """
         existing_keys = self.get_all_api_keys()
-        
+
         # 如果已有Key，不创建默认Key
         if existing_keys:
             return []
-        
+
         created_keys = []
-        
+
         try:
             # 检查是否通过环境变量设置了 Key
             admin_key_from_env = settings.mcpcat_default_admin_key is not None
@@ -312,7 +290,7 @@ class SecurityService:
             admin_key = self.add_api_key(
                 name="Default Admin Key",
                 permission=PermissionType.WRITE,
-                key=settings.mcpcat_default_admin_key  # None 时自动生成
+                key=settings.mcpcat_default_admin_key,  # None 时自动生成
             )
             created_keys.append(admin_key)
 
@@ -320,17 +298,17 @@ class SecurityService:
             read_key = self.add_api_key(
                 name="Default Read Key",
                 permission=PermissionType.READ,
-                key=settings.mcpcat_default_read_key  # None 时自动生成
+                key=settings.mcpcat_default_read_key,  # None 时自动生成
             )
             created_keys.append(read_key)
 
             # 如果是自动生成的 Key（非环境变量设置），保存用于首次展示
             if not admin_key_from_env or not read_key_from_env:
                 self._first_run_keys = {
-                    'admin_key': admin_key.key if not admin_key_from_env else None,
-                    'read_key': read_key.key if not read_key_from_env else None,
-                    'admin_key_name': admin_key.name,
-                    'read_key_name': read_key.name
+                    "admin_key": admin_key.key if not admin_key_from_env else None,
+                    "read_key": read_key.key if not read_key_from_env else None,
+                    "admin_key_name": admin_key.name,
+                    "read_key_name": read_key.name,
                 }
 
             logger.info("已创建默认API Key")
@@ -377,28 +355,27 @@ class SecurityService:
             if self._secret_key_cache is not None:
                 return self._secret_key_cache
 
-            env_key = (settings.mcpcat_secret_key or '').strip()
+            env_key = (settings.mcpcat_secret_key or "").strip()
             if env_key:
-                self._secret_key_cache = env_key.encode('utf-8')
+                self._secret_key_cache = env_key.encode("utf-8")
                 return self._secret_key_cache
 
-            config = self._config_service.load_config()
-            app_config = config.get('app') or {}
-            existing = app_config.get('secret_key')
+            app_config = self._config_service.get_setting_section("app", {}) or {}
+            existing = app_config.get("secret_key")
             if existing:
-                self._secret_key_cache = str(existing).strip().encode('utf-8')
+                self._secret_key_cache = str(existing).strip().encode("utf-8")
                 return self._secret_key_cache
 
             generated = secrets.token_urlsafe(48)
-            config.setdefault('app', {})
-            config['app']['secret_key'] = generated
-            self._config_service.save_config(config)
+            app_config["secret_key"] = generated
+            if not self._config_service.update_setting_section("app", app_config):
+                raise RuntimeError("无法持久化全局加密密钥")
             logger.warning(
-                "未配置环境变量 MCPCAT_SECRET_KEY，已自动生成加密密钥并持久化到 config.json；"
-                "该方式仅能避免敏感信息明文出现，无法抵御“拿到配置文件即可解密”的风险，"
+                "未配置环境变量 MCPCAT_SECRET_KEY，已自动生成加密密钥并持久化到 SQLite；"
+                "该方式仅能避免敏感信息明文出现，无法抵御“拿到数据库即可解密”的风险，"
                 "生产环境请显式设置 MCPCAT_SECRET_KEY"
             )
-            self._secret_key_cache = generated.encode('utf-8')
+            self._secret_key_cache = generated.encode("utf-8")
             return self._secret_key_cache
 
     @staticmethod
@@ -406,7 +383,7 @@ class SecurityService:
         """基于 HMAC-SHA256 派生的简单密钥流（纯标准库 XOR 加密的基础）"""
         block = index // 32
         offset = index % 32
-        material = nonce + block.to_bytes(8, 'big')
+        material = nonce + block.to_bytes(8, "big")
         digest = hashlib.sha256(key + material).digest()
         return digest[offset]
 
@@ -424,10 +401,12 @@ class SecurityService:
             return None
         key = self._resolve_global_secret_key()
         nonce = os.urandom(16)
-        raw = plain.encode('utf-8')
-        encrypted = bytes(b ^ self._keystream_byte(key, nonce, i) for i, b in enumerate(raw))
+        raw = plain.encode("utf-8")
+        encrypted = bytes(
+            b ^ self._keystream_byte(key, nonce, i) for i, b in enumerate(raw)
+        )
         tag = hmac.new(key, nonce + encrypted, hashlib.sha256).digest()
-        return base64.urlsafe_b64encode(nonce + tag + encrypted).decode('utf-8')
+        return base64.urlsafe_b64encode(nonce + tag + encrypted).decode("utf-8")
 
     def _decrypt_secret(self, encoded: Optional[str]) -> Optional[str]:
         """
@@ -442,7 +421,7 @@ class SecurityService:
         if not encoded:
             return None
         try:
-            raw = base64.urlsafe_b64decode(encoded.encode('utf-8'))
+            raw = base64.urlsafe_b64decode(encoded.encode("utf-8"))
         except Exception as e:
             logger.error(f"解密飞书 app_secret 失败，密文格式无效: {e}")
             return None
@@ -455,11 +434,15 @@ class SecurityService:
         key = self._resolve_global_secret_key()
         expected_tag = hmac.new(key, nonce + encrypted, hashlib.sha256).digest()
         if not hmac.compare_digest(tag, expected_tag):
-            logger.error("解密飞书 app_secret 失败，签名校验未通过（加密密钥可能已变更）")
+            logger.error(
+                "解密飞书 app_secret 失败，签名校验未通过（加密密钥可能已变更）"
+            )
             return None
 
-        plain = bytes(b ^ self._keystream_byte(key, nonce, i) for i, b in enumerate(encrypted))
-        return plain.decode('utf-8')
+        plain = bytes(
+            b ^ self._keystream_byte(key, nonce, i) for i, b in enumerate(encrypted)
+        )
+        return plain.decode("utf-8")
 
     # ------------------------------------------------------------------
     # 飞书登录配置读写
@@ -472,10 +455,9 @@ class SecurityService:
         Returns:
             FeishuConfig: 飞书登录配置
         """
-        config = self._config_service.load_config()
-        feishu_data = dict(config.get('feishu') or {})
-        encrypted_secret = feishu_data.get('app_secret')
-        feishu_data['app_secret'] = self._decrypt_secret(encrypted_secret)
+        feishu_data = dict(self._config_service.get_setting_section("feishu", {}) or {})
+        encrypted_secret = feishu_data.get("app_secret")
+        feishu_data["app_secret"] = self._decrypt_secret(encrypted_secret)
         return FeishuConfig(**feishu_data)
 
     def update_feishu_settings(
@@ -505,24 +487,25 @@ class SecurityService:
             # 覆盖掉 _resolve_global_secret_key 内部刚写入的 app.secret_key
             self._resolve_global_secret_key()
 
-        config = self._config_service.load_config()
-        feishu_data = dict(config.get('feishu') or {})
+        feishu_data = dict(self._config_service.get_setting_section("feishu", {}) or {})
 
         if enabled is not None:
-            feishu_data['enabled'] = enabled
+            feishu_data["enabled"] = enabled
         if app_id is not None:
-            feishu_data['app_id'] = app_id.strip() or None
+            feishu_data["app_id"] = app_id.strip() or None
         if base_url is not None:
-            normalized = base_url.strip().rstrip('/')
-            feishu_data['base_url'] = normalized or FeishuConfig().base_url
+            normalized = base_url.strip().rstrip("/")
+            feishu_data["base_url"] = normalized or FeishuConfig().base_url
         if default_permission is not None:
-            feishu_data['default_permission'] = PermissionType(default_permission).value
+            feishu_data["default_permission"] = PermissionType(default_permission).value
         if app_secret is not None:
             normalized_secret = app_secret.strip()
-            feishu_data['app_secret'] = self._encrypt_secret(normalized_secret) if normalized_secret else None
+            feishu_data["app_secret"] = (
+                self._encrypt_secret(normalized_secret) if normalized_secret else None
+            )
 
-        config['feishu'] = feishu_data
-        self._config_service.save_config(config)
+        if not self._config_service.update_setting_section("feishu", feishu_data):
+            raise RuntimeError("飞书设置保存失败")
         logger.info("飞书登录配置已更新")
         return self.get_feishu_config()
 
@@ -555,18 +538,25 @@ class SecurityService:
         self._resolve_global_secret_key()
 
         with self._feishu_login_lock:
-            config = self._config_service.load_config()
-            security_config = config.setdefault('security', {})
-            security_config.setdefault('api_keys', [])
-            security_config.setdefault('auth_header_name', 'Mcpcat-Key')
-            api_keys = security_config['api_keys']
-
-            for key_data in api_keys:
-                if key_data.get('feishu_union_id') == union_id:
-                    key_data['name'] = name
-                    key_data['avatar_url'] = avatar_url
-                    key_data['feishu_open_id'] = open_id
-                    self._config_service.save_config(config)
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                key_data = unit.api_keys.get_by_feishu_union_id(union_id)
+                if key_data is not None:
+                    unit.api_keys.update(
+                        key_data["key"],
+                        {
+                            "name": name,
+                            "avatar_url": avatar_url,
+                            "feishu_open_id": open_id,
+                        },
+                    )
+                    unit.commit()
+                    key_data.update(
+                        {
+                            "name": name,
+                            "avatar_url": avatar_url,
+                            "feishu_open_id": open_id,
+                        }
+                    )
                     key_config = APIKeyConfig(**self._process_datetime_fields(key_data))
                     logger.info(f"飞书用户登录(已存在账号): {name} ({union_id})")
                     return key_config, False
@@ -583,15 +573,18 @@ class SecurityService:
                 avatar_url=avatar_url,
                 source="feishu",
             )
-            key_dict = new_key.dict()
-            if key_dict.get('created_at'):
-                key_dict['created_at'] = key_dict['created_at'].isoformat()
-            if key_dict.get('expires_at'):
-                key_dict['expires_at'] = key_dict['expires_at'].isoformat()
+            key_dict = new_key.model_dump()
+            if key_dict.get("created_at"):
+                key_dict["created_at"] = key_dict["created_at"].isoformat()
+            if key_dict.get("expires_at"):
+                key_dict["expires_at"] = key_dict["expires_at"].isoformat()
 
-            api_keys.append(key_dict)
-            self._config_service.save_config(config)
-            logger.info(f"飞书用户首次登录，自动开通账号: {name} ({union_id})，权限={new_key.permission.value}")
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                unit.api_keys.add(key_dict)
+                unit.commit()
+            logger.info(
+                f"飞书用户首次登录，自动开通账号: {name} ({union_id})，权限={new_key.permission.value}"
+            )
             return new_key, True
 
     def list_feishu_accounts(self) -> List[APIKeyConfig]:
@@ -622,22 +615,20 @@ class SecurityService:
             Optional[APIKeyConfig]: 更新后的账号配置；账号不存在时返回 None
         """
         try:
-            config = self._config_service.load_config()
-            security_config = config.get('security', {})
-            api_keys = security_config.get('api_keys', [])
-
-            for key_data in api_keys:
-                if key_data.get('source') == 'feishu' and key_data.get('feishu_union_id') == union_id:
-                    if permission is not None:
-                        key_data['permission'] = PermissionType(permission).value
-                    if enabled is not None:
-                        key_data['enabled'] = enabled
-                    config['security']['api_keys'] = api_keys
-                    self._config_service.save_config(config)
-                    logger.info(f"更新飞书绑定账号: {union_id}")
-                    return APIKeyConfig(**self._process_datetime_fields(key_data))
-
-            return None
+            with UnitOfWork(ConfigService._require_database()) as unit:
+                key_data = unit.api_keys.get_by_feishu_union_id(union_id)
+                if key_data is None or key_data.get("source") != "feishu":
+                    return None
+                updates = {}
+                if permission is not None:
+                    updates["permission"] = PermissionType(permission).value
+                if enabled is not None:
+                    updates["enabled"] = enabled
+                unit.api_keys.update(key_data["key"], updates)
+                unit.commit()
+            key_data.update(updates)
+            logger.info(f"更新飞书绑定账号: {union_id}")
+            return APIKeyConfig(**self._process_datetime_fields(key_data))
 
         except Exception as e:
             logger.error(f"更新飞书绑定账号时出错: {e}")
