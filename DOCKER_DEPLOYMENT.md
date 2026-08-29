@@ -36,7 +36,7 @@ cat > .mcpcat/config.json << EOF
     "auth_header_name": "Mcpcat-Key"
   },
   "app": {
-    "version": "0.1.1",
+    "version": "1.0.1",
     "log_level": "INFO",
     "enable_metrics": true
   }
@@ -107,7 +107,7 @@ deploy.bat
 ```yaml
 environment:
   - APP_NAME=mcpcat                    # 应用名称
-  - APP_VERSION=0.1.1                 # 应用版本
+  - APP_VERSION=1.0.1                 # 应用版本
   - HOST=0.0.0.0                      # 监听地址
   - PORT=8000                         # 监听端口
   - LOG_LEVEL=INFO                    # 日志级别

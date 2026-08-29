@@ -1,6 +1,6 @@
 {
   "name": "@jeweis/mcpcat",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Public CLI for mcpcat Skills Registry",
   "type": "module",
   "bin": {

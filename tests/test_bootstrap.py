@@ -12,6 +12,7 @@ from app.application import create_app
 from app.core.config import settings
 from app.services.config_service import ConfigService
 from app.storage.database import Database
+from app.version import APP_VERSION
 
 
 class FakeServerManager:
@@ -21,7 +22,7 @@ class FakeServerManager:
         self.mounted = False
 
     def load_servers_from_config(self) -> None:
-        assert ConfigService.load_raw_config()["app"]["version"] == "0.1.1"
+        assert ConfigService.load_raw_config()["app"]["version"] == APP_VERSION
         self.loaded = True
 
     def mount_all_servers(self, _app) -> None:

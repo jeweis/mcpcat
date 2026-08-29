@@ -40,7 +40,7 @@ describe("RegistryClient", () => {
   it.each([
     { api_version: "v2" },
     { registry_schema_version: "2.0.0" },
-    { min_cli_version: "1.0.0" },
+    { min_cli_version: "1.0.2" },
   ])("阻止不兼容 Bootstrap：%o", async (override) => {
     const client = new RegistryClient({ fetch: async () => json(bootstrap(override)) });
     await expect(client.bootstrap("https://mcpcat.example.com")).rejects.toMatchObject({

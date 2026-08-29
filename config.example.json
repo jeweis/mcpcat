@@ -104,7 +104,7 @@
     "auth_header_name": "Mcpcat-Key"
   },
   "app": {
-    "version": "0.1.1",
+    "version": "1.0.1",
     "log_level": "INFO",
     "enable_metrics": true,
     "public_base_url": ""

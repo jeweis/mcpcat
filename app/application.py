@@ -38,6 +38,7 @@ from app.services.market_service import (
 from app.services.security_service import security_service
 from app.services.server_manager import MCPServerManager
 from app.storage.database import Database
+from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def create_app(
     application = FastAPI(
         title=settings.app_name,
         description=settings.description,
-        version=settings.app_version,
+        version=APP_VERSION,
         lifespan=lifespan,
     )
     application.state.storage_ready = True

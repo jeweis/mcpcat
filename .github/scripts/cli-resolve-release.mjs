@@ -30,7 +30,7 @@ export function resolveDistTag(version) {
 }
 
 export function validateRelease({ eventName, prerelease, tag, version }) {
-  const expectedTag = `cli-v${version}`;
+  const expectedTag = `v${version}`;
   if (tag !== expectedTag) {
     throw new Error(`Release tag ${tag} must exactly match ${expectedTag}`);
   }

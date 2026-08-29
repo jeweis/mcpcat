@@ -27,10 +27,14 @@ const matrix = JSON.parse(read("cli/docs/compatibility-matrix.json"));
 if (matrix.schema_version !== 1 || !Array.isArray(matrix.scenarios)) fail("invalid matrix schema");
 const cliSource = read("cli/src/version.ts");
 const distribution = read("app/services/skill_distribution_service.py");
-const config = read("app/core/config.py");
+const serviceVersion = read("app/version.py");
 const generator = read("app/services/mcp_skill_generator.py");
 const actual = {
-  service: capture(config, /app_version:\s*str\s*=\s*"([^"]+)"/, "service version"),
+  service: capture(
+    serviceVersion,
+    /APP_VERSION\s*=\s*"([^"]+)"/,
+    "service version",
+  ),
   api: capture(distribution, /REGISTRY_API_VERSION\s*=\s*"([^"]+)"/, "API"),
   schema: capture(distribution, /REGISTRY_SCHEMA_VERSION\s*=\s*"([^"]+)"/, "schema"),
   minimum: capture(distribution, /MIN_CLI_VERSION\s*=\s*"([^"]+)"/, "minimum CLI"),

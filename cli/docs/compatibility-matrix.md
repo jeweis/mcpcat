@@ -7,10 +7,10 @@
 
 | 维度 | 当前值 | 兼容判定 |
 | --- | --- | --- |
-| mcpcat 服务应用 | `0.1.1` | 仅用于发布识别，不要求与 CLI 或 Skill 相等。 |
+| mcpcat 服务应用 | `1.0.1` | 本轮与 Docker/前端/CLI 使用协同基线；后续兼容判定不要求与 CLI 或 Skill 相等。 |
 | Registry API | 服务端 `v1` / CLI `v1` | 必须精确相等，否则 CLI 拒绝。 |
 | Registry Schema | 服务端 `1.0.0` / CLI major `1` | major 必须相同；minor/patch 可演进，但必填字段仍须通过解析。 |
-| CLI | `0.1.0` | 服务端 minimum/recommended 均为 `0.1.0`；低于 minimum 时返回 HTTP 426。 |
+| CLI | `1.0.1` | 服务端 minimum 为 `0.1.0`、recommended 为 `1.0.1`；低于 minimum 时返回 HTTP 426。 |
 | Skill | 独立 SemVer | 不与服务端/CLI 对齐；已发布版本不可变并验证 SHA-256/包结构。 |
 | MCP Skill | generator `1.0.2`、Node `>=24`、mcporter `0.13.7` | 记录在制品兼容元数据；doctor 检查运行环境。 |
 
@@ -22,13 +22,13 @@ recommended；Registry 索引再次返回 API 与 Schema。recommended 是非阻
 
 | 场景 | 结果 | 原因 |
 | --- | --- | --- |
-| API `v1`、Schema `1.0.0`、CLI `0.1.0` | allow | 当前基线。 |
-| 服务应用 `0.2.0`，协商字段不变 | allow | 服务版本独立。 |
+| API `v1`、Schema `1.0.0`、CLI `1.0.1` | allow | 当前协同发布基线。 |
+| 服务应用 `1.1.0`，协商字段不变 | allow | 基线之后服务版本可独立演进。 |
 | Schema `1.9.0` 且必填字段兼容 | allow | 同 major，仍需严格解析。 |
 | API `v2` | reject | CLI 只支持精确 `v1`。 |
 | Schema `2.0.0` | reject | major 不兼容。 |
 | CLI `0.0.9` | reject / HTTP 426 | 低于服务端 minimum。 |
-| Skill `9.4.2` 配合 CLI `0.1.0` | conditional allow | Skill 版本独立，仍需自身兼容与完整性通过。 |
+| Skill `9.4.2` 配合 CLI `1.0.1` | conditional allow | Skill 版本独立，仍需自身兼容与完整性通过。 |
 
 ## 升级与回退规则
 

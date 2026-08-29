@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from app.models.mcp_config import MCPConfig, create_config_from_dict
 from app.storage.database import Database
 from app.storage.unit_of_work import UnitOfWork
+from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,11 @@ class ConfigService:
         return {
             "mcpServers": {},
             "security": {"api_keys": [], "auth_header_name": "Mcpcat-Key"},
-            "app": {"version": "0.1.1", "log_level": "INFO", "enable_metrics": True},
+            "app": {
+                "version": APP_VERSION,
+                "log_level": "INFO",
+                "enable_metrics": True,
+            },
         }
 
     @staticmethod

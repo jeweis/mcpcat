@@ -5,7 +5,7 @@ on:
     types: [published]
   push:
     tags:
-      - "cli-v*.*.*"
+      - "v*.*.*"
 
 permissions:
   contents: read

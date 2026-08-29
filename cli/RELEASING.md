@@ -1,7 +1,8 @@
 # mcpcat CLI 发布说明
 
-CLI 位于后端开源仓库的 `cli/` 目录，版本独立于 Python 服务端。npm 包名为
-`@jeweis/mcpcat`，安装后的命令始终为 `mcpcat`。
+CLI 位于后端开源仓库的 `cli/` 目录。CLI 仍保留独立兼容边界，但正式协同发布使用
+仓库统一的 `v<version>` Tag。npm 包名为 `@jeweis/mcpcat`，安装后的命令始终为
+`mcpcat`。
 
 ## 发布通道
 
@@ -9,11 +10,11 @@ CLI 位于后端开源仓库的 `cli/` 目录，版本独立于 Python 服务端
 
 | CLI 版本 | Git tag | npm dist-tag | GitHub Release |
 | --- | --- | --- | --- |
-| `1.2.3-beta.1` | `cli-v1.2.3-beta.1` | `beta` | 标记为 prerelease |
-| `1.2.3-next.1` | `cli-v1.2.3-next.1` | `next` | 标记为 prerelease |
-| `1.2.3` | `cli-v1.2.3` | `latest` | 正式 Release |
+| `1.2.3-beta.1` | `v1.2.3-beta.1` | `beta` | 标记为 prerelease |
+| `1.2.3-next.1` | `v1.2.3-next.1` | `next` | 标记为 prerelease |
+| `1.2.3` | `v1.2.3` | `latest` | 正式 Release |
 
-发布只接受与 `cli/package.json` 版本完全一致的 `cli-v<version>` 标签。普通
+发布只接受与 `cli/package.json` 版本完全一致的 `v<version>` 标签。普通
 `main`/`master` push 和 Pull Request 只运行 `cli-ci.yml`，该工作流没有 OIDC
 写权限，也不包含任何 npm 发布命令。
 
@@ -26,7 +27,7 @@ CLI 位于后端开源仓库的 `cli/` 目录，版本独立于 Python 服务端
    - workflow：`cli-publish.yml`
    - environment：`npm`
 2. 在 GitHub 仓库创建名为 `npm` 的 Environment，限制为受保护的
-   `cli-v*` tag，并按团队策略配置 required reviewers。
+   `v*` tag，并按团队策略配置 required reviewers。
 3. 确认仓库和 npm 包均为 public，确保 npm provenance 可生成。
 4. 不要配置长期 `NPM_TOKEN`。发布 job 仅通过 `id-token: write` 获取短期 OIDC
    身份。
@@ -60,7 +61,8 @@ node ../.github/scripts/cli-verify-release-policy.mjs
 
 1. 将 `cli/package.json` 更新为目标版本并提交，锁文件保持一致。
 2. beta 使用 `-beta.N`，候选通道使用 `-next.N`，稳定版不带预发布标识。
-3. 创建 `cli-v<version>` tag，或基于该 tag 发布 GitHub Release。
+3. 创建统一的 `v<version>` tag，或基于该 tag 发布 GitHub Release；该 Tag 同时驱动
+   npm CLI 与 Docker 镜像发布。
 4. `cli-publish.yml` 校验 tag、Release prerelease 状态和 dist-tag 映射，然后在
    GitHub-hosted `ubuntu-latest` runner 上使用 Node.js 24、OIDC 和 provenance
    发布。

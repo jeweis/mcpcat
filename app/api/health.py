@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request
 
 from app.core.config import settings
+from app.version import APP_VERSION
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ async def get_basic_status(request: Request):
     """获取基础系统状态"""
     return {
         "app_name": settings.app_name,
-        "version": settings.app_version,
+        "version": APP_VERSION,
         "description": settings.description,
         "status": (
             "running"

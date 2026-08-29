@@ -5,13 +5,15 @@ from typing import Optional
 
 from pydantic_settings import BaseSettings
 
+from app.version import APP_VERSION
+
 
 class Settings(BaseSettings):
     """应用设置"""
 
     # 应用基础配置
     app_name: str = "mcpcat"
-    app_version: str = "0.1.1"
+    app_version: str = APP_VERSION
     description: str = "MCP聚合平台 - 支持多种MCP协议的统一管理平台"
 
     # 服务器配置

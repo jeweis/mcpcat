@@ -5,6 +5,8 @@ from typing import Optional, List, Dict, Union, Literal
 from enum import Enum
 from datetime import datetime
 
+from app.version import APP_VERSION
+
 
 class MCPTransportType(str, Enum):
     """MCP传输类型枚举"""
@@ -223,7 +225,7 @@ class CatalogConfig(BaseModel):
 
 class AppConfig(BaseModel):
     """应用配置"""
-    version: str = Field(default="0.1.1", description="应用版本")
+    version: str = Field(default=APP_VERSION, description="应用版本")
     log_level: str = Field(default="INFO", description="日志级别")
     enable_metrics: bool = Field(default=True, description="是否启用指标")
     public_base_url: Optional[str] = Field(default=None, description="对外规范域名，复制 MCP 地址时拼接使用")
@@ -251,4 +253,3 @@ class MCPCatConfig(BaseModel):
         extra = "allow"  # 允许额外字段
 
 
- 

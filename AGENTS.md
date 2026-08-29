@@ -149,7 +149,7 @@ mcpcat 是一个 MCP（Model Context Protocol）聚合平台，通过统一的 F
     "auth_header_name": "Mcpcat-Key"
   },
   "app": {
-    "version": "0.1.1",
+    "version": "1.0.1",
     "log_level": "INFO",
     "enable_metrics": true
   }

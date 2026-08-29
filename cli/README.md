@@ -152,8 +152,8 @@ MCP Skill 只保存认证头和 `MCPCAT_API_KEY` 占位符，不包含真实凭�
 
 CI 使用 Node.js 24 和 pnpm 11.19.0。普通 main/master push 与 Pull Request 只运行
 lint、typecheck、test、build、`npm pack --dry-run`、包秘密扫描和 tarball 冒烟，
-绝不发布 npm 包。只有 GitHub Release 或 `cli-v<version>` tag 能进入 OIDC +
-provenance 发布工作流。
+绝不发布 npm 包。只有 GitHub Release 或统一的 `v<version>` tag 能进入 OIDC +
+provenance 发布工作流；同一 Tag 也用于发布对应的 Docker 镜像。
 
 非交互 Registry 操作使用 `MCPCAT_URL`、`MCPCAT_API_KEY`、`--json` 和
 `--non-interactive`。完整发布流程见 [RELEASING.md](./RELEASING.md)，版本协商见

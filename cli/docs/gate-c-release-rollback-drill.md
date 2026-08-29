@@ -13,9 +13,9 @@
 | --- | --- | --- |
 | 工具链 | PASS：Node `25.6.1`（满足 >=24）、npm `11.9.0`、pnpm `11.19.0` | 不是 GitHub-hosted Node 24。 |
 | lint/typecheck/build | PASS | 本地工作树。 |
-| CLI tests | PASS：15 files / 74 tests | 含本地多 Agent/Scope Gate C E2E，不含远程 HTTPS。 |
-| npm pack/包检查 | PASS：`@jeweis/mcpcat@0.1.0`，123 files，README/LICENSE/repository/bin/秘密扫描通过 | 未上传 npm。 |
-| tarball 冒烟 | PASS：本地安装后 `mcpcat --version --json` 返回 `0.1.0` | 不是已发布包。 |
+| CLI tests | PASS：15 files / 76 tests | 含本地多 Agent/Scope Gate C E2E，不含远程 HTTPS。 |
+| npm pack/包检查 | PASS：`@jeweis/mcpcat@1.0.1`，123 files，README/LICENSE/repository/bin/秘密扫描通过 | 未上传 npm。 |
+| tarball 冒烟 | PASS：本地安装后 `mcpcat --version --json` 返回 `1.0.1` | 不是已发布包。 |
 | release policy | PASS：main 无发布能力；stable/beta/next 和 OIDC/provenance 静态检查通过 | 未换取真实 OIDC。 |
 | 兼容矩阵/文档 | 本轮脚本验证后记录 | 仅静态校验。 |
 
@@ -26,11 +26,11 @@
 
 日期：2026-08-29
 
-- 后端全量回归：87 项通过，覆盖 SQLite/Alembic、legacy JSON 迁移、现有 MCP
+- 后端全量回归：99 项通过，覆盖 SQLite/Alembic、legacy JSON 迁移、现有 MCP
   业务、Skills Registry、恶意 ZIP、生成、分发与制品完整性。
-- Flutter 全量回归：9 项通过；`flutter analyze` 无 error，保留 80 条项目既有
+- Flutter 全量回归：20 项通过；`flutter analyze` 保留 70 条项目既有
   warning/info 作为独立质量债务。
-- CLI：lint、typecheck、build 通过，15 个测试文件共 74 项通过；本地多 Agent
+- CLI：lint、typecheck、build 通过，15 个测试文件共 76 项通过；本地多 Agent
   E2E 覆盖 2 Profile × 3 Agent × 2 Scope 的独立生命周期。
 - 发布校验：包内容、README、MIT LICENSE、repository/bin、秘密扫描、兼容矩阵和
   main 分支发布隔离均通过。审查中发现的 README 缺失问题已修复并复验。
@@ -48,14 +48,14 @@
 ### 前置条件
 
 - [ ] npm Trusted Publisher 指向 `jeweis/mcpcat`、`cli-publish.yml`、`npm` Environment。
-- [ ] GitHub `npm` Environment 受保护且限制 `cli-v*` tag。
+- [ ] GitHub `npm` Environment 受保护且限制 `v*` tag。
 - [ ] CI、包检查、秘密扫描和兼容矩阵通过。
 - [ ] 已记录发布前 beta/next/latest 和上一良好版本。
 - [ ] 测试凭证只通过安全环境注入，日志无秘密。
 
 ### 步骤与证据
 
-1. 创建与 `package.json` 完全匹配的 `cli-v<version>` tag。
+1. 创建与服务端及 `package.json` 完全匹配的统一 `v<version>` tag。
 2. beta/next Release 标记 prerelease；稳定版不得带预发布标识。
 3. 记录保护审批、OIDC job、provenance、tarball SHA/integrity。
 4. 从干净环境安装 npm 版本并确认 `mcpcat --version --json`。

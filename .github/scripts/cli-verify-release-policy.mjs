@@ -29,7 +29,7 @@ if (/npm\s+(?:publish|dist-tag)/.test(ci) || /id-token:\s*write/.test(ci)) {
 
 requireMatch(publish, /release:\n\s+types:\s*\[published\]/, "published Release trigger missing");
 requireMatch(publish, /push:\n\s+tags:/, "version tag trigger missing");
-requireMatch(publish, /cli-v\*\.\*\.\*/, "CLI-specific version tag filter missing");
+requireMatch(publish, /v\*\.\*\.\*/, "unified version tag filter missing");
 requireMatch(publish, /runs-on:\s*ubuntu-latest/, "publish must use a GitHub-hosted runner");
 requireMatch(publish, /environment:\s*npm/, "protected npm environment reference missing");
 requireMatch(publish, /id-token:\s*write/, "OIDC id-token permission missing");
@@ -59,7 +59,7 @@ for (const [version, expected] of cases) {
   validateRelease({
     eventName: "push",
     prerelease: "",
-    tag: `cli-v${version}`,
+    tag: `v${version}`,
     version,
   });
 }
@@ -67,13 +67,13 @@ for (const [version, expected] of cases) {
 validateRelease({
   eventName: "release",
   prerelease: "false",
-  tag: "cli-v1.2.3",
+  tag: "v1.2.3",
   version: "1.2.3",
 });
 validateRelease({
   eventName: "release",
   prerelease: "true",
-  tag: "cli-v1.2.3-beta.1",
+  tag: "v1.2.3-beta.1",
   version: "1.2.3-beta.1",
 });
 

@@ -12,6 +12,7 @@ from urllib.parse import urlencode, urlparse, parse_qs
 import httpx
 
 from app.models.mcp_config import OAuthConfig, OAuthToken, AuthStatus
+from app.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class OAuthFlowService:
                         "params": {
                             "protocolVersion": "2025-06-18",
                             "capabilities": {},
-                            "clientInfo": {"name": "mcpcat", "version": "0.1.1"},
+                            "clientInfo": {"name": "mcpcat", "version": APP_VERSION},
                         },
                     },
                     headers=headers or {},
