@@ -95,3 +95,25 @@
 - [ ] 操作者和独立复核者签字，证据完整且无秘密。
 
 当前结论：**Gate C 发布与回滚演练未完成，16.6 不得勾选。**
+
+## 1.0.1 正式发布记录
+
+日期：2026-08-29
+
+本次已完成正式稳定版发布，但不替代上文尚未完成的 beta、远程 HTTPS 全命令链和
+回滚演练：
+
+- 发布提交：`0952460cd049816a635901deabed0f665326d795`
+- 统一 Tag：`v1.0.1`
+- CLI CI：GitHub Actions run `33238111811`，成功
+- npm OIDC/provenance 发布：GitHub Actions run `33238144969`，成功
+- npm：`@jeweis/mcpcat@1.0.1`，`latest=1.0.1`
+- npm integrity：`sha512-JkRraLDigA65XAwjyi1NV3PsaK1H7VqYZDqxDJMMBhTF4CZhBJUBqaawAnQLjKhxDLE+mJd5uILH8kAYEWBMIw==`
+- Docker Tag 发布：GitHub Actions run `33238144964`，成功
+- Docker：`jeweis/mcpcat:1.0.1`、`:1.0`、`:latest`
+- Docker OCI index digest：`sha256:82503095e38cdfecd5ee8f6883ab655de160586829b207ffc5d9cc083abc144f`
+- Docker 平台：`linux/amd64`、`linux/arm64`，并包含对应 attestation manifest
+
+npm Environment 的 Tag 保护规则已从旧的 `cli-v*.*.*` 迁移为统一的
+`v*.*.*`；required reviewer 保护保持启用。本次证据仅完成 1.0.1 正式发布，不将
+15.6、16.1 或 16.6 标记为完成。
