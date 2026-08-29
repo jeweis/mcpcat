@@ -17,6 +17,11 @@
 - 🧩支持openapi3配置，直接转为mcp协议
 - 📊 统一的MCP服务管理界面
 
+## 用户文档
+
+- [mcpcat CLI：安装与使用](docs/user/cli.md)
+- [文档索引](docs/README.md)
+
 ## Docker 部署（推荐）
 
 > Catalog 工具搜索依赖进程内的动态 MCP 服务目录。当前版本请保持单容器、单 Uvicorn worker 部署；在引入共享服务 registry 前，不支持通过 `--workers` 或多副本横向扩容。

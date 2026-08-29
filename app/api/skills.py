@@ -284,6 +284,7 @@ async def generate_server_skill(server_name: str, request: Request):
             manager=request.app.state.server_manager,
             server_name=server_name,
             actor=_actor(request),
+            fallback_base_url=str(request.base_url).rstrip("/"),
         )
     except SkillDomainError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error

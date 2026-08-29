@@ -210,6 +210,99 @@ async def test_every_transport_generates_only_mcpcat_runtime_package(
         assert secret_or_upstream_value not in package_text
 
 
+async def test_request_base_url_is_used_when_public_base_url_is_not_configured(
+    database: Database,
+    runtime_patches: None,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        generator.ConfigService,
+        "get_public_base_url",
+        staticmethod(lambda: None),
+    )
+
+    result = await generator.generate_mcp_skill(
+        database,
+        manager=_manager(),
+        server_name="Weather / China",
+        actor="admin",
+        fallback_base_url="http://localhost:8000/",
+    )
+
+    archive_path = tmp_path / "artifacts" / result.slug / "0.1.0.zip"
+    with zipfile.ZipFile(archive_path) as archive:
+        config = json.loads(
+            archive.read(f"{result.slug}/config/mcporter.json").decode()
+        )
+
+    assert config["mcpServers"][result.slug]["url"] == (
+        "${MCPCAT_URL:-http://localhost:8000}/mcp/Weather%20%2F%20China"
+    )
+
+
+async def test_configured_public_base_url_wins_over_request_base_url(
+    database: Database,
+    runtime_patches: None,
+    tmp_path: Path,
+) -> None:
+    result = await generator.generate_mcp_skill(
+        database,
+        manager=_manager(),
+        server_name="Weather / China",
+        actor="admin",
+        fallback_base_url="http://internal.example.test:8000",
+    )
+
+    archive_path = tmp_path / "artifacts" / result.slug / "0.1.0.zip"
+    with zipfile.ZipFile(archive_path) as archive:
+        config = json.loads(
+            archive.read(f"{result.slug}/config/mcporter.json").decode()
+        )
+
+    assert config["mcpServers"][result.slug]["url"] == (
+        "${MCPCAT_URL:-https://skills.example.test/mcpcat}" "/mcp/Weather%20%2F%20China"
+    )
+
+
+async def test_base_url_change_creates_a_new_draft(
+    database: Database,
+    runtime_patches: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        generator.ConfigService,
+        "get_public_base_url",
+        staticmethod(lambda: None),
+    )
+
+    first = await generator.generate_mcp_skill(
+        database,
+        manager=_manager(),
+        server_name="Weather / China",
+        actor="admin",
+        fallback_base_url="http://first.example.test",
+    )
+    unchanged = await generator.generate_mcp_skill(
+        database,
+        manager=_manager(),
+        server_name="Weather / China",
+        actor="admin",
+        fallback_base_url="http://first.example.test/",
+    )
+    changed = await generator.generate_mcp_skill(
+        database,
+        manager=_manager(),
+        server_name="Weather / China",
+        actor="admin",
+        fallback_base_url="https://second.example.test",
+    )
+
+    assert (first.changed, first.version) == (True, "0.1.0")
+    assert (unchanged.changed, unchanged.version) == (False, "0.1.0")
+    assert (changed.changed, changed.version) == (True, "0.1.1")
+
+
 async def test_first_generation_deduplicates_then_creates_patch_draft_on_schema_change(
     database: Database,
     runtime_patches: None,

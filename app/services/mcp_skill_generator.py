@@ -23,7 +23,7 @@ from app.storage.database import Database
 from app.storage.skill_repositories import SkillDomainError, semver_key
 from app.storage.unit_of_work import UnitOfWork
 
-GENERATOR_VERSION = "1.0.0"
+GENERATOR_VERSION = "1.0.1"
 MCPORTER_VERSION = "0.13.7"
 NODE_COMPATIBILITY = ">=24"
 
@@ -237,12 +237,14 @@ async def generate_mcp_skill(
     manager,
     server_name: str,
     actor: Optional[str],
+    fallback_base_url: Optional[str] = None,
 ) -> GeneratedSkillResult:
     """首次生成或在 Schema/模板变化时创建新的待发布草稿。"""
 
-    public_base_url = ConfigService.get_public_base_url()
-    if not public_base_url:
-        raise SkillDomainError("生成 MCP Skill 前必须配置 public_base_url")
+    resolved_base_url = ConfigService.get_public_base_url() or fallback_base_url
+    if not resolved_base_url:
+        raise SkillDomainError("无法确定 MCP Skill 的 mcpcat 访问地址")
+    effective_base_url = resolved_base_url.rstrip("/")
     snapshot = await snapshot_mcp_server(manager, server_name)
     slug = resolve_mcp_skill_slug(database, server_name)
     schema_hash = _schema_hash(snapshot)
@@ -256,6 +258,8 @@ async def generate_mcp_skill(
                 if (
                     latest.tool_schema_hash == schema_hash
                     and latest.generator_version == GENERATOR_VERSION
+                    and (latest.source_snapshot_json or {}).get("effective_base_url")
+                    == effective_base_url
                 ):
                     return GeneratedSkillResult(
                         slug, latest.version, latest.id, False, schema_hash
@@ -265,7 +269,7 @@ async def generate_mcp_skill(
             version = "0.1.0"
 
     files = _package_files(
-        slug=slug, snapshot=snapshot, public_base_url=public_base_url
+        slug=slug, snapshot=snapshot, public_base_url=effective_base_url
     )
     package = validate_skill_zip(build_deterministic_skill_zip(files))
     with UnitOfWork(database) as unit:
@@ -289,6 +293,7 @@ async def generate_mcp_skill(
             ),
             source_snapshot={
                 "mcp_server": server_name,
+                "effective_base_url": effective_base_url,
                 "instructions": snapshot["instructions"],
                 "tools": snapshot["tools"],
                 "files": [entry.__dict__ for entry in package.files],
