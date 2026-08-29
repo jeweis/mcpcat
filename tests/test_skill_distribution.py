@@ -18,7 +18,11 @@ from app.application import create_app
 from app.core.config import settings
 from app.services.config_service import ConfigService
 from app.services.security_service import security_service
-from app.services.skill_distribution_service import build_latest_bundle
+from app.services.skill_distribution_service import (
+    SKILL_FILE_PREVIEW_MAX_BYTES,
+    build_latest_bundle,
+    resolve_version_file_preview,
+)
 from app.services.skill_registry_service import publish_skill_version, upload_skill
 from app.storage.database import Database
 from app.storage.skill_repositories import SkillDomainError
@@ -79,7 +83,12 @@ def distribution_app(
     database.dispose()
 
 
-def _skill_zip(slug: str, *, body: str = "# Skill\n") -> bytes:
+def _skill_zip(
+    slug: str,
+    *,
+    body: str = "# Skill\n",
+    extra_files: dict[str, bytes] | None = None,
+) -> bytes:
     skill = (
         "---\n"
         f"name: {slug}\n"
@@ -91,6 +100,8 @@ def _skill_zip(slug: str, *, body: str = "# Skill\n") -> bytes:
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(f"{slug}/SKILL.md", skill)
         archive.writestr(f"{slug}/references/guide.md", b"public reference\n")
+        for path, content in (extra_files or {}).items():
+            archive.writestr(f"{slug}/{path}", content)
     return output.getvalue()
 
 
@@ -101,10 +112,15 @@ def _upload(
     version: str,
     *,
     publish: bool = False,
+    extra_files: dict[str, bytes] | None = None,
 ) -> str:
     _, validation = upload_skill(
         database,
-        content=_skill_zip(slug, body=f"# {slug} {version}\n"),
+        content=_skill_zip(
+            slug,
+            body=f"# {slug} {version}\n",
+            extra_files=extra_files,
+        ),
         version=version,
         changelog=f"release {version}",
         actor="distribution-test",
@@ -362,4 +378,76 @@ def test_resolve_version_download_blocks_missing_or_corrupt_artifact(
         assert (
             unit.skill_artifacts.get_for_version(version.id).integrity_status
             == "missing"
+        )
+
+
+@pytest.mark.asyncio
+async def test_file_preview_is_lazy_permission_aware_and_binary_safe(
+    distribution_app: tuple[object, Database, Path],
+) -> None:
+    application, database, artifacts = distribution_app
+    _upload(
+        database,
+        artifacts,
+        "preview-skill",
+        "1.0.0",
+        publish=True,
+        extra_files={
+            "assets/logo.bin": b"\x00\xff\x00\xfe",
+            "references/large.txt": b"x" * (SKILL_FILE_PREVIEW_MAX_BYTES + 1),
+        },
+    )
+    _upload(database, artifacts, "preview-skill", "2.0.0")
+
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=application), base_url="http://test"
+    ) as client:
+        markdown = await client.get(
+            "/api/skills/preview-skill/versions/1.0.0/file",
+            params={"path": "preview-skill/SKILL.md"},
+            headers={"Mcpcat-Key": READ_KEY},
+        )
+        assert markdown.status_code == 200
+        assert markdown.json()["is_markdown"] is True
+        assert markdown.json()["previewable"] is True
+        assert "# preview-skill 1.0.0" in markdown.json()["content"]
+
+        binary = await client.get(
+            "/api/skills/preview-skill/versions/1.0.0/file",
+            params={"path": "preview-skill/assets/logo.bin"},
+            headers={"Mcpcat-Key": READ_KEY},
+        )
+        assert binary.status_code == 200
+        assert binary.json()["previewable"] is False
+        assert binary.json()["reason"] == "binary"
+        assert binary.json()["content"] is None
+
+        too_large = await client.get(
+            "/api/skills/preview-skill/versions/1.0.0/file",
+            params={"path": "preview-skill/references/large.txt"},
+            headers={"Mcpcat-Key": READ_KEY},
+        )
+        assert too_large.status_code == 200
+        assert too_large.json()["reason"] == "too_large"
+
+        hidden_draft = await client.get(
+            "/api/skills/preview-skill/versions/2.0.0/file",
+            params={"path": "preview-skill/SKILL.md"},
+            headers={"Mcpcat-Key": READ_KEY},
+        )
+        visible_draft = await client.get(
+            "/api/skills/preview-skill/versions/2.0.0/file",
+            params={"path": "preview-skill/SKILL.md"},
+            headers={"Mcpcat-Key": WRITE_KEY},
+        )
+        assert hidden_draft.status_code == 409
+        assert visible_draft.status_code == 200
+
+    with pytest.raises(SkillDomainError, match="无效的 Skill 文件路径"):
+        resolve_version_file_preview(
+            database,
+            slug="preview-skill",
+            version="1.0.0",
+            file_path="preview-skill/../secret.txt",
+            artifact_root=artifacts,
         )

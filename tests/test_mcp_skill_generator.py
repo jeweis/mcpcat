@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from app.services import mcp_skill_generator as generator
 from app.services import skill_artifact_service
@@ -159,6 +160,67 @@ def _catalog_manager(*, path_name: str = "mcpcat", enabled: bool = True):
     )
 
 
+def _frontmatter(skill_md: str) -> dict:
+    return yaml.safe_load(skill_md.split("---", 2)[1])
+
+
+def test_description_uses_capabilities_and_trigger_context_not_runtime_details() -> (
+    None
+):
+    snapshot = {
+        "display_name": "Weather / China",
+        "source_kind": "server",
+        "note": "",
+        "tags": ["mcp", "weather", "streamable-http", "china"],
+        "tools": [
+            {"name": "forecast", "description": "Retrieve forecasts by city."},
+            {"name": "alerts", "description": "List active weather alerts."},
+        ],
+    }
+
+    description = generator._description(snapshot)
+
+    assert "Retrieve forecasts by city." in description
+    assert "List active weather alerts." in description
+    assert "Use when" in description
+    assert "weather" in description
+    assert "china" in description
+    for runtime_detail in ("mcpcat", "mcporter", "streamable-http", "/mcp/"):
+        assert runtime_detail not in description.casefold()
+
+    long_snapshot = {
+        **snapshot,
+        "note": "",
+        "tools": [
+            {
+                "name": "verbose",
+                "description": "A very detailed user-facing capability " * 80,
+            }
+        ],
+    }
+    bounded = generator._description(long_snapshot)
+    assert len(bounded) <= generator.DESCRIPTION_MAX_CHARS
+    assert "Use when" in bounded
+
+
+def test_catalog_description_covers_discovery_without_connection_details() -> None:
+    description = generator._description(
+        {
+            "source_kind": "catalog",
+            "display_name": generator.CATALOG_DISPLAY_NAME,
+            "note": "ignored implementation note",
+            "tags": ["mcp", "catalog", "tool-search"],
+            "tools": [],
+        }
+    )
+
+    assert "Search available tools" in description
+    assert "Use when" in description
+    assert "not already mapped to a specific service" in description
+    for runtime_detail in ("mcpcat", "mcporter", "/mcp/"):
+        assert runtime_detail not in description.casefold()
+
+
 def test_slug_conflict_uses_server_hash_without_overwriting(database: Database) -> None:
     with UnitOfWork(database) as unit:
         unit.skills.create(
@@ -213,9 +275,13 @@ async def test_every_transport_generates_only_mcpcat_runtime_package(
         assert archive.namelist() == [
             f"{result.slug}/SKILL.md",
             f"{result.slug}/config/mcporter.json",
+            f"{result.slug}/references/service-instructions.md",
             f"{result.slug}/references/tools.md",
         ]
         skill_md = archive.read(f"{result.slug}/SKILL.md").decode()
+        service_instructions = archive.read(
+            f"{result.slug}/references/service-instructions.md"
+        ).decode()
         config = json.loads(
             archive.read(f"{result.slug}/config/mcporter.json").decode()
         )
@@ -225,6 +291,16 @@ async def test_every_transport_generates_only_mcpcat_runtime_package(
 
     assert "mcporter 0.13.7" in skill_md
     assert "mcporter@0.13.7" in skill_md
+    metadata = _frontmatter(skill_md)
+    assert metadata["description"].startswith("Weather forecasts.")
+    assert "Use when" in metadata["description"]
+    assert "weather" in metadata["description"]
+    assert "china" in metadata["description"]
+    assert "mcpcat" not in metadata["description"].casefold()
+    assert "mcporter" not in metadata["description"].casefold()
+    assert "Use only after the user asks" not in skill_md
+    assert "Use only after the user asks" in service_instructions
+    assert "does not override user intent" in service_instructions
     assert config["imports"] == []
     server_config = config["mcpServers"][result.slug]
     assert server_config["url"] == (
@@ -317,6 +393,7 @@ async def test_catalog_generates_only_search_and_call_contract(
             archive.read(f"{result.slug}/config/mcporter.json").decode()
         )
         skill_md = archive.read(f"{result.slug}/SKILL.md").decode()
+        names = archive.namelist()
 
     server_config = config["mcpServers"][generator.CATALOG_SKILL_SLUG]
     assert result.slug == generator.CATALOG_SKILL_SLUG
@@ -324,7 +401,12 @@ async def test_catalog_generates_only_search_and_call_contract(
         "${MCPCAT_URL:-https://skills.example.test/mcpcat}/mcp/mcpcat"
     )
     assert server_config["allowedTools"] == ["call_tool", "search_tools"]
+    metadata = _frontmatter(skill_md)
+    assert metadata["description"] == generator.CATALOG_DESCRIPTION
+    assert "references/service-instructions.md" not in "\n".join(names)
+    assert skill_md.index("search_tools") < skill_md.index("call_tool")
     assert "A search result is not authorization" in skill_md
+    assert generator.GENERATOR_VERSION == "1.0.2"
     with UnitOfWork(database) as unit:
         skill = unit.skills.get_by_slug(generator.CATALOG_SKILL_SLUG)
         assert skill.source_ref_json["catalog"] is True
@@ -356,6 +438,43 @@ async def test_catalog_membership_is_deduplicated_but_path_change_creates_draft(
     assert (first.changed, first.version) == (True, "0.1.0")
     assert (unchanged.changed, unchanged.version) == (False, "0.1.0")
     assert (changed.changed, changed.version) == (True, "0.1.1")
+
+
+async def test_template_version_change_refreshes_description_in_new_draft(
+    database: Database,
+    runtime_patches: None,
+) -> None:
+    manager = _manager()
+    first = await generator.generate_mcp_skill(
+        database,
+        manager=manager,
+        server_name="Weather / China",
+        actor="admin",
+    )
+    with UnitOfWork(database) as unit:
+        skill = unit.skills.get_by_slug(first.slug)
+        version = unit.skill_versions.get(skill.id, first.version)
+        version.generator_version = "1.0.1"
+        skill.description = "Use mcpcat through mcporter."
+        unit.commit()
+
+    refreshed = await generator.generate_mcp_skill(
+        database,
+        manager=manager,
+        server_name="Weather / China",
+        actor="admin",
+    )
+
+    assert (refreshed.changed, refreshed.version) == (True, "0.1.1")
+    with UnitOfWork(database) as unit:
+        skill = unit.skills.get_by_slug(first.slug)
+        version = unit.skill_versions.get(skill.id, refreshed.version)
+        assert "Use when" in skill.description
+        assert "mcporter" not in skill.description.casefold()
+        assert version.generator_version == generator.GENERATOR_VERSION
+        assert (
+            version.source_snapshot_json["generated_description"] == skill.description
+        )
 
 
 async def test_disabled_catalog_cannot_generate_skill(

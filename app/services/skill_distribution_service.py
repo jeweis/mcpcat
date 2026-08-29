@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 import os
 import uuid
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Optional, Union
 
 from filelock import FileLock
@@ -24,6 +25,7 @@ REGISTRY_SCHEMA_VERSION = "1.0.0"
 REGISTRY_API_VERSION = "v1"
 MIN_CLI_VERSION = "0.1.0"
 RECOMMENDED_CLI_VERSION = "0.1.0"
+SKILL_FILE_PREVIEW_MAX_BYTES = 512 * 1024
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,19 @@ class DownloadArtifact:
     version: str
     sha256: str
     size: int
+
+
+@dataclass(frozen=True)
+class SkillFilePreview:
+    """一个经过路径、权限和制品完整性校验的文本预览。"""
+
+    path: str
+    media_type: str
+    size: int
+    is_markdown: bool
+    previewable: bool
+    content: Optional[str] = None
+    reason: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -93,6 +108,82 @@ def resolve_version_download(
             unit.commit()
         raise SkillDomainError("Skill 制品完整性校验失败")
     return DownloadArtifact(path, slug, version, expected_sha, expected_size)
+
+
+def resolve_version_file_preview(
+    database: Database,
+    *,
+    slug: str,
+    version: str,
+    file_path: str,
+    include_drafts: bool = False,
+    artifact_root: Optional[Union[str, Path]] = None,
+) -> SkillFilePreview:
+    """按需读取 Skill ZIP 内的一个安全文本文件。"""
+
+    candidate = PurePosixPath(file_path)
+    if (
+        not file_path
+        or candidate.is_absolute()
+        or candidate.as_posix() != file_path
+        or any(part in {"", ".", ".."} for part in candidate.parts)
+        or not candidate.parts
+        or candidate.parts[0] != slug
+    ):
+        raise SkillDomainError("无效的 Skill 文件路径")
+
+    artifact = resolve_version_download(
+        database,
+        slug=slug,
+        version=version,
+        include_drafts=include_drafts,
+        artifact_root=artifact_root,
+    )
+    try:
+        with zipfile.ZipFile(artifact.path) as archive:
+            try:
+                info = archive.getinfo(file_path)
+            except KeyError as error:
+                raise SkillDomainError("Skill 文件不存在") from error
+            if info.is_dir():
+                raise SkillDomainError("Skill 文件路径指向目录")
+            if info.flag_bits & 0x1:
+                raise SkillDomainError("不支持预览加密的 Skill 文件")
+            if info.file_size > SKILL_FILE_PREVIEW_MAX_BYTES:
+                return SkillFilePreview(
+                    path=file_path,
+                    media_type=mimetypes.guess_type(file_path)[0]
+                    or "application/octet-stream",
+                    size=info.file_size,
+                    is_markdown=False,
+                    previewable=False,
+                    reason="too_large",
+                )
+            content = archive.read(info)
+    except zipfile.BadZipFile as error:
+        raise SkillDomainError("Skill 制品不是有效的 ZIP") from error
+
+    suffix = candidate.suffix.lower()
+    is_markdown = suffix in {".md", ".markdown"}
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return SkillFilePreview(
+            path=file_path,
+            media_type=mimetypes.guess_type(file_path)[0] or "application/octet-stream",
+            size=len(content),
+            is_markdown=is_markdown,
+            previewable=False,
+            reason="binary",
+        )
+    return SkillFilePreview(
+        path=file_path,
+        media_type=mimetypes.guess_type(file_path)[0] or "text/plain",
+        size=len(content),
+        is_markdown=is_markdown,
+        previewable=True,
+        content=text,
+    )
 
 
 def build_registry_index(database: Database, *, base_url: str) -> dict[str, Any]:

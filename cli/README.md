@@ -126,7 +126,7 @@ CLI 管理 Skill，但不内嵌或替代 mcporter。MCP 生成的 Skill 使用�
 
 - Node.js：`>=24`
 - mcporter：`0.13.7`
-- 生成器：`1.0.1`
+- 生成器：`1.0.2`
 
 生成的 Skill 指令使用固定版本的 `npx --yes mcporter@0.13.7`。如果希望
 `mcpcat doctor` 直接确认 PATH 中的命令，可安装相同版本：

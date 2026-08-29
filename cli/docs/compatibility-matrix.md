@@ -12,7 +12,7 @@
 | Registry Schema | 服务端 `1.0.0` / CLI major `1` | major 必须相同；minor/patch 可演进，但必填字段仍须通过解析。 |
 | CLI | `0.1.0` | 服务端 minimum/recommended 均为 `0.1.0`；低于 minimum 时返回 HTTP 426。 |
 | Skill | 独立 SemVer | 不与服务端/CLI 对齐；已发布版本不可变并验证 SHA-256/包结构。 |
-| MCP Skill | generator `1.0.1`、Node `>=24`、mcporter `0.13.7` | 记录在制品兼容元数据；doctor 检查运行环境。 |
+| MCP Skill | generator `1.0.2`、Node `>=24`、mcporter `0.13.7` | 记录在制品兼容元数据；doctor 检查运行环境。 |
 
 CLI 每次请求发送 `X-Mcpcat-CLI-Version`。Bootstrap 返回 API、Schema、minimum 和
 recommended；Registry 索引再次返回 API 与 Schema。recommended 是非阻断提示，

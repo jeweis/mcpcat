@@ -20,6 +20,7 @@ from app.services.skill_distribution_service import (
     build_registry_index,
     resolve_bundle_download,
     resolve_version_download,
+    resolve_version_file_preview,
     stable_etag,
 )
 from app.services.skill_registry_service import (
@@ -166,6 +167,25 @@ async def download_skill_version(slug: str, version: str, request: Request):
             "X-Checksum-Sha256": artifact.sha256,
         },
     )
+
+
+@router.get("/skills/{slug}/versions/{version}/file")
+async def preview_skill_version_file(
+    slug: str, version: str, path: str, request: Request
+):
+    """按相对路径读取一个可安全展示的 Skill 文件。"""
+
+    try:
+        preview = resolve_version_file_preview(
+            request.app.state.database,
+            slug=slug,
+            version=version,
+            file_path=path,
+            include_drafts=_include_drafts(request),
+        )
+    except SkillDomainError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return preview.__dict__
 
 
 @router.get("/skills/bundle")

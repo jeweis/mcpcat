@@ -12,7 +12,7 @@
       "request_header": "X-Mcpcat-CLI-Version"
     },
     "skill": { "rule": "independent-semver", "published_versions_immutable": true },
-    "generated_mcp_skill": { "generator": "1.0.1", "node": ">=24", "mcporter": "0.13.7" }
+    "generated_mcp_skill": { "generator": "1.0.2", "node": ">=24", "mcporter": "0.13.7" }
   },
   "scenarios": [
     { "id": "current-baseline", "api": "v1", "schema": "1.0.0", "cli": "0.1.0", "outcome": "allow" },
