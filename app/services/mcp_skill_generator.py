@@ -26,6 +26,8 @@ from app.storage.unit_of_work import UnitOfWork
 GENERATOR_VERSION = "1.0.1"
 MCPORTER_VERSION = "0.13.7"
 NODE_COMPATIBILITY = ">=24"
+CATALOG_SKILL_SLUG = "mcpcat-tool-search"
+CATALOG_DISPLAY_NAME = "mcpcat 工具搜索"
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,21 @@ async def snapshot_mcp_server(manager, server_name: str) -> dict[str, Any]:
         raise SkillDomainError("读取 MCP tools/list 失败") from error
     if len(tools) > settings.mcpcat_mcp_skill_max_tools:
         raise SkillDomainError("MCP 工具数量超过 Skill 生成限制")
+    normalized_tools = _normalize_tools(tools)
+    mcp = info["mcp"]
+    return {
+        "server_name": server_name,
+        "display_name": server_name,
+        "source_kind": "server",
+        "instructions": getattr(mcp, "instructions", None) or "",
+        "tools": normalized_tools,
+        "note": (info.get("config") or {}).get("note") or "",
+        "tags": list((info.get("config") or {}).get("tags") or []),
+        "require_auth": bool((info.get("config") or {}).get("require_auth", True)),
+    }
+
+
+def _normalize_tools(tools) -> list[dict[str, Any]]:
     normalized_tools = []
     for tool in sorted(tools, key=lambda value: value.name):
         payload = tool.model_dump(mode="json")
@@ -105,14 +122,35 @@ async def snapshot_mcp_server(manager, server_name: str) -> dict[str, Any]:
                 }
             )
         )
-    mcp = info["mcp"]
+    return normalized_tools
+
+
+async def snapshot_catalog(manager) -> dict[str, Any]:
+    """读取 Catalog 对外的 search/call 合成工具，而不是展开底层目录。"""
+
+    catalog = getattr(manager, "catalog_service", None)
+    if catalog is None or not catalog._config.enabled:
+        raise SkillDomainError("Catalog 未启用，无法生成工具搜索 Skill")
+    try:
+        tools = await catalog.list_external_tools()
+    except Exception as error:
+        raise SkillDomainError("读取 Catalog 对外工具 Schema 失败") from error
+    tool_names = {tool.name for tool in tools}
+    if tool_names != {"search_tools", "call_tool"}:
+        raise SkillDomainError("Catalog 对外工具契约不完整")
     return {
-        "server_name": server_name,
-        "instructions": getattr(mcp, "instructions", None) or "",
-        "tools": normalized_tools,
-        "note": (info.get("config") or {}).get("note") or "",
-        "tags": list((info.get("config") or {}).get("tags") or []),
-        "require_auth": bool((info.get("config") or {}).get("require_auth", True)),
+        "server_name": catalog._config.path_name,
+        "display_name": CATALOG_DISPLAY_NAME,
+        "source_kind": "catalog",
+        "instructions": (
+            "Use search_tools to discover relevant tools before call_tool. "
+            "A search result is not authorization: confirm clear user intent before "
+            "calling tools that write, delete, send, publish, purchase, or change accounts."
+        ),
+        "tools": _normalize_tools(tools),
+        "note": "search for and invoke tools across the mcpcat Catalog",
+        "tags": ["mcp", "catalog", "tool-search"],
+        "require_auth": bool(catalog._config.require_auth),
     }
 
 
@@ -130,7 +168,7 @@ def _description(snapshot: dict[str, Any]) -> str:
     tool_names = ", ".join(tool["name"] for tool in snapshot["tools"][:12])
     tags = ", ".join(str(tag) for tag in snapshot["tags"][:8])
     parts = [
-        f"Use mcpcat MCP service {snapshot['server_name']} through mcporter.",
+        f"Use mcpcat MCP service {snapshot['display_name']} through mcporter.",
         f"Use this skill whenever the user needs {snapshot['note'] or tool_names or 'this remote MCP service' }.",
     ]
     if tags:
@@ -170,7 +208,7 @@ def _package_files(
     endpoint = f"${{MCPCAT_URL:-{public_base_url.rstrip('/')}}}/mcp/{quote(snapshot['server_name'], safe='')}"
     auth_header = security_service.get_auth_header_name()
     server_config: dict[str, Any] = {
-        "description": f"mcpcat MCP service {snapshot['server_name']}",
+        "description": f"mcpcat MCP service {snapshot['display_name']}",
         "url": endpoint,
         "allowedTools": [tool["name"] for tool in snapshot["tools"]],
         "lifecycle": "ephemeral",
@@ -194,7 +232,7 @@ metadata:
   mcporter-version: {json.dumps(MCPORTER_VERSION)}
 ---
 
-# {snapshot['server_name']} via mcpcat
+# {snapshot['display_name']} via mcpcat
 
 Use only the bundled `config/mcporter.json`; it disables automatic imports and limits calls to the listed tools. Never print, persist, or pass `MCPCAT_API_KEY` as a command argument.
 
@@ -231,22 +269,59 @@ def _next_version(current: Optional[str]) -> str:
     return f"{key[0]}.{key[1]}.{key[2] + 1}"
 
 
-async def generate_mcp_skill(
-    database: Database,
-    *,
-    manager,
-    server_name: str,
-    actor: Optional[str],
-    fallback_base_url: Optional[str] = None,
-) -> GeneratedSkillResult:
-    """首次生成或在 Schema/模板变化时创建新的待发布草稿。"""
-
+def _effective_base_url(fallback_base_url: Optional[str]) -> str:
     resolved_base_url = ConfigService.get_public_base_url() or fallback_base_url
     if not resolved_base_url:
         raise SkillDomainError("无法确定 MCP Skill 的 mcpcat 访问地址")
-    effective_base_url = resolved_base_url.rstrip("/")
-    snapshot = await snapshot_mcp_server(manager, server_name)
-    slug = resolve_mcp_skill_slug(database, server_name)
+    return resolved_base_url.rstrip("/")
+
+
+def _generation_context(snapshot: dict[str, Any], effective_base_url: str) -> dict:
+    return {
+        "effective_base_url": effective_base_url,
+        "endpoint_name": snapshot["server_name"],
+        "require_auth": snapshot["require_auth"],
+    }
+
+
+def _same_generation_context(
+    latest_snapshot: dict[str, Any],
+    snapshot: dict[str, Any],
+    effective_base_url: str,
+) -> bool:
+    latest_endpoint = latest_snapshot.get(
+        "endpoint_name", latest_snapshot.get("mcp_server")
+    )
+    latest_require_auth = latest_snapshot.get("require_auth", snapshot["require_auth"])
+    return (
+        latest_snapshot.get("effective_base_url") == effective_base_url
+        and latest_endpoint == snapshot["server_name"]
+        and latest_require_auth == snapshot["require_auth"]
+    )
+
+
+def _resolve_catalog_slug(database: Database) -> str:
+    with UnitOfWork(database) as unit:
+        existing = unit.skills.get_by_slug(CATALOG_SKILL_SLUG)
+        if existing is None:
+            return CATALOG_SKILL_SLUG
+        source = existing.source_ref_json or {}
+        if existing.source_type == "mcp-generated" and source.get("catalog") is True:
+            return CATALOG_SKILL_SLUG
+    raise SkillDomainError("Skill slug mcpcat-tool-search 已被其他来源占用")
+
+
+def _create_or_refresh_skill(
+    database: Database,
+    *,
+    snapshot: dict[str, Any],
+    slug: str,
+    source_ref: dict[str, Any],
+    actor: Optional[str],
+    effective_base_url: str,
+) -> GeneratedSkillResult:
+    """使用已规范化来源快照创建或刷新待发布草稿。"""
+
     schema_hash = _schema_hash(snapshot)
 
     with UnitOfWork(database) as unit:
@@ -258,8 +333,11 @@ async def generate_mcp_skill(
                 if (
                     latest.tool_schema_hash == schema_hash
                     and latest.generator_version == GENERATOR_VERSION
-                    and (latest.source_snapshot_json or {}).get("effective_base_url")
-                    == effective_base_url
+                    and _same_generation_context(
+                        latest.source_snapshot_json or {},
+                        snapshot,
+                        effective_base_url,
+                    )
                 ):
                     return GeneratedSkillResult(
                         slug, latest.version, latest.id, False, schema_hash
@@ -277,10 +355,10 @@ async def generate_mcp_skill(
         if skill is None:
             skill = unit.skills.create(
                 slug=slug,
-                display_name=server_name,
+                display_name=snapshot["display_name"],
                 description=package.description,
                 source_type="mcp-generated",
-                source_ref={"mcp_server": server_name, "source_status": "available"},
+                source_ref=source_ref,
                 created_by=actor,
             )
         version_row = unit.skill_versions.create(
@@ -292,8 +370,9 @@ async def generate_mcp_skill(
                 else "MCP tool schema or generator template changed"
             ),
             source_snapshot={
-                "mcp_server": server_name,
-                "effective_base_url": effective_base_url,
+                **source_ref,
+                **_generation_context(snapshot, effective_base_url),
+                "source_kind": snapshot["source_kind"],
                 "instructions": snapshot["instructions"],
                 "tools": snapshot["tools"],
                 "files": [entry.__dict__ for entry in package.files],
@@ -336,3 +415,48 @@ async def generate_mcp_skill(
                 unit.commit()
         raise
     return GeneratedSkillResult(slug, version, version_id, True, schema_hash)
+
+
+async def generate_mcp_skill(
+    database: Database,
+    *,
+    manager,
+    server_name: str,
+    actor: Optional[str],
+    fallback_base_url: Optional[str] = None,
+) -> GeneratedSkillResult:
+    """首次生成或在 Schema/模板变化时创建普通 MCP Skill 草稿。"""
+
+    snapshot = await snapshot_mcp_server(manager, server_name)
+    return _create_or_refresh_skill(
+        database,
+        snapshot=snapshot,
+        slug=resolve_mcp_skill_slug(database, server_name),
+        source_ref={"mcp_server": server_name, "source_status": "available"},
+        actor=actor,
+        effective_base_url=_effective_base_url(fallback_base_url),
+    )
+
+
+async def generate_catalog_skill(
+    database: Database,
+    *,
+    manager,
+    actor: Optional[str],
+    fallback_base_url: Optional[str] = None,
+) -> GeneratedSkillResult:
+    """生成只包含 search_tools / call_tool 的内置 Catalog Skill。"""
+
+    snapshot = await snapshot_catalog(manager)
+    return _create_or_refresh_skill(
+        database,
+        snapshot=snapshot,
+        slug=_resolve_catalog_slug(database),
+        source_ref={
+            "catalog": True,
+            "mcp_server": snapshot["server_name"],
+            "source_status": "available",
+        },
+        actor=actor,
+        effective_base_url=_effective_base_url(fallback_base_url),
+    )

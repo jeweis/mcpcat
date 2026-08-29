@@ -6,6 +6,7 @@ import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from fastmcp import Client, FastMCP
+from fastmcp.server.providers import FastMCPProvider
 from fastmcp.server.transforms.search import RegexSearchTransform
 
 from app.models.mcp_config import CatalogConfig
@@ -114,6 +115,12 @@ class CatalogService:
             text = getattr(block, "text", None)
             content.append(text if text is not None else str(block))
         return "\n".join(content)
+
+    async def list_external_tools(self):
+        """返回经 Search Transform 暴露给远程客户端的稳定工具契约。"""
+
+        self._init_mcp()
+        return await FastMCPProvider(self._mcp).list_tools()
 
     def get_catalog_status(self) -> Dict[str, Any]:
         return {

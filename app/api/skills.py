@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.middleware.auth import get_current_user
 from app.services.config_service import ConfigService
-from app.services.mcp_skill_generator import generate_mcp_skill
+from app.services.mcp_skill_generator import generate_catalog_skill, generate_mcp_skill
 from app.services.security_service import security_service
 from app.services.skill_distribution_service import (
     MIN_CLI_VERSION,
@@ -283,6 +283,22 @@ async def generate_server_skill(server_name: str, request: Request):
             request.app.state.database,
             manager=request.app.state.server_manager,
             server_name=server_name,
+            actor=_actor(request),
+            fallback_base_url=str(request.base_url).rstrip("/"),
+        )
+    except SkillDomainError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return result.__dict__
+
+
+@router.post("/catalog/skill")
+async def generate_builtin_catalog_skill(request: Request):
+    """生成或刷新内置 Catalog 对应的工具搜索 Skill。"""
+
+    try:
+        result = await generate_catalog_skill(
+            request.app.state.database,
+            manager=request.app.state.server_manager,
             actor=_actor(request),
             fallback_base_url=str(request.base_url).rstrip("/"),
         )

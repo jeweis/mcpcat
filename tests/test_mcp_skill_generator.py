@@ -54,6 +54,32 @@ class FakeFastMCPProvider:
         return self._mcp.tools
 
 
+class FakeCatalogService:
+    """模拟只暴露 search_tools / call_tool 的内置 Catalog。"""
+
+    def __init__(self, *, path_name: str = "mcpcat", enabled: bool = True) -> None:
+        self._config = SimpleNamespace(
+            path_name=path_name,
+            enabled=enabled,
+            require_auth=True,
+        )
+        self.membership_revision = 1
+
+    async def list_external_tools(self) -> list[FakeTool]:
+        return [
+            FakeTool(
+                "search_tools",
+                "Search for tools using natural language.",
+                {"type": "object", "properties": {"query": {"type": "string"}}},
+            ),
+            FakeTool(
+                "call_tool",
+                "Call a tool discovered through search_tools.",
+                {"type": "object", "properties": {"name": {"type": "string"}}},
+            ),
+        ]
+
+
 @pytest.fixture
 def database(tmp_path: Path) -> Database:
     value = Database(tmp_path / "mcp-skill-generator.db")
@@ -123,6 +149,13 @@ def _manager(
                 "config": upstream_config,
             }
         }
+    )
+
+
+def _catalog_manager(*, path_name: str = "mcpcat", enabled: bool = True):
+    return SimpleNamespace(
+        server_info={},
+        catalog_service=FakeCatalogService(path_name=path_name, enabled=enabled),
     )
 
 
@@ -263,6 +296,78 @@ async def test_configured_public_base_url_wins_over_request_base_url(
     assert config["mcpServers"][result.slug]["url"] == (
         "${MCPCAT_URL:-https://skills.example.test/mcpcat}" "/mcp/Weather%20%2F%20China"
     )
+
+
+async def test_catalog_generates_only_search_and_call_contract(
+    database: Database,
+    runtime_patches: None,
+    tmp_path: Path,
+) -> None:
+    manager = _catalog_manager()
+
+    result = await generator.generate_catalog_skill(
+        database,
+        manager=manager,
+        actor="admin",
+    )
+
+    archive_path = tmp_path / "artifacts" / result.slug / "0.1.0.zip"
+    with zipfile.ZipFile(archive_path) as archive:
+        config = json.loads(
+            archive.read(f"{result.slug}/config/mcporter.json").decode()
+        )
+        skill_md = archive.read(f"{result.slug}/SKILL.md").decode()
+
+    server_config = config["mcpServers"][generator.CATALOG_SKILL_SLUG]
+    assert result.slug == generator.CATALOG_SKILL_SLUG
+    assert server_config["url"] == (
+        "${MCPCAT_URL:-https://skills.example.test/mcpcat}/mcp/mcpcat"
+    )
+    assert server_config["allowedTools"] == ["call_tool", "search_tools"]
+    assert "A search result is not authorization" in skill_md
+    with UnitOfWork(database) as unit:
+        skill = unit.skills.get_by_slug(generator.CATALOG_SKILL_SLUG)
+        assert skill.source_ref_json["catalog"] is True
+
+
+async def test_catalog_membership_is_deduplicated_but_path_change_creates_draft(
+    database: Database,
+    runtime_patches: None,
+) -> None:
+    manager = _catalog_manager()
+    first = await generator.generate_catalog_skill(
+        database,
+        manager=manager,
+        actor="admin",
+    )
+    manager.catalog_service.membership_revision += 1
+    unchanged = await generator.generate_catalog_skill(
+        database,
+        manager=manager,
+        actor="admin",
+    )
+    manager.catalog_service._config.path_name = "tool-catalog"
+    changed = await generator.generate_catalog_skill(
+        database,
+        manager=manager,
+        actor="admin",
+    )
+
+    assert (first.changed, first.version) == (True, "0.1.0")
+    assert (unchanged.changed, unchanged.version) == (False, "0.1.0")
+    assert (changed.changed, changed.version) == (True, "0.1.1")
+
+
+async def test_disabled_catalog_cannot_generate_skill(
+    database: Database,
+    runtime_patches: None,
+) -> None:
+    with pytest.raises(SkillDomainError, match="Catalog 未启用"):
+        await generator.generate_catalog_skill(
+            database,
+            manager=_catalog_manager(enabled=False),
+            actor="admin",
+        )
 
 
 async def test_base_url_change_creates_a_new_draft(
