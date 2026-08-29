@@ -71,5 +71,5 @@ node ../.github/scripts/cli-verify-release-policy.mjs
 --tag` 的一部分移动，因此验证失败或发布失败不会提前移动 `latest`。只有无预发布
 标识的稳定版本能够映射到 `latest`。
 
-真实 beta 发布以及 Codex、Claude Code、OpenClaw 的安装、更新和回滚验证必须在
+真实 beta 发布以及全部受支持 Agent 的安装、更新和回滚验证必须在
 npm/GitHub 外部配置完成后单独记录，不能用本地 dry-run 代替。

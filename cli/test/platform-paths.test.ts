@@ -11,7 +11,7 @@ describe("Windows/macOS/Linux Agent 路径契约", () => {
       cwd: "C:\\work\\project",
     });
     expect(getAgentAdapter("codex").resolveUserDir(environment)).toBe(
-      "C:\\Users\\alice\\.codex\\skills",
+      "C:\\Users\\alice\\.agents\\skills",
     );
     expect(getAgentAdapter("claude").resolveProjectDir(environment)).toBe(
       "C:\\work\\project\\.claude\\skills",
@@ -30,6 +30,9 @@ describe("Windows/macOS/Linux Agent 路径契约", () => {
     );
     expect(getAgentAdapter("openclaw").resolveProjectDir(environment)).toBe(
       "/work/project/skills",
+    );
+    expect(getAgentAdapter("cursor").resolveProjectDir(environment)).toBe(
+      "/work/project/.agents/skills",
     );
   });
 });

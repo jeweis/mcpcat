@@ -1,11 +1,17 @@
 export {
   AGENT_ADAPTERS,
   claudeAdapter,
+  codeBuddyAdapter,
   codexAdapter,
+  cursorAdapter,
   detectAgents,
+  dshAdapter,
   genericAdapter,
   getAgentAdapter,
   openClawAdapter,
+  piAdapter,
+  qoderAdapter,
+  workBuddyAdapter,
 } from "./agents/adapters.js";
 export { AgentStore } from "./agents/store.js";
 export {

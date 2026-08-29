@@ -60,13 +60,14 @@
 3. 记录保护审批、OIDC job、provenance、tarball SHA/integrity。
 4. 从干净环境安装 npm 版本并确认 `mcpcat --version --json`。
 5. 对远程 HTTPS 执行 connect/list/install/update/pin/rollback/doctor。
-6. 在 Codex、Claude Code、OpenClaw 的 user/project Scope 验证独立生命周期。
+6. 在全部受支持 Agent 的 user/project Scope 验证目录契约；共享 `.agents` 的 Agent
+   验证共享版本语义，其他目录验证独立生命周期。
 
 | 步骤 | 命令/Action | 预期 | 实际 | 证据/复核 |
 | --- | --- | --- | --- | --- |
 | 发布 beta | `<填写>` | OIDC + provenance | `<填写>` | `<填写>` |
 | 远程全流程 | `<填写>` | 全通过 | `<填写>` | `<填写>` |
-| 三 Agent | `<填写>` | user/project 独立 | `<填写>` | `<填写>` |
+| Agent 矩阵 | `<填写>` | 路径、共享/独立生命周期符合契约 | `<填写>` | `<填写>` |
 
 ## 正式回滚演练模板
 

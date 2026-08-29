@@ -5,7 +5,18 @@ import { posix, win32 } from "node:path";
 
 import { ErrorCode, ExitCode, McpcatError } from "../errors.js";
 
-export const AGENT_IDS = ["codex", "claude", "openclaw", "generic"] as const;
+export const AGENT_IDS = [
+  "codex",
+  "claude",
+  "openclaw",
+  "workbuddy",
+  "codebuddy",
+  "qoder",
+  "pi",
+  "dsh",
+  "cursor",
+  "generic",
+] as const;
 export type AgentId = (typeof AGENT_IDS)[number];
 export type InstallScope = "user" | "project";
 

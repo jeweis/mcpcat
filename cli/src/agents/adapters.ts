@@ -14,6 +14,7 @@ interface AdapterDefinition {
   configDirectory: string;
   projectDirectory?: string;
   projectSkillsDirectory: string;
+  detectByConfigDirectory?: boolean;
   userHint: string;
   projectHint: string;
 }
@@ -29,13 +30,12 @@ class StandardAgentAdapter implements AgentAdapter {
 
   async detect(environment: AgentEnvironment): Promise<boolean> {
     const configRoot = this.userConfigRoot(environment);
-    return (await environment.commandExists(this.definition.command)) || (await environment.pathExists(configRoot));
+    if (await environment.commandExists(this.definition.command)) return true;
+    return this.definition.detectByConfigDirectory !== false &&
+      await environment.pathExists(configRoot);
   }
 
   private userConfigRoot(environment: AgentEnvironment): string {
-    if (this.id === "codex" && environment.env.CODEX_HOME !== undefined) {
-      return normalizeTarget(environment.env.CODEX_HOME, environment);
-    }
     return environment.path.join(environment.homeDir, this.definition.configDirectory);
   }
 
@@ -106,9 +106,10 @@ export const codexAdapter = new StandardAgentAdapter({
   id: "codex",
   displayName: "Codex",
   command: "codex",
-  configDirectory: ".codex",
-  projectDirectory: ".codex",
+  configDirectory: ".agents",
+  projectDirectory: ".agents",
   projectSkillsDirectory: "skills",
+  detectByConfigDirectory: false,
   userHint: "请在新 Codex 会话中确认 Skill 可发现。",
   projectHint: "请在当前项目的新 Codex 会话中确认 Skill 可发现。",
 });
@@ -134,12 +135,87 @@ export const openClawAdapter = new StandardAgentAdapter({
   projectHint: "OpenClaw workspace Skills 已更新。",
 });
 
+export const workBuddyAdapter = new StandardAgentAdapter({
+  id: "workbuddy",
+  displayName: "WorkBuddy",
+  command: "workbuddy",
+  configDirectory: ".workbuddy",
+  projectDirectory: ".workbuddy",
+  projectSkillsDirectory: "skills",
+  userHint: "WorkBuddy 用户 Skills 已更新。",
+  projectHint: "WorkBuddy 项目 Skills 已更新。",
+});
+
+export const codeBuddyAdapter = new StandardAgentAdapter({
+  id: "codebuddy",
+  displayName: "CodeBuddy",
+  command: "codebuddy",
+  configDirectory: ".codebuddy",
+  projectDirectory: ".codebuddy",
+  projectSkillsDirectory: "skills",
+  userHint: "CodeBuddy 用户 Skills 已更新。",
+  projectHint: "CodeBuddy 项目 Skills 已更新。",
+});
+
+export const qoderAdapter = new StandardAgentAdapter({
+  id: "qoder",
+  displayName: "Qoder",
+  command: "qoder",
+  configDirectory: ".qoder",
+  projectDirectory: ".qoder",
+  projectSkillsDirectory: "skills",
+  userHint: "Qoder 用户 Skills 已更新。",
+  projectHint: "Qoder 项目 Skills 已更新。",
+});
+
+export const piAdapter = new StandardAgentAdapter({
+  id: "pi",
+  displayName: "Pi",
+  command: "pi",
+  configDirectory: ".agents",
+  projectDirectory: ".agents",
+  projectSkillsDirectory: "skills",
+  detectByConfigDirectory: false,
+  userHint: "Pi 可从通用 .agents Skills 目录发现此 Skill。",
+  projectHint: "Pi 可从项目 .agents Skills 目录发现此 Skill。",
+});
+
+export const dshAdapter = new StandardAgentAdapter({
+  id: "dsh",
+  displayName: "DeepSeek Harness (DSH)",
+  command: "dsh",
+  configDirectory: ".agents",
+  projectDirectory: ".agents",
+  projectSkillsDirectory: "skills",
+  detectByConfigDirectory: false,
+  userHint: "DeepSeek Harness 可从通用 .agents Skills 目录发现此 Skill。",
+  projectHint: "DeepSeek Harness 可从项目 .agents Skills 目录发现此 Skill。",
+});
+
+export const cursorAdapter = new StandardAgentAdapter({
+  id: "cursor",
+  displayName: "Cursor",
+  command: "cursor",
+  configDirectory: ".agents",
+  projectDirectory: ".agents",
+  projectSkillsDirectory: "skills",
+  detectByConfigDirectory: false,
+  userHint: "Cursor 可从通用 .agents Skills 目录发现此 Skill。",
+  projectHint: "Cursor 可从项目 .agents Skills 目录发现此 Skill。",
+});
+
 export const genericAdapter = new GenericAgentAdapter();
 
 const ADAPTER_ENTRIES: ReadonlyArray<readonly [AgentId, AgentAdapter]> = [
   [codexAdapter.id, codexAdapter],
   [claudeAdapter.id, claudeAdapter],
   [openClawAdapter.id, openClawAdapter],
+  [workBuddyAdapter.id, workBuddyAdapter],
+  [codeBuddyAdapter.id, codeBuddyAdapter],
+  [qoderAdapter.id, qoderAdapter],
+  [piAdapter.id, piAdapter],
+  [dshAdapter.id, dshAdapter],
+  [cursorAdapter.id, cursorAdapter],
   [genericAdapter.id, genericAdapter],
 ];
 

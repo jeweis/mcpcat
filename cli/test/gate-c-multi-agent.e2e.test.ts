@@ -84,12 +84,14 @@ function skillPath(
   scope: typeof SCOPES[number],
 ): string {
   if (scope === "user") {
-    return join(context.homeDir, `.${agent === "openclaw" ? "openclaw" : agent}`, "skills", "demo-skill");
+    const directory = agent === "codex" ? ".agents" : `.${agent}`;
+    return join(context.homeDir, directory, "skills", "demo-skill");
   }
   if (agent === "openclaw") {
     return join(context.cwd, "skills", "demo-skill");
   }
-  return join(context.cwd, `.${agent}`, "skills", "demo-skill");
+  const directory = agent === "codex" ? ".agents" : `.${agent}`;
+  return join(context.cwd, directory, "skills", "demo-skill");
 }
 
 describe("Gate C 16.2 multi-Agent/multi-Scope lifecycle E2E", () => {

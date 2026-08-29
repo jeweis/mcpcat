@@ -23,8 +23,35 @@ describe("Agent adapters", () => {
       commandExists: async () => false,
     });
 
-    expect(adapter.resolveUserDir(context)).toBe("/custom/codex/skills");
-    expect(adapter.resolveProjectDir(context)).toBe("/workspace/project/.codex/skills");
+    expect(adapter.resolveUserDir(context)).toBe("/home/alice/.agents/skills");
+    expect(adapter.resolveProjectDir(context)).toBe("/workspace/project/.agents/skills");
+  });
+
+  it("解析新增 Agent 的独立与通用 Skills 目录", () => {
+    const context = createAgentContext({
+      cwd: "/workspace/project",
+      homeDir: "/home/alice",
+      env: {},
+      pathExists: async () => false,
+      commandExists: async () => false,
+    });
+    const paths = [
+      ["workbuddy", ".workbuddy"],
+      ["codebuddy", ".codebuddy"],
+      ["qoder", ".qoder"],
+      ["pi", ".agents"],
+      ["dsh", ".agents"],
+      ["cursor", ".agents"],
+    ] as const;
+
+    for (const [agent, directory] of paths) {
+      expect(getAgentAdapter(agent).resolveUserDir(context)).toBe(
+        `/home/alice/${directory}/skills`,
+      );
+      expect(getAgentAdapter(agent).resolveProjectDir(context)).toBe(
+        `/workspace/project/${directory}/skills`,
+      );
+    }
   });
 
   it("解析 Claude Code 与 OpenClaw 路径契约", () => {
@@ -71,11 +98,26 @@ describe("Agent adapters", () => {
       cwd: "/workspace/project",
       homeDir: "/home/alice",
       env: {},
-      pathExists: async (path) => path === "/home/alice/.codex",
-      commandExists: async () => false,
+      pathExists: async () => true,
+      commandExists: async (command) => command === "codex",
     });
 
     await expect(adapter.detect(context)).resolves.toBe(true);
+  });
+
+  it("共享 .agents 目录不会误报多个 Agent", async () => {
+    const context = createAgentContext({
+      cwd: "/workspace/project",
+      homeDir: "/home/alice",
+      env: {},
+      pathExists: async (path) => path === "/home/alice/.agents",
+      commandExists: async () => false,
+    });
+
+    await expect(getAgentAdapter("codex").detect(context)).resolves.toBe(false);
+    await expect(getAgentAdapter("pi").detect(context)).resolves.toBe(false);
+    await expect(getAgentAdapter("dsh").detect(context)).resolves.toBe(false);
+    await expect(getAgentAdapter("cursor").detect(context)).resolves.toBe(false);
   });
 });
 

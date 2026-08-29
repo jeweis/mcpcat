@@ -93,19 +93,26 @@ mcpcat skills install mysql-tools --all-detected-agents
 mcpcat skills install mysql-tools --agent generic --target-dir /custom/skills
 ```
 
-| Agent | user Scope | project Scope |
-| --- | --- | --- |
-| Codex | `${CODEX_HOME:-~/.codex}/skills` | `<project>/.codex/skills` |
-| Claude Code | `~/.claude/skills` | `<project>/.claude/skills` |
-| OpenClaw | `~/.openclaw/skills` | `<project>/skills` |
-| Generic | 必须提供 `--target-dir` | 必须提供 `--target-dir` |
+| Agent | ID | user Scope | project Scope |
+| --- | --- | --- | --- |
+| Codex | `codex` | `~/.agents/skills` | `<project>/.agents/skills` |
+| Claude Code | `claude` | `~/.claude/skills` | `<project>/.claude/skills` |
+| OpenClaw | `openclaw` | `~/.openclaw/skills` | `<project>/skills` |
+| WorkBuddy | `workbuddy` | `~/.workbuddy/skills` | `<project>/.workbuddy/skills` |
+| CodeBuddy | `codebuddy` | `~/.codebuddy/skills` | `<project>/.codebuddy/skills` |
+| Qoder | `qoder` | `~/.qoder/skills` | `<project>/.qoder/skills` |
+| Pi | `pi` | `~/.agents/skills` | `<project>/.agents/skills` |
+| DeepSeek Harness | `dsh` | `~/.agents/skills` | `<project>/.agents/skills` |
+| Cursor | `cursor` | `~/.agents/skills` | `<project>/.agents/skills` |
+| Generic | `generic` | 必须提供 `--target-dir` | 必须提供 `--target-dir` |
 
 检测到多个 Agent 且未设置默认 Agent 时，交互模式会要求选择；CI 或
 `--non-interactive` 模式必须显式指定 `--agent` 或
 `--all-detected-agents`。`--target-dir` 是高级覆盖入口，Generic Adapter 必填。
 
 安装会下载明确版本、验证 SHA-256 和 Agent Skills 包结构、备份旧目录并原子替换。
-同一 Skill 在不同 Profile、Agent、Scope 和实际路径下拥有独立安装记录：
+Codex、Pi、DeepSeek Harness 和 Cursor 使用同一个 `.agents/skills` 物理目录，因此同一
+Scope 下共享实际 Skill 版本；其他不同实际路径拥有独立生命周期。
 
 ```bash
 mcpcat skills update mysql-tools

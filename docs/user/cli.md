@@ -1,6 +1,6 @@
 # mcpcat CLI：安装与使用
 
-mcpcat CLI 用于连接远程 mcpcat 实例，并把实例中已发布的 Agent Skills 安装到 Codex、Claude Code、OpenClaw 或自定义目录。npm 包名是 `@jeweis/mcpcat`，安装后的命令是 `mcpcat`。
+mcpcat CLI 用于连接远程 mcpcat 实例，并把实例中已发布的 Agent Skills 安装到受支持的编码 Agent 或自定义目录。npm 包名是 `@jeweis/mcpcat`，安装后的命令是 `mcpcat`。
 
 ## 环境要求
 
@@ -63,12 +63,20 @@ mcpcat agents use codex
 
 | Agent | ID | user Scope | project Scope |
 | --- | --- | --- | --- |
-| Codex | `codex` | `${CODEX_HOME:-~/.codex}/skills` | `<项目>/.codex/skills` |
+| Codex | `codex` | `~/.agents/skills` | `<项目>/.agents/skills` |
 | Claude Code | `claude` | `~/.claude/skills` | `<项目>/.claude/skills` |
 | OpenClaw | `openclaw` | `~/.openclaw/skills` | `<项目>/skills` |
+| WorkBuddy | `workbuddy` | `~/.workbuddy/skills` | `<项目>/.workbuddy/skills` |
+| CodeBuddy | `codebuddy` | `~/.codebuddy/skills` | `<项目>/.codebuddy/skills` |
+| Qoder | `qoder` | `~/.qoder/skills` | `<项目>/.qoder/skills` |
+| Pi | `pi` | `~/.agents/skills` | `<项目>/.agents/skills` |
+| DeepSeek Harness（DSH） | `dsh` | `~/.agents/skills` | `<项目>/.agents/skills` |
+| Cursor | `cursor` | `~/.agents/skills` | `<项目>/.agents/skills` |
 | 自定义目录 | `generic` | 必须指定 `--target-dir` | 必须指定 `--target-dir` |
 
 检测到多个 Agent 且尚未设置默认 Agent 时，交互模式会要求选择。非交互环境必须传入 `--agent` 或 `--all-detected-agents`。
+
+Codex、Pi、DeepSeek Harness 和 Cursor 共享通用 `.agents/skills` 目录；同一 Scope 下安装的同名 Skill 是同一份物理文件，不能分别固定为不同版本。由于 `.agents` 本身不能证明具体安装了哪个 Agent，CLI 对这些 Agent 使用对应命令进行自动检测。
 
 ### 3. 查找并安装 Skill
 
@@ -111,7 +119,7 @@ mcpcat skills install weather-tools \
   --target-dir /absolute/path/to/skills
 ```
 
-CLI 会验证下载文件的 SHA-256 和 Agent Skill 结构，备份已有目录并原子替换。不同 Profile、Agent、Scope 和实际目录的安装记录相互独立。
+CLI 会验证下载文件的 SHA-256 和 Agent Skill 结构，备份已有目录并原子替换。不同实际目录的安装生命周期相互独立；共享 `.agents/skills` 的 Agent 共用实际 Skill 版本。
 
 ## 更新、固定与回滚
 
@@ -217,4 +225,3 @@ mcpcat doctor --json
 - 更新失败：原安装会保留；修复网络或权限后重试，也可以执行 `skills rollback`。
 
 如需自动化处理错误，请结合 `--json` 读取稳定错误码，输出日志前仍需避免复制任何凭证或完整环境变量。
-

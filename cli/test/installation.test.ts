@@ -180,7 +180,7 @@ describe("原子安装和本地安装锁", () => {
     });
 
     expect(results.map((item) => item.status)).toEqual(["success", "failed"]);
-    await expect(readFile(join(directory, ".codex", "skills", "demo-skill", "SKILL.md"), "utf8"))
+    await expect(readFile(join(directory, ".agents", "skills", "demo-skill", "SKILL.md"), "utf8"))
       .resolves.toContain("demo-skill");
     expect(results[1]?.error?.code).toBe(ErrorCode.targetInvalid);
   });
@@ -233,6 +233,6 @@ describe("原子安装和本地安装锁", () => {
       installationStore: new InstallationStore(join(directory, "state", "installations.json")),
       temporaryRoot: join(directory, "temporary"),
     })).rejects.toMatchObject({ code: ErrorCode.integrity });
-    await expect(access(join(directory, ".codex", "skills"), constants.F_OK)).rejects.toBeDefined();
+    await expect(access(join(directory, ".agents", "skills"), constants.F_OK)).rejects.toBeDefined();
   });
 });

@@ -10,8 +10,8 @@ function environment() {
     env: {},
     homeDir: "/home/test",
     cwd: "/workspace",
-    pathExists: async (path) => path.endsWith(".codex") || path.endsWith(".claude"),
-    commandExists: async () => false,
+    pathExists: async (path) => path.endsWith(".claude"),
+    commandExists: async (command) => command === "codex",
   });
 }
 
