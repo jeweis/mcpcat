@@ -7,6 +7,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from app.services.apps_mcp_settings import apps_path_reserved
+from app.services.code_mode_settings import code_mode_path_reserved
+from app.services.mcp_route_conflicts import mcp_route_occupied
+from app.services.platform_endpoints import skills_path_reserved
+from app.services.server_config_visibility import reader_config
 from app.services.server_manager import is_reserved_name
 
 logger = logging.getLogger(__name__)
@@ -119,6 +124,16 @@ async def add_server(server_request: AddServerRequest, request: Request):
     """动态添加新的MCP服务器并立即挂载"""
     manager = _get_server_manager(request)
     _validate_server_name(server_request.name)
+
+    if (
+        apps_path_reserved(server_request.name)
+        or code_mode_path_reserved(server_request.name)
+        or skills_path_reserved(server_request.name)
+        or mcp_route_occupied(request.app, server_request.name, owner=manager)
+    ):
+        raise HTTPException(
+            status_code=409, detail=f"MCP 路径 '{server_request.name}' 已被占用"
+        )
 
     if is_reserved_name(server_request.name):
         raise HTTPException(
@@ -379,6 +394,9 @@ async def get_server_config(server_name: str, request: Request):
     from app.services.config_service import ConfigService
 
     config = ConfigService.get_server_config(server_name) or {}
+    user = getattr(request.state, "user", {}) or {}
+    if user.get("permission") != "write":
+        config = reader_config(config)
 
     logger.info("获取服务器 %s 配置", server_name)
 

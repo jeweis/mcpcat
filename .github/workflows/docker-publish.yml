@@ -27,6 +27,9 @@ jobs:
         MCPCAT_RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
       run: node .github/scripts/verify-service-release-version.mjs
 
+    - name: Test upgrade compatibility drift rejection
+      run: node --test .github/scripts/verify-upgrade-compatibility.test.mjs
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 

@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from app.models.mcp_config import MCPConfig, create_config_from_dict
 from app.storage.database import Database
+from app.storage.runtime_identities import retire_service_identity
 from app.storage.unit_of_work import UnitOfWork
 from app.version import APP_VERSION
 
@@ -135,6 +136,7 @@ class ConfigService:
                     unit.mcp_servers.upsert(str(name), value)
                 for name in existing_servers - set(mcp_servers):
                     unit.mcp_servers.remove(name)
+                    retire_service_identity(unit.session, name)
 
                 unit.api_keys.replace_all(api_keys)
 
@@ -260,6 +262,7 @@ class ConfigService:
         try:
             with UnitOfWork(ConfigService._require_database()) as unit:
                 unit.mcp_servers.remove(server_name)
+                retire_service_identity(unit.session, server_name)
                 unit.commit()
             return True
         except Exception as e:

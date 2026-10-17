@@ -127,6 +127,14 @@ async def list_skills(request: Request):
     include_drafts = _include_drafts(request)
     with UnitOfWork(request.app.state.database) as unit:
         rows = unit.skills.list_visible(include_drafts=include_drafts)
+        rows = [
+            row
+            for row in rows
+            if any(
+                unit.skill_artifacts.get_for_version(version.id)
+                for version in unit.skill_versions.list_for_skill(row.id)
+            )
+        ]
         return [
             {
                 "slug": row.slug,
@@ -135,7 +143,18 @@ async def list_skills(request: Request):
                 "source_type": row.source_type,
                 "source": row.source_ref_json,
                 "status": row.status,
-                "latest_version": row.latest_version if include_drafts else None,
+                "latest_version": (
+                    next(
+                        (
+                            version.version
+                            for version in unit.skill_versions.list_for_skill(row.id)
+                            if unit.skill_artifacts.get_for_version(version.id)
+                        ),
+                        None,
+                    )
+                    if include_drafts
+                    else None
+                ),
                 "latest_published_version": row.latest_published_version,
                 "updated_at": row.updated_at.isoformat(),
             }
@@ -242,7 +261,8 @@ async def get_skill_detail(slug: str, request: Request):
         visible_versions = [
             version
             for version in versions
-            if include_drafts or version.status in {"published", "deprecated"}
+            if (include_drafts or version.status in {"published", "deprecated"})
+            and unit.skill_artifacts.get_for_version(version.id) is not None
         ]
         version_payloads = []
         for index, version in enumerate(visible_versions):

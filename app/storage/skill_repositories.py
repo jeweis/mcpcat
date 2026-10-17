@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import PurePosixPath
 from typing import Any, Dict, Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.storage.models import (
@@ -31,6 +31,17 @@ SEMVER_PATTERN = re.compile(
 
 class SkillDomainError(ValueError):
     """Skill 领域约束被违反。"""
+
+
+def _delete_draft_variants(session: Session, version_ids: list[int]) -> None:
+    """先清除草稿变体引用，使旧 ORM 制品删除顺序仍兼容。"""
+    from app.storage.skill_variant_models import SkillContentVariantRecord
+
+    session.execute(
+        delete(SkillContentVariantRecord).where(
+            SkillContentVariantRecord.skill_version_id.in_(version_ids),
+        )
+    )
 
 
 def validate_skill_slug(slug: str) -> str:
@@ -126,6 +137,7 @@ class SkillRepository:
     def delete_draft(self, skill: SkillRecord) -> None:
         if any(version.status != "draft" for version in skill.versions):
             raise SkillDomainError("包含已发布历史的 Skill 不可物理删除")
+        _delete_draft_variants(self.session, [version.id for version in skill.versions])
         self.session.delete(skill)
 
     @staticmethod
@@ -213,6 +225,14 @@ class SkillVersionRepository:
     def delete_draft(self, version: SkillVersionRecord) -> None:
         if version.status != "draft":
             raise SkillDomainError("非草稿版本不可物理删除")
+        _delete_draft_variants(self.session, [version.id])
+        if version.skill.latest_version == version.version:
+            remaining = [
+                row
+                for row in self.list_for_skill(version.skill_id)
+                if row.id != version.id
+            ]
+            version.skill.latest_version = remaining[0].version if remaining else None
         self.session.delete(version)
 
     @staticmethod
@@ -291,10 +311,26 @@ class SkillArtifactRepository:
         return row
 
     def get_for_version(self, skill_version_id: int) -> Optional[SkillArtifactRecord]:
-        return self.session.scalar(
+        owned = self.session.scalar(
             select(SkillArtifactRecord).where(
                 SkillArtifactRecord.skill_version_id == skill_version_id
             )
+        )
+        if owned is not None:
+            return owned
+        from app.storage.skill_variant_models import SkillContentVariantRecord
+
+        reference = self.session.scalar(
+            select(SkillContentVariantRecord).where(
+                SkillContentVariantRecord.skill_version_id == skill_version_id,
+                SkillContentVariantRecord.profile == "local",
+                SkillContentVariantRecord.binding == "",
+            )
+        )
+        return (
+            self.session.get(SkillArtifactRecord, reference.artifact_id)
+            if reference and reference.artifact_id
+            else None
         )
 
     def list_all(self) -> list[SkillArtifactRecord]:

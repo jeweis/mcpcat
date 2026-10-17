@@ -33,6 +33,27 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <script>
+    window.mcpcatAppsPreviewReady = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = new URL('apps-preview.js', document.baseURI).href;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Apps preview module unavailable'));
+      document.head.append(script);
+    });
+    // Preserve a rejected promise for an explicit preview retry without a global rejection.
+    window.mcpcatAppsPreviewReady.catch(() => {});
+    window.mcpcatSkillUploadReady = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = new URL('skill-upload.js', document.baseURI).href;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Skill upload module unavailable'));
+      document.head.append(script);
+    });
+    window.mcpcatSkillUploadReady.catch(() => {});
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

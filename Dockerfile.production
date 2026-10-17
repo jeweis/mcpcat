@@ -22,6 +22,7 @@ COPY requirements.txt .
 
 # 安装 Python 依赖到用户目录
 RUN pip install --user --no-cache-dir -r requirements.txt
+RUN python -c "from importlib.metadata import version; import fastapi, httpx2; assert version('fastmcp') == '4.1.0'; assert version('prefab-ui') == '0.20.2'"
 
 # 预编译 Python 文件
 COPY app/ ./app/

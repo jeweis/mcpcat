@@ -1,0 +1,26 @@
+{
+  "checked_on": "2026-10-15",
+  "extension": "io.modelcontextprotocol/skills",
+  "protocol": "2026-07-28",
+  "fastmcp": "4.1.0",
+  "specification": {
+    "repository": "https://github.com/modelcontextprotocol/ext-skills",
+    "commit": "167da6c0d42c247a8f8470228a10ca711e3f6c45",
+    "path": "specification/stable/skills.mdx"
+  },
+  "conformance": {
+    "repository": "https://github.com/modelcontextprotocol/conformance",
+    "commit": "c37eec888e1c6ff140af79987a40008548b7cc5f",
+    "version": "0.2.0-alpha.12",
+    "scenarios": [
+      "sep-2640-skills-enumeration",
+      "sep-2640-skills-manifest",
+      "sep-2640-skills-directory"
+    ]
+  },
+  "inspector": {
+    "package": "@modelcontextprotocol/inspector",
+    "version": "2.11.0",
+    "integrity": "sha512-gqMw2x0NCotTdjLNv3PSm/IJSeXL7O8u0SpyZXtXGhSukJ2DMoAy8RR7xKngHTCETJcG5gyPdxhOn8zf/ofSRA=="
+  }
+}

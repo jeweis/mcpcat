@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh"><meta charset="utf-8"><title>测试台应用验收</title>
+<style>
+body { color: #e2e8f0; background: #172033; font: 16px system-ui; padding: 20px; }
+button { padding: 10px 16px; border: 0; border-radius: 6px; cursor: pointer; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+<body><h1>测试台应用验收</h1><p id="status">正在连接</p>
+<button id="call" disabled>调用回声工具</button><pre id="result">尚未调用</pre>
+<script>
+const send = message => parent.postMessage({jsonrpc: '2.0', ...message}, '*');
+window.addEventListener('message', event => {
+  if (event.source !== parent) return;
+  const message = event.data;
+  if (message.id === 1 && message.result) {
+    send({method: 'ui/notifications/initialized'});
+    document.getElementById('status').textContent = '已连接';
+    document.getElementById('call').disabled = false;
+  }
+  if (message.method === 'ui/notifications/tool-result') {
+    document.getElementById('result').textContent = JSON.stringify(message.params);
+  }
+  if (message.id === 2) {
+    document.getElementById('result').textContent = JSON.stringify(message.result ?? message.error);
+  }
+});
+document.getElementById('call').onclick = () => send({id: 2, method: 'tools/call',
+  params: {name: 'echo', arguments: {message: '浏览器真实回声验收'}}});
+send({id: 1, method: 'ui/initialize', params: {
+  appInfo: {name: 'workbench-fixture', version: '1.0.0'},
+  appCapabilities: {}, protocolVersion: '2026-01-26'
+}});
+</script></body></html>

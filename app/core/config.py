@@ -3,6 +3,7 @@
 import os
 from typing import Optional
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from app.version import APP_VERSION
@@ -19,6 +20,9 @@ class Settings(BaseSettings):
     # 服务器配置
     host: str = "0.0.0.0"
     port: int = 8000
+    mcpcat_mcp_http_session_idle_timeout: float = Field(
+        default=0, ge=0, allow_inf_nan=False
+    )
 
     # MCP配置文件路径
     mcpcat_config_path: str = ".mcpcat/config.json"
@@ -36,7 +40,9 @@ class Settings(BaseSettings):
     mcpcat_skill_file_max_bytes: int = 10 * 1024 * 1024
     mcpcat_skill_max_files: int = 1000
     mcpcat_mcp_skill_max_tools: int = 500
-    mcpcat_skills_enabled: bool = True
+    mcpcat_apps_artifacts_path: str = ".mcpcat/apps/artifacts"
+    mcpcat_app_max_bytes: int = 16 * 1024 * 1024
+    mcpcat_app_max_files: int = 512
 
     # 日志配置
     log_level: str = "INFO"

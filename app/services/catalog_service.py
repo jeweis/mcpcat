@@ -10,8 +10,12 @@ from fastmcp.server.providers import FastMCPProvider
 from fastmcp.server.transforms.search import RegexSearchTransform
 
 from app.models.mcp_config import CatalogConfig
+from app.services.app_mcp_cancellation import AppDisconnectMiddleware
+from app.services.catalog_apps_provider import CatalogAppsProvider
 from app.services.catalog_provider import CatalogProvider
 from app.services.catalog_search import HybridBM25SearchTransform
+from app.services.catalog_upstream_apps import CatalogUpstreamAppsProvider
+from app.services.catalog_subscriptions import CatalogSubscriptions
 
 if TYPE_CHECKING:
     from app.services.server_manager import MCPServerManager
@@ -32,6 +36,9 @@ class CatalogService:
         self._server_manager = server_manager
         self._config = config
         self._provider = CatalogProvider(server_manager, config)
+        self._upstream_apps = CatalogUpstreamAppsProvider(
+            server_manager, self._provider
+        )
         self._mcp: Optional[FastMCP] = None
         self._mcp_app = None
         self._sse_app = None
@@ -39,6 +46,11 @@ class CatalogService:
         self._tool_count = 0
         self._lock = asyncio.Lock()
         self._initialized = False
+        self.subscriptions = None
+
+    def owns_server(self, server: FastMCP) -> bool:
+        """用于通知持续验证当前 Catalog 代际，不复用旧实例身份。"""
+        return self._initialized and self._mcp is server
 
     @property
     def tool_count(self) -> int:
@@ -73,9 +85,19 @@ class CatalogService:
         )
         self._mcp = FastMCP(
             CATALOG_SERVER_NAME,
-            providers=[self._provider],
-            transforms=[transform],
+            providers=[
+                self._provider.wrap_transform(transform),
+                CatalogAppsProvider(self._server_manager),
+                self._upstream_apps,
+            ],
         )
+        runtime = getattr(self._server_manager, "skills_runtime", None)
+        if runtime is not None:
+            attachment = runtime.attach_catalog(self._mcp)
+            self.subscriptions = CatalogSubscriptions(
+                attachment, self._upstream_apps.sources
+            )
+            self._mcp.add_middleware(self.subscriptions)
         self._initialized = True
 
     async def refresh_index(self) -> None:
@@ -145,6 +167,12 @@ class CatalogService:
 
     def create_apps(self):
         self._init_mcp()
-        self._mcp_app = self._mcp.http_app(path="/")
+        # 内置 Apps renderer 可达数 MiB，不能放进旧客户端默认 1 MiB SSE 帧。
+        # 正式应用固定提供 Apps，HTTP 使用原生 JSON；旧 SSE 地址仍保留。
+        apps_runtime = getattr(self._server_manager, "apps_runtime", None)
+        use_json = apps_runtime is not None and apps_runtime.http_app is not None
+        if use_json and self._mcp_app is None:
+            self._mcp.add_middleware(AppDisconnectMiddleware())
+        self._mcp_app = self._mcp.http_app(path="/", json_response=use_json)
         self._sse_app = self._mcp.http_app(path="/", transport="sse")
         return self._mcp_app, self._sse_app

@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { verifyUpgradeCompatibility } from "./verify-upgrade-compatibility.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+verifyUpgradeCompatibility(root);
 const read = (path) => readFileSync(resolve(root, path), "utf8");
 const fail = (message) => { throw new Error(`Gate C docs: ${message}`); };
 

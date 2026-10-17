@@ -7,12 +7,26 @@ on:
       - "cli/**"
       - ".github/workflows/cli-*.yml"
       - ".github/scripts/cli-*.mjs"
+      - ".github/scripts/verify-upgrade-*.mjs"
+      - "app/services/*skill*.py"
+      - "app/services/app_*renderer.py"
+      - "alembic/versions/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "uv.lock"
   push:
     branches: [main, master]
     paths:
       - "cli/**"
       - ".github/workflows/cli-*.yml"
       - ".github/scripts/cli-*.mjs"
+      - ".github/scripts/verify-upgrade-*.mjs"
+      - "app/services/*skill*.py"
+      - "app/services/app_*renderer.py"
+      - "alembic/versions/**"
+      - "requirements.txt"
+      - "pyproject.toml"
+      - "uv.lock"
   workflow_dispatch:
 
 permissions:
@@ -78,3 +92,6 @@ jobs:
 
       - name: Verify Gate C documentation and compatibility matrix
         run: node ../.github/scripts/cli-verify-gate-c-docs.mjs
+
+      - name: Test upgrade compatibility drift rejection
+        run: node --test ../.github/scripts/verify-upgrade-compatibility.test.mjs

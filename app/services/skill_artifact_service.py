@@ -11,10 +11,13 @@ from pathlib import Path
 from typing import Optional, Union
 
 from filelock import FileLock
+from sqlalchemy import select
 
 from app.core.config import settings
+from app.services.skill_content_locks import version_content_lock
 from app.storage.database import Database, resolve_storage_path
 from app.storage.skill_repositories import SkillDomainError
+from app.storage.skill_variant_models import SkillRemoteArtifactRecord
 from app.storage.unit_of_work import UnitOfWork
 
 
@@ -50,7 +53,7 @@ def _write_temporary(target_dir: Path, content: bytes) -> tuple[Path, str]:
         raise
 
 
-def store_version_artifact(
+def _store_version_artifact(
     database: Database,
     *,
     skill_version_id: int,
@@ -89,6 +92,10 @@ def store_version_artifact(
                         size=len(content),
                         sha256=digest,
                     )
+                    unit.session.flush()
+                    from app.services.skill_content_service import attach_local_variant
+
+                    attach_local_variant(unit, skill_version_id, content)
                     unit.commit()
             except Exception:
                 target.unlink(missing_ok=True)
@@ -98,7 +105,7 @@ def store_version_artifact(
     return StoredArtifact(target, relative, len(content), digest)
 
 
-def replace_draft_artifact(
+def _replace_draft_artifact(
     database: Database,
     *,
     skill_version_id: int,
@@ -114,6 +121,20 @@ def replace_draft_artifact(
         artifact = unit.skill_artifacts.get_for_version(skill_version_id)
         if artifact is None:
             raise SkillDomainError("草稿制品不存在")
+        if artifact.skill_version_id != skill_version_id:
+            return _store_version_artifact(
+                database,
+                skill_version_id=skill_version_id,
+                content=content,
+                artifact_root=artifact_root,
+            )
+        from app.services.skill_variant_artifacts import inspect_variant_zip
+
+        if any(
+            variant.profile == "remote" and variant.artifact_id == artifact.id
+            for variant in unit.skill_variants.list_for_version(skill_version_id)
+        ):
+            inspect_variant_zip(content, remote=True)
         relative = artifact.relative_path
 
     root = _artifact_root(artifact_root)
@@ -137,6 +158,9 @@ def replace_draft_artifact(
                     unit.skill_artifacts.replace_draft(
                         artifact, size=len(content), sha256=digest
                     )
+                    from app.services.skill_content_service import attach_local_variant
+
+                    attach_local_variant(unit, skill_version_id, content)
                     unit.commit()
             except Exception:
                 target.unlink(missing_ok=True)
@@ -150,6 +174,40 @@ def replace_draft_artifact(
     return StoredArtifact(target, relative, len(content), digest)
 
 
+def store_version_artifact(
+    database: Database,
+    *,
+    skill_version_id: int,
+    content: bytes,
+    artifact_root: Optional[Union[str, Path]] = None,
+) -> StoredArtifact:
+    """写入新 local 制品，同时登记变体；冻结版本不能覆盖。"""
+    with version_content_lock(database, skill_version_id):
+        return _store_version_artifact(
+            database,
+            skill_version_id=skill_version_id,
+            content=content,
+            artifact_root=artifact_root,
+        )
+
+
+def replace_draft_artifact(
+    database: Database,
+    *,
+    skill_version_id: int,
+    content: bytes,
+    artifact_root: Optional[Union[str, Path]] = None,
+) -> StoredArtifact:
+    """与发布互斥地更新草稿；共享历史制品编辑时创建自身的新制品。"""
+    with version_content_lock(database, skill_version_id):
+        return _replace_draft_artifact(
+            database,
+            skill_version_id=skill_version_id,
+            content=content,
+            artifact_root=artifact_root,
+        )
+
+
 def diagnose_artifacts(
     database: Database,
     artifact_root: Optional[Union[str, Path]] = None,
@@ -160,7 +218,11 @@ def diagnose_artifacts(
     problems = []
     registered = set()
     with UnitOfWork(database) as unit:
-        for artifact in unit.skill_artifacts.list_all():
+        artifacts = [
+            *unit.skill_artifacts.list_all(),
+            *unit.session.scalars(select(SkillRemoteArtifactRecord)).all(),
+        ]
+        for artifact in artifacts:
             registered.add(artifact.relative_path)
             path = root / artifact.relative_path
             if not path.is_file():

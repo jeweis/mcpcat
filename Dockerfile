@@ -39,9 +39,13 @@ RUN pip install --no-cache-dir uv
 # 复制依赖文件
 COPY requirements.txt .
 COPY pyproject.toml .
+COPY uv.lock .
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用已验收的锁文件安装生产依赖，避免构建时重新解析传递依赖
+RUN uv export --quiet --frozen --no-dev --no-emit-project --format requirements-txt --output-file /tmp/requirements.lock \
+    && uv pip install --system --require-hashes -r /tmp/requirements.lock \
+    && rm /tmp/requirements.lock
+RUN python -c "from importlib.metadata import version; import fastapi, httpx2; assert version('fastmcp') == '4.1.0'; assert version('mcp') == '2.3.0'; assert version('prefab-ui') == '0.20.2'"
 
 # 创建非 root 用户 (统一使用UID=1000)
 RUN groupadd -r app --gid=1000 && \

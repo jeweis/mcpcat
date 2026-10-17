@@ -39,6 +39,7 @@ class _ServerManager:
     """满足应用工厂所需的最小 ServerManager 协议。"""
 
     catalog_service = None
+    server_info = {}
 
     def load_servers_from_config(self) -> None:
         pass

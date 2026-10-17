@@ -91,6 +91,9 @@ def database(tmp_path: Path) -> Database:
 
 @pytest.fixture
 def runtime_patches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "mcpcat_artifacts_path", str(tmp_path / "artifacts"))
     monkeypatch.setattr(generator, "FastMCPProvider", FakeFastMCPProvider)
     monkeypatch.setattr(
         generator.ConfigService,
@@ -406,7 +409,7 @@ async def test_catalog_generates_only_search_and_call_contract(
     assert "references/service-instructions.md" not in "\n".join(names)
     assert skill_md.index("search_tools") < skill_md.index("call_tool")
     assert "A search result is not authorization" in skill_md
-    assert generator.GENERATOR_VERSION == "1.0.2"
+    assert generator.GENERATOR_VERSION == "1.1.0"
     with UnitOfWork(database) as unit:
         skill = unit.skills.get_by_slug(generator.CATALOG_SKILL_SLUG)
         assert skill.source_ref_json["catalog"] is True

@@ -7,6 +7,7 @@ from typing import Optional, Type
 
 from sqlalchemy.orm import Session
 
+from app.storage.app_repositories import AppRepository
 from app.storage.database import Database
 from app.storage.repositories import (
     APIKeyRepository,
@@ -21,6 +22,7 @@ from app.storage.skill_repositories import (
     SkillRepository,
     SkillVersionRepository,
 )
+from app.storage.skill_variant_repositories import SkillVariantRepository
 
 
 class UnitOfWork:
@@ -37,6 +39,8 @@ class UnitOfWork:
         self.settings = SettingsRepository(self.session)
         self.migrations = MigrationHistoryRepository(self.session)
         self.skills = SkillRepository(self.session)
+        self.apps = AppRepository(self.session)
+        self.skill_variants = SkillVariantRepository(self.session)
         self.skill_versions = SkillVersionRepository(self.session)
         self.skill_artifacts = SkillArtifactRepository(self.session)
         self.skill_bundles = SkillBundleRepository(self.session)

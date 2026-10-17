@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Union
 
+from sqlalchemy import text
+
 from app.core.config import settings
+from app.services.skill_artifact_cleanup import discard_unreferenced_remote_artifacts
 from app.services.skill_artifact_service import (
     replace_draft_artifact,
     store_version_artifact,
@@ -146,44 +149,23 @@ def upload_skill(
 
 
 def publish_skill_version(
-    database: Database, *, slug: str, version: str, actor: Optional[str]
+    database: Database,
+    *,
+    slug: str,
+    version: str,
+    actor: Optional[str],
+    artifact_root: Optional[Union[str, Path]] = None,
 ) -> None:
     """发布带有完整制品的草稿版本。"""
 
-    try:
-        with UnitOfWork(database) as unit:
-            skill = unit.skills.get_by_slug(slug)
-            if skill is None:
-                raise SkillDomainError("Skill 不存在")
-            version_row = unit.skill_versions.get(skill.id, version)
-            if version_row is None:
-                raise SkillDomainError("Skill 版本不存在")
-            artifact = unit.skill_artifacts.get_for_version(version_row.id)
-            if artifact is None or artifact.integrity_status != "ok":
-                raise SkillDomainError("Skill 版本没有完整可发布制品")
-            unit.skill_versions.publish(skill, version_row)
-            unit.skill_audit.record(
-                skill_id=skill.id,
-                skill_slug=slug,
-                version=version,
-                action="publish",
-                actor=actor,
-                outcome="success",
-            )
-            unit.commit()
-    except Exception as error:
-        _record_failure(
-            database,
-            slug=slug,
-            version=version,
-            action="publish",
-            actor=actor,
-            error=error,
-        )
-        raise
+    from app.services.skill_variant_publication import publish_content_version
+
+    publish_content_version(
+        database, slug=slug, version=version, actor=actor, artifact_root=artifact_root
+    )
 
 
-def replace_draft_package(
+def _replace_draft_package(
     database: Database,
     *,
     slug: str,
@@ -236,6 +218,37 @@ def replace_draft_package(
     return validation
 
 
+def replace_draft_package(
+    database: Database,
+    *,
+    slug: str,
+    version: str,
+    content: bytes,
+    changelog: Optional[str],
+    actor: Optional[str],
+    artifact_root: Optional[Union[str, Path]] = None,
+) -> SkillPackageValidation:
+    """编辑的文件、清单和来源快照整体与发布互斥，不能发布半更新状态。"""
+    from app.services.skill_content_locks import version_content_lock
+
+    with UnitOfWork(database) as unit:
+        skill = unit.skills.get_by_slug(slug)
+        row = unit.skill_versions.get(skill.id, version) if skill else None
+        if row is None:
+            raise SkillDomainError("Skill 版本不存在")
+        version_id = row.id
+    with version_content_lock(database, version_id):
+        return _replace_draft_package(
+            database,
+            slug=slug,
+            version=version,
+            content=content,
+            changelog=changelog,
+            actor=actor,
+            artifact_root=artifact_root,
+        )
+
+
 def change_skill_lifecycle(
     database: Database,
     *,
@@ -283,10 +296,17 @@ def delete_draft_skill(
 
     paths: list[str] = []
     with UnitOfWork(database) as unit:
+        unit.session.execute(text("BEGIN IMMEDIATE"))
         skill = unit.skills.get_by_slug(slug)
         if skill is None:
             raise SkillDomainError("Skill 不存在")
+        remote_ids = set()
         for version in skill.versions:
+            remote_ids.update(
+                variant.remote_artifact_id
+                for variant in unit.skill_variants.list_for_version(version.id)
+                if variant.remote_artifact_id is not None
+            )
             artifact = unit.skill_artifacts.get_for_version(version.id)
             if artifact is not None:
                 paths.append(artifact.relative_path)
@@ -298,7 +318,13 @@ def delete_draft_skill(
             outcome="success",
         )
         unit.skills.delete_draft(skill)
+        unit.session.flush()
+        paths.extend(discard_unreferenced_remote_artifacts(unit, remote_ids))
         unit.commit()
-    root = resolve_storage_path(artifact_root or settings.mcpcat_artifacts_path)
+    root = resolve_storage_path(
+        artifact_root or settings.mcpcat_artifacts_path
+    ).resolve()
     for relative in paths:
-        (root / relative).unlink(missing_ok=True)
+        path = (root / relative).resolve()
+        if path.is_relative_to(root):
+            path.unlink(missing_ok=True)

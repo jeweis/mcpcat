@@ -6,6 +6,9 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from app.services.catalog_app_request import catalog_request
+from app.services.security_service import security_service
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -42,7 +45,10 @@ async def refresh_catalog(request: Request):
 async def search_catalog(query: str, request: Request):
     catalog = _get_catalog(request)
     try:
-        results = await catalog.search_tools(query)
+        with catalog_request(
+            request.headers.get(security_service.get_auth_header_name(), "")
+        ):
+            results = await catalog.search_tools(query)
     except Exception as exc:
         logger.exception("Catalog 搜索失败")
         raise HTTPException(
@@ -60,7 +66,10 @@ async def search_catalog(query: str, request: Request):
 async def call_catalog(body: CatalogCallRequest, request: Request):
     catalog = _get_catalog(request)
     try:
-        result = await catalog.call_tool(body.name, body.arguments)
+        with catalog_request(
+            request.headers.get(security_service.get_auth_header_name(), "")
+        ):
+            result = await catalog.call_tool(body.name, body.arguments)
     except Exception as exc:
         logger.exception("Catalog 工具调用失败: %s", body.name)
         raise HTTPException(

@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.exceptions.auth import AuthenticationError, PermissionDeniedError
 from app.models.mcp_config import PermissionType
+from app.models.skills_mcp_config import SkillsMCPConfig
 from app.services.config_service import ConfigService
 from app.services.security_service import security_service
 
@@ -49,6 +50,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # 权限映射：路径模式 -> 所需权限
         # 注意：更具体的模式应该放在前面，因为会按顺序匹配
         self.permission_map = {
+            # Inspector 的协议读取/工具调用使用与 MCP 相同的 READ 身份。
+            r"^/api/inspector/.*": PermissionType.READ,
             # 管理API - write权限 (飞书登录与团队成员管理)
             r"^/api/admin/.*": PermissionType.WRITE,
             # 管理API - write权限 (具体的操作端点)
@@ -65,8 +68,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
             # Catalog API - write权限
             r"^/api/catalog/refresh$": PermissionType.WRITE,
             r"^/api/catalog/call$": PermissionType.READ,
+            # 与普通 MCP 调用一致；只允许已发布版本的明确绑定，仍需确认。
+            r"^/api/apps/[^/]+/versions/[^/]+/preview-call$": PermissionType.READ,
             # MCP协议端点 - read权限
-            r"^/mcp/[^/]+/.*": PermissionType.READ,
+            r"^/mcp/[^/]+(?:/.*)?$": PermissionType.READ,
             # SSE端点 - read权限
             r"^/sse/[^/]+.*": PermissionType.READ,
         }
@@ -81,7 +86,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """检查路径是否为公开路径"""
         return any(pattern.match(path) for pattern in self.public_patterns)
 
-    def is_mcp_server_public(self, path: str) -> bool:
+    def is_mcp_server_public(
+        self, path: str, skills_runtime=None, code_runtime=None, apps_runtime=None
+    ) -> bool:
         """
         检查MCP服务器端点是否配置为公开访问
 
@@ -98,6 +105,35 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return False
 
         server_name = match.group(1)
+        if (
+            mcp_match
+            and apps_runtime is not None
+            and apps_runtime.http_app is not None
+            and server_name == apps_runtime.config.path_name
+        ):
+            from app.services.apps_mcp_settings import apps_mcp_config
+
+            return apps_runtime.available() and not apps_mcp_config().require_auth
+        if (
+            mcp_match
+            and code_runtime is not None
+            and code_runtime.http_app is not None
+            and server_name == code_runtime.config.path_name
+        ):
+            return False
+        if (
+            mcp_match
+            and skills_runtime is not None
+            and skills_runtime.http_app is not None
+            and server_name == skills_runtime.config.path_name
+        ):
+            try:
+                skills = SkillsMCPConfig.model_validate(
+                    self.config_service.get_setting_section("skills_mcp", {}) or {}
+                )
+                return skills_runtime.available() and not skills.require_auth
+            except ValueError:
+                return False
         if self._is_catalog_server(server_name):
             return self._check_catalog_auth_config()
         return self._check_server_auth_config(server_name)
@@ -199,7 +235,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 检查是否为配置为公开的MCP服务器端点
-        if self.is_mcp_server_public(path):
+        if self.is_mcp_server_public(
+            path,
+            getattr(request.app.state, "skills_mcp_runtime", None),
+            getattr(request.app.state, "code_mode_runtime", None),
+            getattr(request.app.state, "apps_mcp_runtime", None),
+        ):
             logger.debug(f"MCP服务器端点无需认证: {method} {path}")
             return await call_next(request)
 

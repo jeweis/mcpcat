@@ -17,6 +17,7 @@ from app.version import APP_VERSION
 
 class FakeServerManager:
     def __init__(self) -> None:
+        self.server_info = {}
         self.catalog_service = None
         self.loaded = False
         self.mounted = False
@@ -38,7 +39,6 @@ class FakeServerManager:
 def storage_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(settings, "mcpcat_config_path", str(tmp_path / "config.json"))
     monkeypatch.setattr(settings, "mcpcat_backups_path", str(tmp_path / "backups"))
-    monkeypatch.setattr(settings, "mcpcat_skills_enabled", True)
     yield
     ConfigService.reset_database()
 
@@ -55,7 +55,7 @@ async def test_create_app_bootstraps_storage_before_business_services(
     assert manager.loaded is True
     assert manager.mounted is True
     assert application.state.storage_ready is True
-    assert application.state.schema_status.current == "0002_skills_registry"
+    assert application.state.schema_status.current == "0005_app_render_review"
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=application), base_url="http://test"
     ) as client:
@@ -111,7 +111,7 @@ async def test_repeated_app_creation_has_isolated_routes_and_state(
 async def test_disabling_skills_router_keeps_storage_and_health_ready(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "mcpcat_skills_enabled", False)
+    monkeypatch.setenv("MCPCAT_SKILLS_ENABLED", "false")
     database = Database(tmp_path / "skills-disabled.db")
     application = create_app(database=database, server_manager=FakeServerManager())
     config = ConfigService.load_raw_config()
@@ -123,6 +123,6 @@ async def test_disabling_skills_router_keeps_storage_and_health_ready(
         health = await client.get("/api/health")
         skills = await client.get("/api/skills", headers={auth_header: api_key})
     assert health.json()["ready"] is True
-    assert skills.status_code == 404
-    assert application.state.schema_status.current == "0002_skills_registry"
+    assert skills.status_code == 200
+    assert application.state.schema_status.current == "0005_app_render_review"
     database.dispose()

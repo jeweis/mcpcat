@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_on": "2026-08-29",
+  "verified_on": "2026-10-15",
   "versions": {
     "service_application": { "current": "1.0.1", "compatibility_gate": false },
     "registry_api": { "server": "v1", "cli_supported": "v1", "rule": "exact" },
@@ -12,7 +12,13 @@
       "request_header": "X-Mcpcat-CLI-Version"
     },
     "skill": { "rule": "independent-semver", "published_versions_immutable": true },
-    "generated_mcp_skill": { "generator": "1.0.2", "node": ">=24", "mcporter": "0.13.7" }
+    "generated_mcp_skill": { "generator": "1.1.0", "node": ">=24", "mcporter": "0.13.7" },
+    "runtime": { "fastmcp": "4.1.0", "mcp": "2.3.0", "prefab-ui": "0.20.2", "pydantic-monty": "1.1.0" },
+    "python": { "requires": ">=3.10", "container": "3.12", "verified": ["3.10.19", "3.11.14"] },
+    "mcp_protocol": { "modern": "2026-07-28", "legacy_http": ["2025-03-26", "2025-06-18", "2025-11-25"], "skills_extension": "io.modelcontextprotocol/skills", "directory_read": false },
+    "database": { "baseline": "0002_skills_registry", "head": "0005_app_render_review", "downgrade_requires_matching_snapshot": true },
+    "content_templates": { "local": "1.0.0", "remote": "1.0.0" },
+    "apps_html": { "new_draft": "html-assembly-5", "retained": ["html-assembly-1", "html-assembly-2", "html-assembly-3", "html-assembly-4", "html-assembly-5"] }
   },
   "scenarios": [
     { "id": "current-baseline", "api": "v1", "schema": "1.0.0", "cli": "1.0.1", "outcome": "allow" },

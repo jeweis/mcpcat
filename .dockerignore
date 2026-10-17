@@ -52,12 +52,15 @@ Thumbs.db
 # Project specific
 *.log
 .env.example
+.mcpcat/
+cli/node_modules/
 
 # Development
 tests/
 docs/
 *.md
 !README.md
+!app/resources/skill_templates/*.md
 
 # Build artifacts
 build/

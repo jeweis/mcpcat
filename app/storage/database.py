@@ -11,6 +11,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
+from app.storage.change_notifications import (
+    database_changes,
+    install_change_notifications,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,6 +49,8 @@ class Database:
             expire_on_commit=False,
             autoflush=False,
         )
+        self.changes = database_changes(str(self.path.resolve()))
+        install_change_notifications(self._session_factory, self.changes)
 
     def _create_engine(self) -> Engine:
         engine = create_engine(

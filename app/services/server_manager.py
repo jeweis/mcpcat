@@ -2,14 +2,22 @@
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 
+from app.services.apps_mcp_settings import apps_path_reserved
+from app.services.code_mode_settings import code_mode_path_reserved
 from app.services.config_service import ConfigService
 from app.services.mcp_factory import MCPServerFactory
+from app.services.mcp_lifecycle import ServiceLifecycles, service_operation
+from app.services.mcp_proxy_app import MCPProxyApp
+from app.services.mcp_route_conflicts import mcp_route_occupied
+from app.services.platform_endpoints import skills_path_reserved
+from app.services.proxy_subscriptions import attach_proxy_subscriptions
+from app.services.proxy_task_attachment import attach_proxy_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -29,158 +37,10 @@ def is_reserved_name(name: str) -> bool:
     return name in RESERVED_NAMES or name.startswith("_")
 
 
-class MCPProxyApp:
-    """
-    MCP服务器代理应用 - 允许动态切换底层MCP应用实例
-
-    这个代理应用被FastAPI挂载，内部可以动态转发请求到不同的MCP应用实例，
-    从而实现配置热重载而无需重启整个应用。
-    """
-
-    def __init__(
-        self,
-        server_name: str,
-        server_manager: "MCPServerManager",
-        transport_type: str = "mcp",
-    ):
-        """
-        初始化代理应用
-
-        Args:
-            server_name: 服务器名称
-            server_manager: 服务器管理器实例
-            transport_type: 传输类型 ('mcp' 或 'sse')
-        """
-        self.server_name = server_name
-        self.server_manager = server_manager
-        self.transport_type = transport_type
-
-    async def __call__(self, scope, receive, send):
-        """
-        ASGI应用接口 - 处理所有传入的请求
-
-        Args:
-            scope: ASGI scope
-            receive: ASGI receive callable
-            send: ASGI send callable
-        """
-        try:
-            # 获取当前的服务器信息
-            server_info = self.server_manager.server_info.get(self.server_name)
-
-            if not server_info:
-                # 服务器不存在
-                await self._send_error_response(
-                    scope,
-                    receive,
-                    send,
-                    status_code=404,
-                    message=f"MCP服务器 '{self.server_name}' 不存在",
-                )
-                return
-
-            # 检查服务器状态
-            server_status = server_info.get("status", "unknown")
-            if server_status != "running":
-                # 服务器未运行
-                await self._send_error_response(
-                    scope,
-                    receive,
-                    send,
-                    status_code=503,
-                    message=f"MCP服务器 '{self.server_name}' 当前不可用 (状态: {server_status})",
-                )
-                return
-
-            # 获取目标应用实例
-            if self.transport_type == "mcp":
-                target_app = server_info.get("mcp_app")
-            elif self.transport_type == "sse":
-                target_app = server_info.get("sse_app")
-            else:
-                await self._send_error_response(
-                    scope,
-                    receive,
-                    send,
-                    status_code=500,
-                    message=f"不支持的传输类型: {self.transport_type}",
-                )
-                return
-
-            if not target_app:
-                # 目标应用不可用
-                message = (
-                    f"MCP服务器 '{self.server_name}' 的 "
-                    f"{self.transport_type} 应用不可用"
-                )
-                await self._send_error_response(
-                    scope,
-                    receive,
-                    send,
-                    status_code=503,
-                    message=message,
-                )
-                return
-
-            # 转发请求到目标应用
-            await target_app(scope, receive, send)
-
-        except Exception as e:
-            # 处理代理层的异常
-            logger.error(f"MCP代理应用 {self.server_name} 处理请求时出错: {e}")
-            try:
-                await self._send_error_response(
-                    scope,
-                    receive,
-                    send,
-                    status_code=500,
-                    message=f"代理服务器内部错误: {str(e)}",
-                )
-            except:
-                # 如果连错误响应都发送失败，只能记录日志
-                logger.error(f"发送错误响应失败: {e}")
-
-    async def _send_error_response(
-        self, scope, receive, send, status_code: int, message: str
-    ):
-        """
-        发送错误响应
-
-        Args:
-            scope: ASGI scope
-            receive: ASGI receive callable
-            send: ASGI send callable
-            status_code: HTTP状态码
-            message: 错误消息
-        """
-        if scope["type"] == "http":
-            # HTTP请求，返回JSON错误响应
-            response = JSONResponse(
-                content={"error": message, "server": self.server_name},
-                status_code=status_code,
-            )
-            await response(scope, receive, send)
-        else:
-            # 其他类型的请求（如WebSocket），发送基本的错误响应
-            await send(
-                {
-                    "type": "http.response.start",
-                    "status": status_code,
-                    "headers": [[b"content-type", b"text/plain"]],
-                }
-            )
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": message.encode("utf-8"),
-                }
-            )
-
-
 class MCPServerManager:
     """MCP服务器管理器 - 封装现有的服务器管理逻辑"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # 与原有代码保持一致的数据结构
         self.lifespan_tasks: Dict[str, Callable] = {}  # FastMCP应用生命周期管理
         self.app_mount_list: List[Dict[str, Any]] = []  # 对应原有的 app_mount_list
@@ -192,6 +52,10 @@ class MCPServerManager:
         self.dynamic_tasks: Set[asyncio.Task] = set()  # 动态服务器任务集合
         self.catalog_service = None  # Catalog 服务实例（延迟初始化）
         self.catalog_refresh_task: Optional[asyncio.Task] = None
+        self.lifecycle = ServiceLifecycles(self)
+        from app.storage.change_notifications import ChangeNotifications
+
+        self.runtime_changes = ChangeNotifications()
 
     def _update_server_status(
         self, server_name: str, status: str, error: Optional[str] = None
@@ -206,6 +70,7 @@ class MCPServerManager:
         """
         if server_name in self.server_info:
             self.server_info[server_name]["status"] = status
+            self.runtime_changes.publish({"mcp_runtime"})
             if error:
                 self.server_info[server_name]["error"] = error
             elif "error" in self.server_info[server_name]:
@@ -246,7 +111,20 @@ class MCPServerManager:
             if mcp is None:
                 return False
 
+            subscriptions = attach_proxy_subscriptions(self, key, mcp, value)
+            attach_proxy_tasks(mcp, value, subscriptions)
+
             # 创建应用并正确获取生命周期
+            runtime = getattr(self, "skills_runtime", None)
+            if runtime is not None:
+                attachment = runtime.attach_service(key, mcp)
+                if subscriptions is not None:
+                    subscriptions.attach_registry(attachment)
+                else:
+                    attachment.install_subscriptions()
+            apps_runtime = getattr(self, "apps_runtime", None)
+            if apps_runtime is not None:
+                apps_runtime.register_source(key)
             mcp_app = mcp.http_app(path="/")
             sse_app = mcp.http_app(path="/", transport="sse")
 
@@ -297,54 +175,12 @@ class MCPServerManager:
         self._mount_catalog(app)
 
     def mount_server(self, app: FastAPI, server_name: str) -> bool:
-        """
-        动态挂载单个服务器到运行中的FastAPI应用
+        """只挂载一次本管理器的 MCP/SSE 代理，不覆盖其他来源。"""
+        from app.services.mcp_service_mounts import mount_service_routes
 
-        Args:
-            app: FastAPI应用实例
-            server_name: 服务器名称
-
-        Returns:
-            bool: 是否成功挂载
-        """
         if server_name not in self.server_info:
-            logger.error(f"服务器 {server_name} 不存在")
             return False
-
-        try:
-            # 为动态添加的服务器创建代理应用
-            mcp_proxy = MCPProxyApp(server_name, self, "mcp")
-            sse_proxy = MCPProxyApp(server_name, self, "sse")
-
-            # 动态挂载代理应用
-            mcp_path = f"/mcp/{server_name}"
-            sse_path = f"/sse/{server_name}"
-
-            try:
-                print(f"动态挂载 {mcp_path} 到应用")
-                app.mount(mcp_path, mcp_proxy)
-                logger.info(f"✓ 成功挂载 {mcp_path}")
-
-                print(f"动态挂载 {sse_path} 到应用")
-                app.mount(sse_path, sse_proxy)
-                logger.info(f"✓ 成功挂载 {sse_path}")
-
-                # 更新挂载列表
-                self.app_mount_list.append({"path": mcp_path, "app": mcp_proxy})
-                self.app_mount_list.append({"path": sse_path, "app": sse_proxy})
-
-            except Exception as mount_error:
-                # 如果挂载失败（可能是路径冲突），记录但继续
-                logger.warning(f"挂载时出现警告: {mount_error}")
-
-            # 更新服务器状态
-            self._update_server_status(server_name, "mounted")
-            return True
-
-        except Exception as e:
-            logger.error(f"挂载服务器 {server_name} 失败: {e}")
-            self._update_server_status(server_name, "mount_failed", str(e))
-            return False
+        return mount_service_routes(self, app, server_name)
 
     def _mount_catalog(self, app: FastAPI) -> None:
         """挂载 Catalog MCP 到 /mcp/mcpcat 和 /sse/mcpcat"""
@@ -374,40 +210,7 @@ class MCPServerManager:
         except Exception as e:
             logger.warning(f"Catalog 目录刷新失败: {e}")
 
-    async def _run_dynamic_server_lifespan(self, server_name: str, app: FastAPI):
-        """
-        运行动态服务器的生命周期作为独立任务
-
-        Args:
-            server_name: 服务器名称
-            app: FastAPI应用实例
-        """
-        try:
-            print(f"🚀 启动动态服务器 {server_name} 的生命周期")
-
-            # 获取生命周期任务
-            task_lifespan = self.lifespan_tasks[server_name]
-
-            # 运行生命周期
-            async with task_lifespan(app):
-                print(f"✓ 动态服务器 {server_name} 生命周期启动成功")
-                self._update_server_status(server_name, "running")
-
-                # 等待任务被取消
-                try:
-                    await asyncio.Event().wait()  # 无限等待直到被取消
-                except asyncio.CancelledError:
-                    print(f"🔄 动态服务器 {server_name} 生命周期正在关闭")
-                    raise  # 重新抛出，让上下文管理器正常退出
-
-        except asyncio.CancelledError:
-            print(f"✓ 动态服务器 {server_name} 生命周期已关闭")
-            self._update_server_status(server_name, "stopped")
-        except Exception as e:
-            print(f"✗ 动态服务器 {server_name} 生命周期出错: {e}")
-            logger.error(f"动态服务器 {server_name} 生命周期出错: {e}")
-            self._update_server_status(server_name, "failed", str(e))
-
+    @service_operation(position=2, keyword="key")
     async def add_and_mount_server(
         self, app: FastAPI, key: str, value: Dict[str, Any]
     ) -> bool:
@@ -423,6 +226,14 @@ class MCPServerManager:
             bool: 是否成功添加并挂载
         """
         # 检查服务器是否已存在
+        if (
+            apps_path_reserved(key)
+            or code_mode_path_reserved(key)
+            or skills_path_reserved(key)
+            or mcp_route_occupied(app, key, owner=self)
+        ):
+            logger.error("MCP 路径 %s 已被其他端点占用", key)
+            return False
         if key in self.lifespan_tasks:
             logger.error(f"服务器 {key} 已存在")
             return False
@@ -445,147 +256,47 @@ class MCPServerManager:
             logger.warning(f"保存服务器 {key} 配置时出现警告: {e}")
 
         # 如果应用已经在运行，立即启动这个服务器的生命周期
+        code_runtime = getattr(self, "code_mode_runtime", None)
+        if code_runtime is not None:
+            code_runtime.register_source(key)
         if self.app_started and self.main_app:
-            try:
-                # 创建独立的后台任务来运行动态服务器的生命周期
-                task = asyncio.create_task(
-                    self._run_dynamic_server_lifespan(key, self.main_app)
-                )
-                # 为任务添加服务器名称标识
-                task._server_name = key
-                self.dynamic_tasks.add(task)
-
-                # 添加回调来清理完成的任务
-                task.add_done_callback(self.dynamic_tasks.discard)
-
-                # 等待一小段时间确保服务器启动完成
-                await asyncio.sleep(0.1)
-
-                # 检查服务器是否成功启动
-                if self.server_info[key]["status"] == "running":
-                    print(f"✅ 动态服务器 {key} 已挂载并启动，完整功能立即可用")
-                else:
-                    print(f"⚠️  动态服务器 {key} 已挂载，生命周期启动中...")
-
-                # 异步检测 OAuth 授权需求（不阻塞添加流程）
-                asyncio.create_task(self._detect_auth_status(key, value))
-
-                # 更新 Catalog 状态统计；搜索目录由动态 Provider 实时读取
-                asyncio.create_task(self._trigger_catalog_refresh())
-
-            except Exception as e:
-                print(f"✗ 动态服务器 {key} 启动失败: {e}")
-                logger.error(f"启动服务器 {key} 失败: {e}")
-
-                # 清理已添加的服务器
-                if key in self.lifespan_tasks:
-                    del self.lifespan_tasks[key]
-                self._update_server_status(key, "failed", str(e))
-
+            if not await self.lifecycle.start(key, self.main_app):
                 return False
+            self.lifecycle.schedule(self._detect_auth_status(key, value), key)
+            self.lifecycle.schedule(self._trigger_catalog_refresh())
         else:
-            # 如果应用还没启动，标记为已加载
             self._update_server_status(key, "loaded")
 
         return True
 
     @asynccontextmanager
-    async def create_unified_lifespan(self, app: FastAPI):
-        """
-        正确的FastMCP生命周期管理器
-
-        FastMCP应用的lifespan必须由父应用统一管理，
-        这样StreamableHTTPSessionManager才能正确初始化
-
-        Args:
-            app: FastAPI应用实例
-        """
-        print("应用启动中...")
-
-        # 设置应用已启动状态和保存应用实例
-        self.app_started = True
-        self.main_app = app
-
-        # 使用 AsyncExitStack 来正确管理所有的 lifespan 上下文
-        async with AsyncExitStack() as stack:
-            # 启动所有FastMCP服务器的生命周期
-            for task_name, task_lifespan in self.lifespan_tasks.items():
+    async def create_unified_lifespan(self, app: FastAPI) -> AsyncIterator[None]:
+        """初始和动态来源共用逐服务任务，Catalog 仍由父级上下文持有。"""
+        self.app_started, self.main_app = True, app
+        self.lifecycle.closing = False
+        try:
+            async with AsyncExitStack() as stack:
                 try:
-                    # 每个FastMCP应用的lifespan必须在这里被正确管理
-                    await stack.enter_async_context(task_lifespan(app))
-                    print(f"✓ MCP服务器 {task_name} 生命周期启动成功")
-
-                    # 更新服务器状态
-                    self._update_server_status(task_name, "running")
-
-                    # 异步检测 OAuth 授权需求（不阻塞启动）
-                    cfg = self.server_info.get(task_name, {}).get("config", {})
-                    if isinstance(cfg, dict) and cfg.get("type") in (
-                        "sse",
-                        "streamable-http",
-                    ):
-                        asyncio.create_task(self._detect_auth_status(task_name, cfg))
-
-                except Exception as e:
-                    print(f"✗ MCP服务器 {task_name} 生命周期启动失败: {e}")
-
-                    # 更新服务器状态
-                    self._update_server_status(task_name, "failed", str(e))
-
-            try:
-                # 启动 Catalog 生命周期并定期更新目录状态统计
-                if self.catalog_service and self.catalog_service.mcp_app:
-                    catalog_lifespan = self.catalog_service.mcp_app.lifespan
-                    await stack.enter_async_context(catalog_lifespan(app))
-                    self.catalog_refresh_task = asyncio.create_task(
-                        _periodic_catalog_refresh(self)
-                    )
-
-                yield
-            finally:
-                print("应用关闭中...")
-
-                if self.catalog_refresh_task:
-                    self.catalog_refresh_task.cancel()
-                    await asyncio.gather(
-                        self.catalog_refresh_task,
-                        return_exceptions=True,
-                    )
-                    self.catalog_refresh_task = None
-
-                # 取消所有动态服务器任务
-                if self.dynamic_tasks:
-                    print(f"正在关闭 {len(self.dynamic_tasks)} 个动态服务器...")
-                    for task in self.dynamic_tasks:
-                        if not task.done():
-                            task.cancel()
-
-                    # 等待所有任务完成，给更多时间
-                    if self.dynamic_tasks:
-                        try:
-                            await asyncio.wait_for(
-                                asyncio.gather(
-                                    *self.dynamic_tasks, return_exceptions=True
-                                ),
-                                timeout=5.0,  # 给5秒时间优雅关闭
+                    for name in list(self.lifespan_tasks):
+                        if await self.lifecycle.start(name, app):
+                            config = self.server_info[name].get("config", {})
+                            self.lifecycle.schedule(
+                                self._detect_auth_status(name, config), name
                             )
-                            print("✓ 所有动态服务器已关闭")
-                        except asyncio.TimeoutError:
-                            print("⚠️  部分动态服务器关闭超时，强制终止")
-
-                # 给底层连接一些时间完成
-                await asyncio.sleep(0.5)
-
-                # AsyncExitStack 会自动按相反顺序调用所有的 __aexit__
-
-                # 更新所有服务器状态为已停止
-                for task_name in self.lifespan_tasks.keys():
-                    self._update_server_status(task_name, "stopped")
-
-                # 清理状态
-                self.app_started = False
-                self.main_app = None
-                self.dynamic_tasks.clear()
+                    if self.catalog_service and self.catalog_service.mcp_app:
+                        await stack.enter_async_context(
+                            self.catalog_service.mcp_app.lifespan(app)
+                        )
+                        self.catalog_refresh_task = self.lifecycle.schedule(
+                            _periodic_catalog_refresh(self)
+                        )
+                    yield
+                finally:
+                    self.app_started = False
+                    await self.lifecycle.close()
+        finally:
+            self.app_started, self.main_app = False, None
+            self.catalog_refresh_task = None
 
     async def _detect_auth_status(self, key: str, value: Dict[str, Any]) -> None:
         """异步检测服务器的 OAuth 授权需求，更新 auth_status 字段"""
@@ -593,30 +304,15 @@ class MCPServerManager:
         if server_type not in ("sse", "streamable-http"):
             return
 
-        # 如果已有 OAuth token，检查是否有效
-        oauth_config = value.get("oauth")
-        if oauth_config and oauth_config.get("token"):
-            from app.models.mcp_config import OAuthToken
-            from app.services.oauth_flow import oauth_flow_service
+        if (value.get("oauth") or {}).get("grant_type") == "client_credentials":
+            from app.services.oauth_machine_probe import detect_machine_auth
 
-            token = OAuthToken(**oauth_config["token"])
-            if oauth_flow_service.is_token_expired(token):
-                # 尝试刷新
-                from app.models.mcp_config import OAuthConfig
+            await detect_machine_auth(self.server_info, key, value)
+            return
 
-                cfg = OAuthConfig(**oauth_config)
-                new_token = await oauth_flow_service.refresh_oauth_token(key, cfg)
-                if new_token:
-                    cfg.token = new_token
-                    value["oauth"] = cfg.dict()
-                    self.server_info[key]["auth_status"] = "authorized"
-                    from app.services.config_service import ConfigService
+        from app.services.oauth_refresh import refresh_configured_source
 
-                    ConfigService.update_server_oauth(key, cfg)
-                else:
-                    self.server_info[key]["auth_status"] = "auth_expired"
-            else:
-                self.server_info[key]["auth_status"] = "authorized"
+        if await refresh_configured_source(self, key, value):
             return
 
         # 无 token，检测是否需要 OAuth
@@ -626,21 +322,32 @@ class MCPServerManager:
 
         from app.models.mcp_config import AuthStatus
         from app.services.oauth_flow import oauth_flow_service
+        from app.services.oauth_probe import OAuthProbeError
 
-        status = await oauth_flow_service.detect_auth_requirement(url)
+        original_info = self.server_info.get(key)
+        if original_info is None or original_info.get("config") is not value:
+            return
+        try:
+            status, endpoints = await oauth_flow_service.inspect_auth_requirement(
+                url, value.get("headers"), server_type
+            )
+        except OAuthProbeError as error:
+            if self.server_info.get(key) is original_info:
+                self._update_server_status(key, "failed", str(error))
+            return
+        if self.server_info.get(key) is not original_info:
+            return
         self.server_info[key]["auth_status"] = status.value
 
         # 如果需要授权，自动发现端点并存入配置
         if status == AuthStatus.AUTH_REQUIRED:
-            endpoints = await oauth_flow_service.discover_endpoints(url)
             if endpoints:
                 value["oauth"] = {
-                    "authorization_endpoint": endpoints.get("authorization_endpoint"),
-                    "token_endpoint": endpoints.get("token_endpoint"),
-                    "registration_endpoint": endpoints.get("registration_endpoint"),
+                    **endpoints,
                     "scopes": endpoints.get("scopes_supported", []),
                     "redirect_mode": "manual",
                     "token": None,
+                    **(value.get("oauth") or {}),
                 }
                 from app.services.config_service import ConfigService
 
@@ -665,6 +372,12 @@ class MCPServerManager:
                 "note": info.get("config", {}).get("note"),
                 "tags": info.get("config", {}).get("tags", []),
                 "auth_status": info.get("auth_status", "none"),
+                **(
+                    {"auth_mode": "client_credentials"}
+                    if (info.get("config", {}).get("oauth") or {}).get("grant_type")
+                    == "client_credentials"
+                    else {}
+                ),
                 "mcp_endpoint": f"/mcp/{name}",
                 "sse_endpoint": f"/sse/{name}",
             }
@@ -693,7 +406,8 @@ class MCPServerManager:
         success = ConfigService.update_server_meta(server_name, note=note, tags=tags)
         if success and self.catalog_service:
             try:
-                asyncio.get_running_loop().create_task(self._trigger_catalog_refresh())
+                asyncio.get_running_loop()
+                self.lifecycle.schedule(self._trigger_catalog_refresh())
             except RuntimeError:
                 pass
         return success
@@ -716,188 +430,50 @@ class MCPServerManager:
         """
         return self.lifespan_tasks.copy()
 
+    @service_operation()
     async def stop_server(self, server_name: str) -> bool:
-        """
-        停止指定服务器（保持路由挂载）
-
-        Args:
-            server_name: 服务器名称
-
-        Returns:
-            bool: 是否成功停止
-        """
+        """停止初始或动态实例，并等待其真实生命周期退出；保留挂载地址。"""
         if server_name not in self.server_info:
-            logger.error(f"服务器 {server_name} 不存在")
             return False
-
-        try:
-            # 查找并取消对应的动态任务
-            task_to_cancel = None
-            for task in self.dynamic_tasks:
-                if hasattr(task, "_server_name") and task._server_name == server_name:
-                    task_to_cancel = task
-                    break
-
-            if task_to_cancel and not task_to_cancel.done():
-                task_to_cancel.cancel()
-                try:
-                    await asyncio.wait_for(task_to_cancel, timeout=5.0)
-                except (asyncio.CancelledError, asyncio.TimeoutError):
-                    pass
-                self.dynamic_tasks.discard(task_to_cancel)
-
-            # 更新服务器状态
-            self._update_server_status(server_name, "stopped")
-            logger.info(f"✓ 服务器 {server_name} 停止成功")
-            asyncio.create_task(self._trigger_catalog_refresh())
-            return True
-
-        except Exception as e:
-            logger.error(f"停止服务器 {server_name} 失败: {e}")
-            self._update_server_status(server_name, "failed", str(e))
+        self._update_server_status(server_name, "stopping")
+        runtime = getattr(self, "code_mode_runtime", None)
+        if runtime is not None:
+            await runtime.cancel_source(server_name)
+        if not await self.lifecycle.stop(server_name):
             return False
+        self._update_server_status(server_name, "stopped")
+        self.lifecycle.schedule(self._trigger_catalog_refresh())
+        return True
 
+    @service_operation()
     async def start_server(self, server_name: str) -> bool:
-        """
-        启动指定服务器
-
-        Args:
-            server_name: 服务器名称
-
-        Returns:
-            bool: 是否成功启动
-        """
+        """等待明确就绪，不会为同一应用重复进入 lifespan。"""
         if server_name not in self.server_info:
-            logger.error(f"服务器 {server_name} 不存在")
             return False
-
-        try:
-            # 检查服务器是否已经在运行
-            if self.server_info[server_name]["status"] == "running":
-                logger.info(f"服务器 {server_name} 已经在运行")
-                return True
-
-            # 如果应用已经启动，启动服务器的生命周期
-            if self.app_started and self.main_app:
-                task = asyncio.create_task(
-                    self._run_dynamic_server_lifespan(server_name, self.main_app)
-                )
-                # 为任务添加服务器名称标识
-                task._server_name = server_name
-                self.dynamic_tasks.add(task)
-                task.add_done_callback(self.dynamic_tasks.discard)
-
-                # 等待一小段时间确保服务器启动
-                await asyncio.sleep(0.1)
-
-                logger.info(f"✓ 服务器 {server_name} 启动成功")
-                asyncio.create_task(self._trigger_catalog_refresh())
-                return True
-            else:
-                # 如果应用还没启动，只更新状态
-                self._update_server_status(server_name, "loaded")
-                return True
-
-        except Exception as e:
-            logger.error(f"启动服务器 {server_name} 失败: {e}")
-            self._update_server_status(server_name, "failed", str(e))
+        if not self.app_started or self.main_app is None:
+            self._update_server_status(server_name, "loaded")
+            return True
+        if not await self.lifecycle.start(server_name, self.main_app):
             return False
+        config = self.server_info[server_name].get("config", {})
+        self.lifecycle.schedule(
+            self._detect_auth_status(server_name, config), server_name
+        )
+        self.lifecycle.schedule(self._trigger_catalog_refresh())
+        return True
 
-    async def restart_server(self, server_name: str, new_config: dict = None) -> bool:
-        """
-        重启服务器，可选择更新配置
+    @service_operation()
+    async def restart_server(
+        self, server_name: str, new_config: dict | None = None
+    ) -> bool:
+        """候选验证后停止旧代际，再持久化并启动替换代际。"""
+        from app.services.mcp_service_restart import restart_source
 
-        Args:
-            server_name: 服务器名称
-            new_config: 新的配置（可选）
+        return await restart_source(self, server_name, new_config)
 
-        Returns:
-            bool: 是否成功重启
-        """
-        if server_name not in self.server_info:
-            logger.error(f"服务器 {server_name} 不存在")
-            return False
-
-        try:
-            logger.info(f"开始重启服务器 {server_name}")
-            self._update_server_status(server_name, "restarting")
-
-            # 1. 停止当前服务
-            await self.stop_server(server_name)
-
-            # 等待一小段时间确保旧的生命周期完全关闭
-            await asyncio.sleep(0.2)
-
-            # 2. 更新配置（如果提供）
-            if new_config:
-                # 验证新配置
-                from app.services.config_service import ConfigService
-
-                is_valid, error_msg = ConfigService.validate_server_config(new_config)
-                if not is_valid:
-                    logger.error(f"新配置验证失败: {error_msg}")
-                    self._update_server_status(
-                        server_name, "failed", f"配置验证失败: {error_msg}"
-                    )
-                    return False
-
-                # 更新 SQLite 配置
-                if not ConfigService.update_server_config(server_name, new_config):
-                    logger.error("更新 SQLite 配置失败")
-                    self._update_server_status(
-                        server_name, "failed", "更新 SQLite 配置失败"
-                    )
-                    return False
-
-                # 更新内存中的配置
-                self.server_info[server_name]["config"] = new_config
-
-            # 3. 重新创建服务器实例
-            config = new_config or self.server_info[server_name]["config"]
-            mcp = MCPServerFactory.create_server(server_name, config)
-            if not mcp:
-                logger.error("重新创建MCP服务器实例失败")
-                self._update_server_status(server_name, "failed", "创建服务器实例失败")
-                return False
-
-            # 4. 更新服务器信息
-            self.server_info[server_name]["mcp"] = mcp
-            mcp_app = mcp.http_app(path="/")
-            sse_app = mcp.http_app(path="/", transport="sse")
-            self.server_info[server_name]["mcp_app"] = mcp_app
-            self.server_info[server_name]["sse_app"] = sse_app
-
-            # 5. 重要：更新生命周期任务为新的MCP实例的生命周期
-            self.lifespan_tasks[server_name] = mcp_app.lifespan
-
-            # 注意：不需要更新挂载列表，因为代理应用会自动使用server_info中的新应用实例
-
-            # 7. 启动新的服务
-            success = await self.start_server(server_name)
-
-            if success:
-                logger.info(f"✓ 服务器 {server_name} 重启成功")
-                asyncio.create_task(self._trigger_catalog_refresh())
-                return True
-            else:
-                logger.error(f"重启后启动服务器 {server_name} 失败")
-                return False
-
-        except Exception as e:
-            logger.error(f"重启服务器 {server_name} 失败: {e}")
-            self._update_server_status(server_name, "failed", str(e))
-            return False
-
+    @service_operation()
     async def remove_server(self, server_name: str) -> bool:
-        """
-        完全移除服务器
-
-        Args:
-            server_name: 服务器名称
-
-        Returns:
-            bool: 是否成功移除
-        """
+        """生命周期关闭且持久化删除成功后移除来源，失败可重试。"""
         if server_name not in self.server_info:
             logger.warning(f"服务器 {server_name} 不存在，跳过移除")
             return True
@@ -906,20 +482,22 @@ class MCPServerManager:
             logger.info(f"开始移除服务器 {server_name}")
 
             # 1. 停止服务
-            await self.stop_server(server_name)
+            if not await self.stop_server(server_name):
+                return False
+
+            # 先完成持久化删除，失败时保留已停止的内存记录以便重试。
+            from app.services.skill_artifact_service import mark_mcp_source_missing
+
+            if ConfigService.get_server_config(server_name) is not None:
+                if not ConfigService.remove_server_from_config(server_name):
+                    return False
+            mark_mcp_source_missing(ConfigService._require_database(), server_name)
 
             # 2. 清理内存数据
             if server_name in self.server_info:
                 del self.server_info[server_name]
             if server_name in self.lifespan_tasks:
                 del self.lifespan_tasks[server_name]
-
-            # 3. 从 SQLite 中移除
-            from app.services.config_service import ConfigService
-            from app.services.skill_artifact_service import mark_mcp_source_missing
-
-            ConfigService.remove_server_from_config(server_name)
-            mark_mcp_source_missing(ConfigService._require_database(), server_name)
 
             # 4. 清理挂载列表（移除代理应用引用）
             self.app_mount_list = [
@@ -932,7 +510,7 @@ class MCPServerManager:
             # 但由于server_info已被删除，代理会返回404错误
 
             logger.info(f"✓ 服务器 {server_name} 移除成功")
-            asyncio.create_task(self._trigger_catalog_refresh())
+            self.lifecycle.schedule(self._trigger_catalog_refresh())
             return True
 
         except Exception as e:

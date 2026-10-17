@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界时钟 · mcpcat</title>
+<style>
+  :root { color-scheme: dark; font: 15px/1.6 system-ui,sans-serif; color:#e2e8f0; background:#111b2c }
+  body { margin:0; padding:24px; max-width:760px }
+  h1 { margin:0; font-size:24px } p { color:#b3c0d3 }
+  label { display:block; margin-bottom:8px }
+  .controls { display:flex; gap:12px; flex-wrap:wrap }
+  select,button { font:inherit; border-radius:8px; padding:10px 14px; border:1px solid #52617a }
+  select { color:inherit; background:#1e293b; flex:1; min-width:180px }
+  button { background:#22c55e; color:#052e16; font-weight:650; cursor:pointer }
+  button:disabled { opacity:.55; cursor:wait }
+  :focus-visible { outline:3px solid #86efac; outline-offset:3px }
+  pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:16px; background:#0f172a; border-radius:10px; min-height:80px }
+</style>
+<body>
+  <h1>世界时钟</h1>
+  <p>通过当前 MCP 连接查询真实时间，无需在页面填写 API Key。</p>
+  <label for="timezone">选择时区</label>
+  <div class="controls">
+    <select id="timezone">
+      <option>Asia/Shanghai</option><option>Asia/Tokyo</option>
+      <option>Europe/London</option><option>America/New_York</option><option>UTC</option>
+    </select>
+    <button id="query" disabled>查询当前时间</button>
+  </div>
+  <p id="status" role="status" aria-live="polite">正在连接应用宿主…</p>
+  <pre id="result" aria-live="polite">尚未查询</pre>
+  <script>
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+    const button = document.getElementById('query');
+    let nextId = 1, pending = null;
+    const send = message => parent.postMessage({jsonrpc:'2.0', ...message}, '*');
+    window.addEventListener('message', event => {
+      if (event.source !== parent || event.data?.jsonrpc !== '2.0') return;
+      const message = event.data;
+      if (message.id === 0) {
+        if (message.error) { status.textContent = '连接失败，请重新打开预览。'; return; }
+        send({method:'ui/notifications/initialized'});
+        button.disabled = false;
+        status.textContent = '已连接。模拟预览不查询真实时间；真实工具测试会逐次确认。';
+      }
+      if (pending !== null && message.id === pending) {
+        pending = null;
+        button.disabled = false;
+        status.textContent = message.error ? '查询未完成，可以查看下方详情。' : '查询完成';
+        const response = message.result ?? message.error;
+        const text = response?.content?.filter(item => item.type === 'text').map(item => item.text).join('\n');
+        result.textContent = text || JSON.stringify(response, null, 2);
+      }
+    });
+    button.onclick = () => {
+      if (pending !== null) return;
+      pending = nextId++;
+      button.disabled = true;
+      status.textContent = '查询中，若宿主要求确认，请确认本次只读调用…';
+      send({id:pending, method:'tools/call', params:{name:'get_current_time',
+        arguments:{timezone:document.getElementById('timezone').value}}});
+    };
+    send({id:0, method:'ui/initialize', params:{
+      appInfo:{name:'mcpcat-world-clock',version:'1.0.0'},
+      appCapabilities:{},protocolVersion:'2026-01-26'
+    }});
+  </script>
+</body>
+</html>

@@ -63,7 +63,8 @@ def _valid_zip(
 
 
 @pytest.fixture
-def database(tmp_path: Path) -> Database:
+def database(tmp_path: Path, monkeypatch) -> Database:
+    monkeypatch.setattr(settings, "mcpcat_artifacts_path", str(tmp_path / "artifacts"))
     value = Database(tmp_path / "skills-registry.db")
     upgrade_schema(value)
     yield value

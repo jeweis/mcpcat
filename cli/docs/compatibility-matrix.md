@@ -12,7 +12,13 @@
 | Registry Schema | 服务端 `1.0.0` / CLI major `1` | major 必须相同；minor/patch 可演进，但必填字段仍须通过解析。 |
 | CLI | `1.0.1` | 服务端 minimum 为 `0.1.0`、recommended 为 `1.0.1`；低于 minimum 时返回 HTTP 426。 |
 | Skill | 独立 SemVer | 不与服务端/CLI 对齐；已发布版本不可变并验证 SHA-256/包结构。 |
-| MCP Skill | generator `1.0.2`、Node `>=24`、mcporter `0.13.7` | 记录在制品兼容元数据；doctor 检查运行环境。 |
+| MCP Skill | generator `1.1.0`；local 要求 Node `>=24`、mcporter `0.13.7` | 生成器独立版本；remote 使用来源连接，不额外要求 Node/mcporter。已发布历史制品不变。 |
+| 运行依赖 | FastMCP `4.1.0`、MCP SDK `2.3.0`、Prefab `0.20.2`、Monty `1.1.0` | 与 `uv.lock` 一致；不与产品版本强行对齐。 |
+| Python | 最低 `>=3.10`，容器 `3.12`；实际验证 `3.10.19` / `3.11.14` | 最低版本定向矩阵与完整回归分开记录，不冒充 Docker/全平台认证。 |
+| MCP 协议 | 现代 `2026-07-28`；旧 HTTP `2025-03-26` / `2025-06-18` / `2025-11-25` | 由框架协商；协议兼容不代表 Host 会激活 Skills 或渲染 Apps。 |
+| SQLite Alembic | 原基线 `0002_skills_registry` → `0005_app_render_review` | 与 Registry JSON Schema 不同；回退需要匹配的数据库、制品和配置快照。 |
+| 内容模板 | local / remote 各 `1.0.0` | 与生成器独立；模板语义变化须更新对应版本并创建新草稿。 |
+| HTML 派生入口 | 新草稿 `html-assembly-5`，保留 `1`–`5` | 读取按冻结版本装配，不能以默认版本重新生成历史入口。 |
 
 CLI 每次请求发送 `X-Mcpcat-CLI-Version`。Bootstrap 返回 API、Schema、minimum 和
 recommended；Registry 索引再次返回 API 与 Schema。recommended 是非阻断提示，
@@ -37,6 +43,18 @@ recommended；Registry 索引再次返回 API 与 Schema。recommended 是非阻
 3. 只在旧 CLI 会产生错误或不安全行为时提高 minimum；recommended 可先做提示。
 4. Skill 内容变化创建新的不可变 SemVer。MCP Schema/生成器变化创建草稿，不自动发布。
 5. 回退服务端时恢复匹配的 minimum/recommended；CLI dist-tag 与 Skill 回滚相互独立。
+
+## 升级发布门禁
+
+`verify-upgrade-compatibility.mjs` 静态核对 Python 最低/容器版本、锁文件、顶层固定依赖、Skills 协议标识、Prefab renderer、local/remote 模板、HTML 历史装配分支及单一 Alembic head；由现有 CLI 文档门禁和 Docker 版本门禁调用。14 项 Node 测试包含 13 种故意漂移，确认不一致会拒绝而不是自动改版本。
+
+```bash
+node .github/scripts/cli-verify-gate-c-docs.mjs
+node .github/scripts/verify-service-release-version.mjs
+node --test .github/scripts/verify-upgrade-compatibility.test.mjs
+```
+
+这些命令不发布 npm/Docker，不改写历史 ZIP，也不将 Alembic head 等同于 Registry Schema。完整维度、发布顺序和实际验收边界见 [升级版本策略](../../docs/maintainer/upgrade-version-policy.md)。
 
 ## 验证限制
 

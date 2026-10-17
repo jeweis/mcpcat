@@ -4,10 +4,12 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 
+from fastmcp.apps.config import is_model_visible
 from fastmcp.server.providers import FastMCPProvider, Provider
 from fastmcp.tools import Tool
 
 from app.models.mcp_config import CatalogConfig
+from app.services.subscription_context import subscription_snapshot_read
 
 if TYPE_CHECKING:
     from app.services.server_manager import MCPServerManager
@@ -91,11 +93,22 @@ class CatalogProvider(Provider):
         info: Dict[str, Any],
     ) -> Sequence[Tool]:
         provider = FastMCPProvider(info["mcp"])
-        tools = await provider.list_tools()
+        with subscription_snapshot_read():
+            tools = await provider.list_tools()
         config = info.get("config", {})
         return [self._wrap_tool(server_name, config, tool) for tool in tools]
 
-    async def _list_tools(self) -> Sequence[Tool]:
+    def _dedicated_app(self, tool: Tool) -> bool:
+        """显式启用 Apps 后由来源 Provider 提供打开动作，避免原始 URI 混入搜索。"""
+        runtime = getattr(self._server_manager, "apps_runtime", None)
+        if runtime is None or not runtime.available():
+            return False
+        from app.services.catalog_app_tools import app_uri
+
+        return app_uri(tool) is not None
+
+    async def unfiltered_tools(self) -> Sequence[Tool]:
+        """在受众/App 分类之前排除整个来源命名空间的实际别名冲突。"""
         servers = self._eligible_servers()
         results = await asyncio.gather(
             *(self._list_server_tools(name, info) for name, info in servers),
@@ -106,7 +119,11 @@ class CatalogProvider(Provider):
         collisions = set()
         for (server_name, _), result in zip(servers, results):
             if isinstance(result, BaseException):
-                logger.warning("读取 MCP 服务 '%s' 工具失败: %s", server_name, result)
+                logger.warning(
+                    "读取 MCP 服务 '%s' 工具失败 (%s)",
+                    server_name,
+                    type(result).__name__,
+                )
                 continue
             for tool in result:
                 if tool.name in tools_by_name:
@@ -119,7 +136,15 @@ class CatalogProvider(Provider):
             logger.error("Catalog 工具名冲突，已排除: %s", name)
         return list(tools_by_name.values())
 
-    async def _get_tool(self, name: str, version=None) -> Optional[Tool]:
+    async def _list_tools(self) -> Sequence[Tool]:
+        return [
+            tool
+            for tool in await self.unfiltered_tools()
+            if is_model_visible(tool) and not self._dedicated_app(tool)
+        ]
+
+    async def matching_tools(self, name: str, version=None) -> Sequence[Tool]:
+        """保留所有实际候选，不能过滤 App/UI-only 后重新启用歧义名字。"""
         matches = []
         for server_name, info in self._eligible_servers():
             prefix = f"{server_name}{CATALOG_TOOL_SEPARATOR}"
@@ -128,7 +153,7 @@ class CatalogProvider(Provider):
 
             original_name = name[len(prefix) :]
             if not original_name:
-                return None
+                return []
             provider = FastMCPProvider(info["mcp"])
             tool = await provider.get_tool(original_name, version)
             if tool is not None:
@@ -136,7 +161,17 @@ class CatalogProvider(Provider):
                     self._wrap_tool(server_name, info.get("config", {}), tool)
                 )
 
+        return matches
+
+    async def _get_tool(self, name: str, version=None) -> Optional[Tool]:
+        matches = await self.matching_tools(name, version)
         if len(matches) > 1:
             logger.error("Catalog 工具名冲突，拒绝调用: %s", name)
             return None
-        return matches[0] if matches else None
+        return (
+            matches[0]
+            if matches
+            and is_model_visible(matches[0])
+            and not self._dedicated_app(matches[0])
+            else None
+        )
