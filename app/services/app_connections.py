@@ -16,7 +16,7 @@ from app.services.security_service import security_service
 from app.storage.unit_of_work import UnitOfWork
 
 
-def _base_url(request: Request) -> str | None:
+def app_public_base_url(request: Request) -> str | None:
     """地址可以含部署前缀，但不把 userinfo/query 中的秘密送入 UI。"""
     value = ConfigService.get_public_base_url() or str(request.base_url)
     parts = urlsplit(value)
@@ -69,7 +69,7 @@ async def app_connections(request: Request, detail: dict) -> dict:
     """只为实际可读取/可渲染的明确版本返回打开动作。"""
     runtime = getattr(request.app.state, "apps_mcp_runtime", None)
     config = apps_mcp_config()
-    base = _base_url(request)
+    base = app_public_base_url(request)
     registry = _registry(request, runtime) if runtime and runtime.available() else None
     with UnitOfWork(request.app.state.database) as unit:
         app_id = unit.apps.get(detail["slug"]).id

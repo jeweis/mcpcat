@@ -7,7 +7,7 @@
 - [在测试页面检查远程 Skills](user/inspector-skills.md)
 - [MCP 测试台：工具、资源、提示模板与应用](user/mcp-workbench.md)
 
-- [mcpcat CLI：安装与使用](user/cli.md)
+- [mcpcat CLI：安装、本地 Skills 与平台管理](user/cli.md)
 - [远程读取 Skills](user/remote-skills.md)
 - [上游 MCP 的 OAuth 授权](user/upstream-oauth.md)
 - [CodeMode：接入、调用与安全限额](user/code-mode.md)
@@ -16,6 +16,10 @@
 
 ## 维护说明
 
+- [mcpcat 1.1.0 发布说明与升级注意事项](maintainer/release-1.1.0.md)
+- [生产依赖安全修复与真实 Apps 查询补验](maintainer/security-dependency-remediation.md)
+- [npm / Docker 生产发布前验收（2026-10-18）](maintainer/production-preflight-20261018.md)
+- [CLI 平台管理增量验收](maintainer/cli-platform-management.md)
 - [MCP 升级最终验收](maintainer/mcp-final-acceptance.md)
 - [MCP 官方能力覆盖矩阵与实施历史](maintainer/mcp-capability-matrix.md)
 - [Inspector Skills 协议与部署验收](maintainer/inspector-skills-verification.md)

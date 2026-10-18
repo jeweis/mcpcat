@@ -58,6 +58,13 @@ try {
       : join(installRoot, "node_modules", ".bin", "mcpcat");
   const output = run(executable, ["--version", "--json"], { cwd: temporaryRoot });
   const response = JSON.parse(output);
+  // 管理入口必须实际进入 npm 制品；帮助为纯本地操作，不连接或修改用户实例。
+  for (const args of [["servers", "--help"], ["skills", "manage", "--help"], ["apps", "--help"]]) {
+    const help = JSON.parse(run(executable, [...args, "--json"], { cwd: temporaryRoot }));
+    if (help.ok !== true || !help.data?.help?.includes("mcpcat 管理命令")) {
+      throw new Error(`packed CLI management entry missing: ${args.join(" ")}`);
+    }
+  }
   const reportedVersion = response?.data?.version;
   if (response.ok !== true || reportedVersion !== packageJson.version) {
     throw new Error(

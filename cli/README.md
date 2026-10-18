@@ -1,15 +1,15 @@
 # @jeweis/mcpcat
 
-mcpcat Skills Registry 的公开命令行客户端。CLI 与 Python 服务端、Registry
-Schema 和各 Skill 独立版本化。要求 Node.js 24 或更高版本，npm 包名为
+mcpcat 的命令行管理入口，保留 Skills Registry 的本地安装命令。平台发布时 CLI
+与服务端使用统一发布版本，各 Skill 的内容版本独立。要求 Node.js 24 或更高版本，npm 包名为
 `@jeweis/mcpcat`，安装后的命令固定为 `mcpcat`。
 
-> 当前仓库仍处于发布准备阶段。npm 包真正发布前，请使用本地 tarball 验证，不能把
-> `npm pack` 当成已完成公共发布。
+> 新增管理命令尚未发布到 npm；本轮不推送、不公共发布。请使用本地 tarball 验证，
+> 不能把 `npm pack` 当成已完成公共发布。完整用户用法见 [CLI 用户文档](../docs/user/cli.md)。
 
 ## 安装
 
-正式发布后：
+安装 npm 已发布版本：
 
 ```bash
 npm install --global @jeweis/mcpcat

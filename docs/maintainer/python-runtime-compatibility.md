@@ -1,5 +1,7 @@
 # Python 最低运行版本兼容验收
 
+> 安全依赖更新后的 Python 3.10 矩阵已扩展为 343 passed，28 warnings，包含新增安全下限检查及 OAuth 机器认证场景。安装采用冻结锁导出与哈希校验，详见 [安全修复补验](security-dependency-remediation.md)。以下保留首次最低版本验收历史。
+
 最终审计发现项目声明 `requires-python >=3.10`，但 OAuth 使用了 3.11 的 `asyncio.timeout` / 内置 `BaseExceptionGroup`，生命周期也直接调用 3.11 的 `Task.cancelling()`。只在 3.11 测试会漏掉这些实际启动/鉴权路径错误，不能以 SDK 元数据支持 3.10 代替应用验证。
 
 本次保持原最低版本，不增加生产依赖或提高 Python 门槛：

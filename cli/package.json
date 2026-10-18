@@ -1,7 +1,7 @@
 {
   "name": "@jeweis/mcpcat",
-  "version": "1.0.1",
-  "description": "Public CLI for mcpcat Skills Registry",
+  "version": "1.1.0",
+  "description": "Manage mcpcat servers, Skills and MCP Apps; install Skills into local agents",
   "type": "module",
   "bin": {
     "mcpcat": "dist/bin.js"

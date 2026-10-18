@@ -34,7 +34,7 @@ for (const [label, file, from, to] of [
   ["template", "app/services/skill_template_renderer.py", 'REMOTE_TEMPLATE_VERSION = "1.0.0"', 'REMOTE_TEMPLATE_VERSION = "2.0.0"'],
   ["HTML default", "app/services/app_html_renderer.py", 'else "html-assembly-5"', 'else "html-assembly-6"'],
   ["lost historical HTML", "app/services/app_html_renderer.py", '"html-assembly-2",', '"html-assembly-9",'],
-  ["unimplemented capability", "cli/docs/compatibility-matrix.json", '"directory_read": false', '"directory_read": true'],
+  ["directory capability", "cli/docs/compatibility-matrix.json", '"directory_read": true', '"directory_read": false'],
   ["migration head", "alembic/versions/0005_app_render_review.py", 'revision = "0005_app_render_review"', 'revision = "0006_unreviewed"'],
   ["unsafe rollback", "cli/docs/compatibility-matrix.json", '"downgrade_requires_matching_snapshot": true', '"downgrade_requires_matching_snapshot": false'],
 ]) {

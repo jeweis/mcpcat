@@ -33,6 +33,12 @@ import { ProfileStore, validateProfileName, type Profile } from "./profiles.js";
 import { createHiddenPrompt, type HiddenPrompt } from "./prompt.js";
 import { normalizeBaseUrl } from "./url.js";
 import { CLI_VERSION } from "./version.js";
+import { MANAGEMENT_HELP, parseManagementArgs } from "./management-args.js";
+import { askManagementConfirmation, validateManagement } from "./management-common.js";
+import { ManagementClient, safeManagementData } from "./management-http.js";
+import { manageServers } from "./management-servers.js";
+import { manageSkills } from "./management-skills.js";
+import { manageApps } from "./management-apps.js";
 
 const HELP = `mcpcat ${CLI_VERSION}
 
@@ -49,6 +55,9 @@ const HELP = `mcpcat ${CLI_VERSION}
   mcpcat skills pin|unpin <slug> [--version <semver>]
   mcpcat skills rollback <slug> [--version <semver>]
   mcpcat doctor [--profile <name>]
+  mcpcat servers --help       MCP 服务管理
+  mcpcat skills manage --help 服务端 Skills 管理（不改变本地安装命令）
+  mcpcat apps --help          托管应用管理 / 来源应用查询
   mcpcat -V
 
 全局选项:
@@ -80,6 +89,7 @@ export interface CliDependencies {
   credentialStore?: CredentialStore | null;
   prompt?: HiddenPrompt;
   stdinIsTTY?: boolean;
+  managementConfirm?: (message: string) => Promise<boolean>;
   now?: () => Date;
   stdout?: (value: string) => void;
   stderr?: (value: string) => void;
@@ -319,6 +329,7 @@ async function registrySession(
   profileId: string;
   profileName: string | null;
   source: "environment" | "profile";
+  managementBaseUrl: string;
 }> {
   const credentialStore = await resolveCredentialStore(state);
   const connection = await resolveConnection(state.profileStore, credentialStore, {
@@ -352,6 +363,7 @@ async function registrySession(
     profileId,
     profileName: connection.profile?.name ?? null,
     source: connection.source,
+    managementBaseUrl: connection.baseUrl,
   };
 }
 
@@ -629,6 +641,24 @@ export async function runCli(
   let json = args.includes("--json");
   const logger = new SafeLogger(state.stderr, false, sensitiveValues);
   try {
+    const management = parseManagementArgs(args);
+    if (management) {
+      json = management.common.json;
+      const output = new CommandOutput(state.stdout, state.stderr, json, sensitiveValues);
+      if (management.common.help) {
+        output.success({version: CLI_VERSION, help: MANAGEMENT_HELP}, MANAGEMENT_HELP);
+        return ExitCode.success;
+      }
+      validateManagement(management);
+      const session = await registrySession(management.common, state, sensitiveValues);
+      const client = new ManagementClient(session.managementBaseUrl, session.bootstrap.auth_header_name,
+        session.apiKey, state.fetch, management.common.allowHttp);
+      const context = {interactive: state.stdinIsTTY && !nonInteractive(management.common, state),
+        confirm: dependencies.managementConfirm ?? askManagementConfirmation};
+      const handler = management.group === "servers" ? manageServers : management.group === "skills" ? manageSkills : manageApps;
+      output.success(safeManagementData(await handler(management, client, context)));
+      return ExitCode.success;
+    }
     const parsed = parseArgs(args);
     json = parsed.options.json;
     const output = new CommandOutput(state.stdout, state.stderr, json, sensitiveValues);

@@ -179,7 +179,7 @@ async def test_bootstrap_registry_permissions_download_and_secret_redaction(
             "auth_header_name": "Mcpcat-Key",
             "registry_path": "/api/skills/registry",
             "min_cli_version": "0.1.0",
-            "recommended_cli_version": "1.0.1",
+            "recommended_cli_version": "1.1.0",
         }
 
         read_list = await client.get("/api/skills", headers=headers)

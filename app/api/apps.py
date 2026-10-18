@@ -16,6 +16,7 @@ from app.models.app_review import AppCSP, AppPermissions
 from app.models.mcp_config import PermissionType
 from app.services.app_audit import app_audit_actor
 from app.services.app_connections import app_connections
+from app.services.app_discovery import app_sources, discover_source_apps
 from app.services.app_content_service import (
     AppDomainError,
     app_detail,
@@ -135,6 +136,18 @@ async def apps_list(request: Request) -> list[dict]:
     return await _call(
         list_apps, request.app.state.database, include_drafts=_drafts(request)
     )
+
+
+@router.get("/discovery/sources")
+async def apps_sources(request: Request) -> list[dict]:
+    """来源索引不扫描上游，也不返回配置凭证。"""
+    return app_sources(request)
+
+
+@router.get("/discovery/sources/{server_name}")
+async def apps_discover(server_name: str, request: Request) -> dict:
+    """只读发现该来源应用，不执行入口或导入托管 Registry。"""
+    return await discover_source_apps(request, server_name)
 
 
 @router.get("/{slug}")

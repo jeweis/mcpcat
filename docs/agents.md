@@ -11,7 +11,7 @@
 
 ## 事实来源
 
-- CLI 命令、选项和环境变量以 `cli/src/cli.ts`、`cli/src/args.ts` 的当前实现为准。
+- CLI 命令、选项和环境变量以 `cli/src/cli.ts`、`cli/src/args.ts` 及 `cli/src/management-*.ts` 的当前实现为准。
 - npm 包名、Node.js 要求和版本以 `cli/package.json` 为准。
 - Agent ID 与默认目录以 `cli/src/agents/` 的适配器实现和测试为准。
 - 服务端 API、配置和生成器兼容信息以对应后端代码、Schema 与测试为准。

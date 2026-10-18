@@ -35,7 +35,7 @@ export function verifyUpgradeCompatibility(directory = root) {
   const extension = read("app/services/skills_mcp_extension.py");
   same(capture(extension, /MODERN_PROTOCOL = "([^"]+)"/, "protocol"), matrix.mcp_protocol.modern, "protocol");
   same(capture(extension, /SKILLS_EXTENSION = "([^"]+)"/, "extension"), matrix.mcp_protocol.skills_extension, "extension");
-  if (matrix.mcp_protocol.directory_read !== false) fail("directoryRead has not been implemented");
+  same(/return \{\s*"directoryRead": True\s*\}/.test(extension), matrix.mcp_protocol.directory_read, "directoryRead capability");
   const renderer = read("app/services/app_prefab_renderer.py");
   same(capture(renderer, /PREFAB_VERSION = "([^"]+)"/, "Prefab renderer"), matrix.runtime["prefab-ui"], "Prefab renderer");
   const templates = read("app/services/skill_template_renderer.py");

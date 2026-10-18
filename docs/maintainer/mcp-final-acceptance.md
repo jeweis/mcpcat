@@ -46,6 +46,21 @@ CodeMode 按[独立验收](code-mode-verification.md)保持普通 MCP 工具编�
 
 ## 浏览器证据
 
+### Apps 中心统一来源增量（2026-10-18）
+
+- 保留托管 Registry 列表与版本 API，新增来源索引/独立发现接口，经当前 READ 身份访问本实例 MCP 地址。来源隔离、同名、只读、不导入、分页、重复游标、未完整加载、停用、配置变更和撤权拒绝等新增测试通过；Apps 与工作台扩展回归 **263 项**通过，前端全量 **148 项**通过，十个本次 Dart 文件静态分析无问题。
+- 正式 Web 构建通过 Apps/上传 24 项与 Web 插件 3 项检查。实际 HTTP 与本地 `main.dart.js` SHA256 同为 `e9a869ce06d9b2f941157f05d32f6c407d2c05ec3c73bf7721201d141270bcc9`。本地镜像 `jeweis/mcpcat:local-apps-center-20261018` 已替换 `mcpcat`，健康检查通过；17 张表记录数及 6 个 ZIP 摘要与部署前一致。
+- 回退容器 `mcpcat-rollback-apps-center-20261018061337`，数据备份卷 `mcpcat_data_backup_apps_center_20261018061337`。更换容器后发现旧 UV 工具缓存未继承，已从回退容器恢复至新容器（约 95 MiB），保留 UID；后续部署须同时保留工具依赖缓存，不能仅保留业务数据卷而造成来源冷启动超时。
+- 内置浏览器原 READ 身份在 Apps 中心实际发现 `time-demo` 的 Open World Clock，显示独立来源、原 MCP 接入地址、入口工具及 UI URI；点击查看/测试跳转 `/inspector/time-demo?app=open_world_clock`，自动选中应用且真实工具开关仍关闭，没有读取 UI 或执行入口。深链证据 `/private/tmp/mcpcat-apps-center-deeplink.png`，中心列表截图 `/private/tmp/mcpcat-apps-center-accepted.png`。其他来源超时独立呈现，不作为空应用或阻塞世界时钟。
+
+### 参数表单体验增量（2026-10-18）
+
+- 工具与应用入口复用 Schema 表单及 JSON 高级编辑器；保留模板参数补全，模拟预览不校验入口参数，真实调用仍确认。前端全部 **145 项测试**通过，本次六个修改/新增 Dart 文件分析无问题；正式构建通过 Apps/上传 24 项及 Web 插件 3 项检查。
+- 内置浏览器以原 READ 身份填写 `Asia/Shanghai`，切换 JSON 后观察值保留，再切回表单成功执行真实只读时间查询。截图 `/private/tmp/mcpcat-arguments-form-accepted.png`；应用入口显示“此入口未声明参数，无需填写”，不再要求 `{}`，截图 `/private/tmp/mcpcat-app-no-arguments-accepted.png`。参数化应用的校验、确认及模拟不发送参数另有 Widget 集成回归。
+- 本增量仅替换现有容器 `/app/static`，不重启容器、不修改数据卷，也未重建或发布镜像。宿主与实际 HTTP `main.dart.js` SHA256 同为 `758fbcbbe4fa774f3c6666c34965dcd3b3062f33fcc5bd3d7bf708e85ca8b34d`，健康检查通过。旧静态文件备份在 `/private/tmp/mcpcat-static-before-arguments.xJfs9C/static`；后续重建镜像须使用当前仓库静态产物，旧镜像本身不含本增量。
+
+### 原完整协议验收
+
 - 真正 App 查询：`/private/tmp/mcpcat-final-app-query-complete.png` 为最终 Web/容器，`/private/tmp/mcpcat-time-demo-app-query-complete.png` 为前一轮证据。Chrome 完成内嵌按钮点击、宿主确认、真实查询及显示结果；最终重载后列表无误超时，查询显示 `2026-10-18T01:19:02+08:00`。这补齐此前内置浏览器接口不能点击嵌套 iframe 的验收缺口，没有关闭沙箱。
 - 网络断开：`/private/tmp/mcpcat-subscription-network-unknown.png`。仅切断隔离测试 TCP 代理，显示未知并禁重复开始；恢复后显式刷新、停止成功。该场景不宣称浏览器离线会立刻取消远端订阅，来源断流释放另由真实协议测试证明。
 - Skills 目录第二页：`/private/tmp/mcpcat-skill-directory-page-two.png`。仅向隔离夹具上传合成的 30 文件包，观察 guide-25…29，末页下一页消失。原固定清单与实时目录结果分开。

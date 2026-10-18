@@ -1,11 +1,11 @@
 # 升级版本策略
 
-先运行 [兼容矩阵的三个门禁](../../cli/docs/compatibility-matrix.md#升级发布门禁)，再单独决定下一次产品发布版本。本次实现不自动打 Tag、发布或提升最低 CLI 版本。工作树产品基线仍是 `1.0.1`，不意味着可以覆盖已发布的同名 npm 包或 Tag。
+先运行 [兼容矩阵的三个门禁](../../cli/docs/compatibility-matrix.md#升级发布门禁)，再执行明确授权的正式发布。本次验收后统一产品版本选择 `1.1.0`，后端、内置 Web、CLI 与 Docker 协同发布；不得覆盖已发布的 `1.0.1` npm 包或 Tag，也不提升最低 CLI 版本。
 
 ## 独立版本与不变量
 
 - 应用、Python 包和内置 Web 产品版本保持一致；Docker `v*` Tag 必须匹配应用版本。下一次正式发布应选择新的 SemVer，不能复用已发布 `v1.0.1`。
-- CLI 可保持 `1.0.1`：本次旧 Registry `v1` / Schema `1.0.0` 不变，minimum 仍 `0.1.0`，新增远程功能不强迫更新 CLI。若发布策略选择协同升级 CLI，也必须发布新版本且先跑旧 CLI 兼容验收。
+- 新 CLI 以 `1.1.0` 发布，旧 CLI `1.0.1` 仍受支持：Registry `v1` / Schema `1.0.0` 不变，minimum 仍 `0.1.0`，recommended 为 `1.1.0`；旧版本真实兼容矩阵已经通过。
 - 生成器 `1.1.0` 与 local/remote 模板各 `1.0.0` 分别记录；运行依赖和 MCP 协议、SQLite revision 均为其他维度，不能机械替换成产品版本。
 - Skill/App 内容版本独立、已发布不可变。历史 local ZIP、bundle、上传文件和已审核 Apps 派生摘要不随依赖升级重写。
 - Alembic 新 head 不保证旧程序可读取。恢复旧程序须恢复匹配的完整快照，不通过降低依赖版本或手改 `alembic_version` 伪装回退。

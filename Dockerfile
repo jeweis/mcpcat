@@ -10,8 +10,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     NODE_VERSION=20.x \
-    PNPM_HOME="/pnpm" \
-    PATH="$PNPM_HOME:$PATH"
+    PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 # 安装系统依赖和 Node.js
 RUN apt-get update && \
@@ -34,7 +34,7 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 RUN node --version && pnpm --version
 
 # 安装 uv（包含 uvx）
-RUN pip install --no-cache-dir uv
+RUN python -m pip install --no-cache-dir "pip==26.2" "uv==0.13.1"
 
 # 复制依赖文件
 COPY requirements.txt .

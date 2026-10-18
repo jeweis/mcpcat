@@ -1,7 +1,5 @@
 """机器认证的真实 HTTP 流验证，不用缓冲式 ASGITransport 代替 SSE。"""
 
-import asyncio
-
 import pytest
 from fastmcp import Context, FastMCP
 from starlette.types import ASGIApp
@@ -9,6 +7,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from app.services.proxy_clients import make_proxy_client_factory
+from app.services.async_compat import operation_timeout
 from tests.test_gateway_client_capabilities import live_http
 from tests.test_proxy_cross_generation import single_era
 
@@ -83,7 +82,7 @@ async def test_machine_auth_streaming_network(transport: str) -> None:
     negotiation, evidence = [], []
     if transport != "sse":
         app = single_era(app, transport, negotiation)
-    async with asyncio.timeout(20), live_http(
+    async with operation_timeout(20), live_http(
         authenticated_source(app, evidence)
     ) as url:
         origin = url.removesuffix("/mcp")

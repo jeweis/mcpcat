@@ -7,6 +7,7 @@ from copy import deepcopy
 import pytest
 
 from app.services import oauth_machine_probe
+from app.services.async_compat import operation_timeout
 from tests.test_oauth_machine_client import configuration
 from tests.test_oauth_probe_manager import manager_fixture
 
@@ -42,7 +43,7 @@ async def test_machine_probe_discards_changed_source(
     monkeypatch.setattr(oauth_machine_probe, "make_proxy_client_factory", factory)
     task = asyncio.create_task(manager._detect_auth_status("fixture", config))
     try:
-        async with asyncio.timeout(3):
+        async with operation_timeout(3):
             await started.wait()
             if change == "credential":
                 config["oauth"]["client_secret"] = "replacement-secret"

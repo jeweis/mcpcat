@@ -22,7 +22,7 @@ async def live_http(app):
         server = uvicorn.Server(uvicorn.Config(app, log_level="error"))
         task = asyncio.create_task(server.serve(sockets=[sock]))
         try:
-            async with asyncio.timeout(5):
+            async with operation_timeout(5):
                 while not server.started:
                     if task.done():
                         await task
@@ -32,7 +32,7 @@ async def live_http(app):
         finally:
             server.should_exit = True
             try:
-                async with asyncio.timeout(5):
+                async with operation_timeout(5):
                     await task
             except TimeoutError:
                 task.cancel()
