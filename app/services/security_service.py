@@ -119,7 +119,9 @@ class SecurityService:
             key_config = APIKeyConfig(**self._process_datetime_fields(key_data))
             if not key_config.enabled:
                 return None
-            if key_config.expires_at and datetime.now() > key_config.expires_at:
+            if key_config.expires_at and (
+                datetime.now(tz=key_config.expires_at.tzinfo) > key_config.expires_at
+            ):
                 logger.warning("API Key 已过期: %s", key_config.name)
                 return None
             return key_config

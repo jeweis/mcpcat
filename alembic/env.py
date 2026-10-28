@@ -7,6 +7,7 @@ from sqlalchemy import engine_from_config, event, pool
 from alembic import context
 from app.storage import app_models  # noqa: F401 - 注册 Apps metadata
 from app.storage import skill_variant_models  # noqa: F401 - 注册变体 metadata
+from app.storage import wecom_transactions  # noqa: F401 - 注册企微 metadata
 from app.storage.models import Base
 
 config = context.config

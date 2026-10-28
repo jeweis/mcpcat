@@ -181,7 +181,7 @@ def test_incremental_render_review_migration_preserves_existing_app_rows(
                 "INSERT INTO app_versions(id,app_id,version,status,content_format,entrypoint,manifest_json,csp_json,permissions_json,changelog,created_at) VALUES (1,1,'1.0.0','published','html','index.html','{}','{}','{}','untouched',CURRENT_TIMESTAMP)"
             )
         )
-    assert upgrade_schema(database).current == "0005_app_render_review"
+    assert upgrade_schema(database).current == "0006_wecom_login"
     with database.engine.connect() as connection:
         row = connection.execute(
             text(

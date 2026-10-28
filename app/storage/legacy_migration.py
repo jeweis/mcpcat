@@ -106,6 +106,8 @@ def _normalize_for_comparison(config: Dict[str, Any]) -> Dict[str, Any]:
             "expires_at",
             "feishu_union_id",
             "feishu_open_id",
+            "wecom_corp_id",
+            "wecom_user_id",
             "avatar_url",
         ):
             if item.get(field) is None:

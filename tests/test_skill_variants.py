@@ -107,7 +107,7 @@ def test_failed_schema_migration_rolls_back_all_tables(tmp_path, monkeypatch):
     assert get_schema_status(database).current == "0003_apps_registry"
     assert "skill_remote_artifacts" not in inspect(database.engine).get_table_names()
     monkeypatch.setattr(op, "create_table", original)
-    assert upgrade_schema(database).current == "0005_app_render_review"
+    assert upgrade_schema(database).current == "0006_wecom_login"
     database.dispose()
 
 

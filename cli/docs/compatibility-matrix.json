@@ -16,7 +16,7 @@
     "runtime": { "fastmcp": "4.1.0", "mcp": "2.3.0", "prefab-ui": "0.20.2", "pydantic-monty": "1.1.0" },
     "python": { "requires": ">=3.10", "container": "3.12", "verified": ["3.10.19", "3.11.14"] },
     "mcp_protocol": { "modern": "2026-07-28", "legacy_http": ["2025-03-26", "2025-06-18", "2025-11-25"], "skills_extension": "io.modelcontextprotocol/skills", "directory_read": true },
-    "database": { "baseline": "0002_skills_registry", "head": "0005_app_render_review", "downgrade_requires_matching_snapshot": true },
+    "database": { "baseline": "0002_skills_registry", "head": "0006_wecom_login", "downgrade_requires_matching_snapshot": true },
     "content_templates": { "local": "1.0.0", "remote": "1.0.0" },
     "apps_html": { "new_draft": "html-assembly-5", "retained": ["html-assembly-1", "html-assembly-2", "html-assembly-3", "html-assembly-4", "html-assembly-5"] }
   },

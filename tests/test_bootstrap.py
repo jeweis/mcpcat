@@ -55,7 +55,7 @@ async def test_create_app_bootstraps_storage_before_business_services(
     assert manager.loaded is True
     assert manager.mounted is True
     assert application.state.storage_ready is True
-    assert application.state.schema_status.current == "0005_app_render_review"
+    assert application.state.schema_status.current == "0006_wecom_login"
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=application), base_url="http://test"
     ) as client:
@@ -124,5 +124,5 @@ async def test_disabling_skills_router_keeps_storage_and_health_ready(
         skills = await client.get("/api/skills", headers={auth_header: api_key})
     assert health.json()["ready"] is True
     assert skills.status_code == 200
-    assert application.state.schema_status.current == "0005_app_render_review"
+    assert application.state.schema_status.current == "0006_wecom_login"
     database.dispose()

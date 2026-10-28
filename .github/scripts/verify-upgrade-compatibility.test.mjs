@@ -20,7 +20,7 @@ function fixture(t) {
 }
 
 test("actual runtime/content/schema dimensions agree without forcing product versions equal", () => {
-  assert.equal(verifyUpgradeCompatibility().database, "0005_app_render_review");
+  assert.equal(verifyUpgradeCompatibility().database, "0006_wecom_login");
 });
 
 for (const [label, file, from, to] of [
@@ -35,7 +35,7 @@ for (const [label, file, from, to] of [
   ["HTML default", "app/services/app_html_renderer.py", 'else "html-assembly-5"', 'else "html-assembly-6"'],
   ["lost historical HTML", "app/services/app_html_renderer.py", '"html-assembly-2",', '"html-assembly-9",'],
   ["directory capability", "cli/docs/compatibility-matrix.json", '"directory_read": true', '"directory_read": false'],
-  ["migration head", "alembic/versions/0005_app_render_review.py", 'revision = "0005_app_render_review"', 'revision = "0006_unreviewed"'],
+  ["migration head", "alembic/versions/0006_wecom_login.py", 'revision = "0006_wecom_login"', 'revision = "0007_unreviewed"'],
   ["unsafe rollback", "cli/docs/compatibility-matrix.json", '"downgrade_requires_matching_snapshot": true', '"downgrade_requires_matching_snapshot": false'],
 ]) {
   test(`rejects ${label} drift`, (t) => {

@@ -125,5 +125,13 @@
     "app_secret": "",
     "base_url": "https://open.feishu.cn",
     "default_permission": "read"
+  },
+  "wecom": {
+    "enabled": false,
+    "corp_id": "",
+    "agent_id": "",
+    "app_secret": "",
+    "redirect_uri": "",
+    "default_permission": "read"
   }
 }

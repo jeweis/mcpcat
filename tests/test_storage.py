@@ -28,7 +28,7 @@ def database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Database:
 
 def test_schema_upgrade_creates_expected_tables(database: Database) -> None:
     status = get_schema_status(database)
-    assert status.current == status.head == "0005_app_render_review"
+    assert status.current == status.head == "0006_wecom_login"
     with database.engine.connect() as connection:
         tables = {
             row[0]
@@ -42,6 +42,7 @@ def test_schema_upgrade_creates_expected_tables(database: Database) -> None:
         "mcp_servers",
         "migration_history",
         "system_settings",
+        "wecom_login_transactions",
     } <= tables
 
 

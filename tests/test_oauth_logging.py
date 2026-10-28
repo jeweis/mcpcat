@@ -16,6 +16,9 @@ from app.core.oauth_logging import (
         "/api/oauth/callback/fixture",
         "/base/api/oauth/callback/fixture",
         "/api%2Foauth%2Fcallback%2Ffixture",
+        "/api/auth/wecom/callback",
+        "/base/api/auth/wecom/callback",
+        "/api%2Fauth%2Fwecom%2Fcallback",
     ],
 )
 def test_callback_query_is_redacted(caplog, path):

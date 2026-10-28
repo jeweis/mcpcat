@@ -172,8 +172,10 @@ class APIKeyConfig(BaseModel):
     expires_at: Optional[datetime] = Field(default=None, description="过期时间")
     feishu_union_id: Optional[str] = Field(default=None, description="飞书用户唯一标识")
     feishu_open_id: Optional[str] = Field(default=None, description="飞书应用内用户标识")
+    wecom_corp_id: Optional[str] = Field(default=None, description="企业微信企业 ID")
+    wecom_user_id: Optional[str] = Field(default=None, description="企业微信成员 UserID")
     avatar_url: Optional[str] = Field(default=None, description="用户头像地址")
-    source: Literal["manual", "feishu"] = Field(default="manual", description="账号来源")
+    source: Literal["manual", "feishu", "wecom"] = Field(default="manual", description="账号来源")
 
     @validator('key')
     def validate_key(cls, v):

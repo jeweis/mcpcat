@@ -85,6 +85,8 @@ class APIKeyRepository:
         "expires_at",
         "feishu_union_id",
         "feishu_open_id",
+        "wecom_corp_id",
+        "wecom_user_id",
         "avatar_url",
         "source",
     }
@@ -115,6 +117,18 @@ class APIKeyRepository:
         for value in values:
             self.add(value)
 
+    def get_by_wecom_identity(
+        self, corp_id: str, user_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """按企业与成员组合身份获取账号。"""
+        row = self.session.scalar(
+            select(APIKeyRecord).where(
+                APIKeyRecord.wecom_corp_id == corp_id,
+                APIKeyRecord.wecom_user_id == user_id,
+            )
+        )
+        return self._to_dict(row) if row else None
+
     def add(self, value: Dict[str, Any]) -> APIKeyRecord:
         extra = {
             key: deepcopy(item)
@@ -130,6 +144,8 @@ class APIKeyRepository:
             expires_at=_parse_datetime(value.get("expires_at")),
             feishu_union_id=value.get("feishu_union_id"),
             feishu_open_id=value.get("feishu_open_id"),
+            wecom_corp_id=value.get("wecom_corp_id"),
+            wecom_user_id=value.get("wecom_user_id"),
             avatar_url=value.get("avatar_url"),
             source=_string_value(value.get("source", "manual")),
             present_fields_json=sorted(self.KNOWN_FIELDS.intersection(value)),
@@ -181,6 +197,8 @@ class APIKeyRepository:
             "expires_at": _serialize_datetime(row.expires_at),
             "feishu_union_id": row.feishu_union_id,
             "feishu_open_id": row.feishu_open_id,
+            "wecom_corp_id": row.wecom_corp_id,
+            "wecom_user_id": row.wecom_user_id,
             "avatar_url": row.avatar_url,
             "source": row.source,
         }

@@ -215,3 +215,20 @@ def test_config_facade_diff_write_and_export_without_overwrite(
     assert json.loads(target.read_text("utf-8")) == updated
     with pytest.raises(FileExistsError):
         export_legacy_config(database, target)
+
+
+def test_optional_wecom_identity_nulls_survive_legacy_import(database, tmp_path):
+    payload = legacy_payload()
+    payload["security"]["api_keys"][0].update(
+        {"wecom_corp_id": None, "wecom_user_id": None}
+    )
+    source = tmp_path / "nullable-identities.json"
+    write_json(source, payload)
+    assert (
+        migrate_legacy_config(database, source, tmp_path / "backups").state
+        == "migrated"
+    )
+    ConfigService.configure_database(database)
+    imported = ConfigService.load_raw_config()["security"]["api_keys"][0]
+    assert imported["key"] == payload["security"]["api_keys"][0]["key"]
+    assert "wecom_corp_id" not in imported and "wecom_user_id" not in imported

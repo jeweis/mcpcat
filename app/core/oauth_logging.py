@@ -11,7 +11,9 @@ class OAuthCallbackAccessFilter(logging.Filter):
         args = record.args
         if isinstance(args, tuple) and len(args) == 5 and isinstance(args[2], str):
             path, separator, _query = args[2].partition("?")
-            if separator and "/api/oauth/callback/" in unquote(path):
+            if separator and any(value in unquote(path) for value in (
+                "/api/oauth/callback/", "/api/auth/wecom/",
+            )):
                 record.args = (*args[:2], f"{path}?[REDACTED]", *args[3:])
         return True
 

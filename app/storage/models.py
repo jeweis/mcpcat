@@ -50,6 +50,9 @@ class APIKeyRecord(Base):
     """保存现有 API Key 身份和兼容扩展字段。"""
 
     __tablename__ = "api_keys"
+    __table_args__ = (
+        UniqueConstraint("wecom_corp_id", "wecom_user_id", name="uq_api_keys_wecom"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
@@ -62,6 +65,8 @@ class APIKeyRecord(Base):
         String(255), unique=True, nullable=True
     )
     feishu_open_id: Mapped[Optional[str]] = mapped_column(String(255))
+    wecom_corp_id: Mapped[Optional[str]] = mapped_column(String(255))
+    wecom_user_id: Mapped[Optional[str]] = mapped_column(String(255))
     avatar_url: Mapped[Optional[str]] = mapped_column(Text)
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
     present_fields_json: Mapped[list[str]] = mapped_column(

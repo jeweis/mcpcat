@@ -27,6 +27,7 @@ from app.api import (
     skill_variants,
     skills,
     skills_mcp_settings,
+    wecom,
 )
 from app.bootstrap import bootstrap_storage
 from app.core.config import settings
@@ -138,6 +139,7 @@ def create_app(
     application.include_router(health.router, prefix="/api", tags=["健康检查"])
     application.include_router(servers.router, prefix="/api", tags=["服务器管理"])
     application.include_router(auth.router, prefix="/api", tags=["认证"])
+    application.include_router(wecom.router, prefix="/api", tags=["企业微信登录"])
     application.include_router(
         inspector.router, prefix="/api/inspector", tags=["测试工具"]
     )

@@ -16,10 +16,12 @@
   - SSE (传统Web传输)
 - 🧩支持openapi3配置，直接转为mcp协议
 - 📊 统一的MCP服务管理界面
+- 企业微信自建应用 Web 登录，与飞书及 API Key 共用权限和成员管理
 
 ## 用户文档
 
 - [mcpcat CLI：安装与使用](docs/user/cli.md)
+- [企业微信登录：配置与使用](docs/user/wecom-login.md)
 - [文档索引](docs/README.md)
 
 ## Docker 部署（推荐）

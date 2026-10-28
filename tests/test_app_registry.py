@@ -31,7 +31,7 @@ def test_upgrade_existing_database_preserves_old_rows(tmp_path, monkeypatch):
                 "VALUES ('fixture', '{\"unknown\": 7}', CURRENT_TIMESTAMP)"
             )
         )
-    assert upgrade_schema(database).current == "0005_app_render_review"
+    assert upgrade_schema(database).current == "0006_wecom_login"
     with database.engine.connect() as connection:
         assert (
             connection.scalar(
@@ -42,7 +42,7 @@ def test_upgrade_existing_database_preserves_old_rows(tmp_path, monkeypatch):
     assert {"apps", "app_versions", "app_artifacts", "app_tool_bindings"}.issubset(
         inspect(database.engine).get_table_names()
     )
-    assert upgrade_schema(database).current == "0005_app_render_review"
+    assert upgrade_schema(database).current == "0006_wecom_login"
     assert "mcpcat_apps_enabled" not in type(settings).model_fields
     database.dispose()
 

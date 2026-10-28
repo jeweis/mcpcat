@@ -7,6 +7,7 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
+from sqlalchemy import MetaData, Table
 from test_legacy_migration import legacy_payload
 
 from alembic import command
@@ -19,7 +20,6 @@ from app.services.skill_package_validator import (
     validate_skill_zip,
 )
 from app.storage.database import Database
-from app.storage.legacy_migration import migrate_legacy_config
 from app.storage.migrations import create_alembic_config
 from app.storage.unit_of_work import UnitOfWork
 
@@ -39,6 +39,21 @@ OLD_TABLES = (
     "skill_artifacts",
     "skill_bundles",
     "skill_audit_events",
+)
+OLD_API_KEY_COLUMNS = (
+    "id",
+    "key",
+    "name",
+    "permission",
+    "enabled",
+    "created_at",
+    "expires_at",
+    "feishu_union_id",
+    "feishu_open_id",
+    "avatar_url",
+    "source",
+    "present_fields_json",
+    "extra_json",
 )
 
 
@@ -132,10 +147,65 @@ def snapshot(database: Database) -> dict[str, list]:
     with sqlite3.connect(database.path) as connection:
         return {
             name: sorted(
-                connection.execute(f'SELECT * FROM "{name}"').fetchall(), key=repr
+                connection.execute(
+                    "SELECT "
+                    + (
+                        ", ".join(f'"{column}"' for column in OLD_API_KEY_COLUMNS)
+                        if name == "api_keys"
+                        else "*"
+                    )
+                    + f' FROM "{name}"'
+                ).fetchall(),
+                key=repr,
             )
             for name in OLD_TABLES
         }
+
+
+def seed_old_config(database: Database, source: Path, payload: dict) -> None:
+    """只向历史列写入夹具，不用要求最新 Schema 的运行时 Key Repository。"""
+    old_keys = Table("api_keys", MetaData(), autoload_with=database.engine)
+    known = set(OLD_API_KEY_COLUMNS) - {"id", "present_fields_json", "extra_json"}
+    security = dict(payload["security"])
+    keys = security.pop("api_keys")
+    with UnitOfWork(database) as unit:
+        for name, value in payload["mcpServers"].items():
+            unit.mcp_servers.upsert(name, value)
+        for item in keys:
+            values = {name: value for name, value in item.items() if name in known}
+            values.setdefault("source", "manual")
+            values.setdefault("enabled", True)
+            unit.session.execute(
+                old_keys.insert().values(
+                    **values,
+                    present_fields_json=sorted(known.intersection(item)),
+                    extra_json={
+                        name: value for name, value in item.items() if name not in known
+                    },
+                )
+            )
+        sections = {
+            name: value
+            for name, value in payload.items()
+            if name not in {"mcpServers", "security"}
+        }
+        sections["security"] = security
+        for name, value in sections.items():
+            unit.settings.set(name, value)
+        history = unit.migrations.start(
+            "legacy_json_import",
+            str(source),
+            hashlib.sha256(source.read_bytes()).hexdigest(),
+        )
+        unit.migrations.complete(
+            history,
+            {
+                "mcp_servers": len(payload["mcpServers"]),
+                "api_keys": len(keys),
+                "settings": len(sections),
+            },
+        )
+        unit.commit()
 
 
 def make_old_fixture(directory: Path) -> tuple:
@@ -146,7 +216,7 @@ def make_old_fixture(directory: Path) -> tuple:
     payload = legacy_payload()
     payload["security"]["api_keys"][0]["key"] = "fixture-v101-admin-not-real"
     source.write_text(json.dumps(payload), encoding="utf-8")
-    migrate_legacy_config(database, source, directory / "backups")
+    seed_old_config(database, source, payload)
     artifacts = directory / "artifacts"
     for offset, status in enumerate(
         ("published", "draft", "deprecated", "archived"), 1
