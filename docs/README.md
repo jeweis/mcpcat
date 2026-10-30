@@ -8,6 +8,7 @@
 - [MCP 测试台：工具、资源、提示模板与应用](user/mcp-workbench.md)
 
 - [mcpcat CLI：安装、本地 Skills 与平台管理](user/cli.md)
+- [官方 Agent Skills：让 AI 使用 mcpcat CLI](user/cli-skills.md)
 - [远程读取 Skills](user/remote-skills.md)
 - [上游 MCP 的 OAuth 授权](user/upstream-oauth.md)
 - [CodeMode：接入、调用与安全限额](user/code-mode.md)

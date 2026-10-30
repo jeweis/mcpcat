@@ -21,6 +21,7 @@
 ## 用户文档
 
 - [mcpcat CLI：安装与使用](docs/user/cli.md)
+- [官方 Agent Skills：让 AI 使用 mcpcat CLI](docs/user/cli-skills.md)
 - [企业微信登录：配置与使用](docs/user/wecom-login.md)
 - [文档索引](docs/README.md)
 

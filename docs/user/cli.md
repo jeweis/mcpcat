@@ -2,6 +2,8 @@
 
 mcpcat CLI 是远程 mcpcat 的命令行管理入口，同时保留把已发布 Agent Skills 安装到本地 Agent 的能力。npm 包名是 `@jeweis/mcpcat`，安装后的命令是 `mcpcat`。
 
+希望让 AI 助手代你使用 CLI，可安装仓库提供的 [官方 Agent Skills](cli-skills.md)，覆盖连接、本地 Skills、MCP 服务、服务端 Skills 和 MCP Apps 管理。
+
 > 本文新增的 `servers`、`skills manage`、`apps` 命令为当前源码能力，尚未发布到 npm。验收期间请使用仓库构建包；安装 npm 已发布版不代表已获得这些新命令。
 
 ## 环境要求
@@ -144,7 +146,9 @@ mcpcat skills rollback weather-tools
 mcpcat skills rollback weather-tools --version 1.1.0
 ```
 
-`update --all` 会跳过已固定的安装。未指定版本的回滚优先使用最近的本地备份；指定版本时，CLI 会在需要时下载 Registry 中仍保留的历史版本。
+`update`（包括单项和 `--all`）会跳过已固定的安装。`pin --version` 只能固定当前已安装版本；需要其他版本时先安装该版本，再固定。
+
+生命周期命令按 Profile、slug、Agent、Scope 匹配安装记录，**不按当前目录或 `--target-dir` 筛选**；未传 `--scope` 时匹配全部 Scope。`--scope project` 可能影响多个项目的同名安装，并不限定当前项目，单项目任务不要直接使用这些命令。未指定版本的回滚优先使用最近的本地备份；指定版本时，CLI 会在需要时下载 Registry 中仍保留的历史版本。
 
 ## 支持的命令
 
@@ -308,7 +312,7 @@ mcpcat apps withdraw world-clock --version 1.0.0 --yes
 {"bindings": [{"alias": "current_time", "server_name": "time-demo", "tool_name": "get_current_time"}]}
 ```
 
-`config/bindings` 分别**完整替换**草稿的审核配置和工具绑定，空 `bindings` 数组会移除全部授权。发布后版本不可覆盖。`publish --public` 的公开范围是该 App 下已发布版本，不仅本次版本；请确认范围再执行。`withdraw` 撤回指定版本但保留制品，不承诺撤回客户端已下载内容。没有虚构 `apps delete/test/inspect` 等命令。
+`config/bindings` 分别**完整替换**草稿的审核配置和工具绑定，空 `bindings` 数组会移除全部授权。发布后版本不可覆盖。`publish --public` 的公开范围是该 App 下已发布版本，不仅本次版本；省略 `--public` 会将整个 App 的可见性设为 private，也会影响历史已发布版本的匿名访问。请确认目标范围再执行。`withdraw` 撤回指定版本但保留制品，不承诺撤回客户端已下载内容。没有虚构 `apps delete/test/inspect` 等命令。
 
 ### 下载、失败与脚本使用
 
@@ -327,6 +331,8 @@ mcpcat apps --help
 ```
 
 ## 排障
+
+`doctor` 即使发现错误检查项也可能以退出码 0 和 `ok:true` 返回；请继续检查 `data.healthy` 与 `data.checks`，不要只按进程退出码判断环境是否健康。
 
 优先运行：
 
