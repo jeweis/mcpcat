@@ -1,4 +1,4 @@
-"""有界、可取消的诊断进程；输出仅在当前认证响应中实时发送。"""
+"""有界、可取消的命令进程；输出仅在当前认证响应中实时发送。"""
 
 import asyncio
 import json
@@ -13,6 +13,7 @@ import anyio
 from app.services.diagnostic_logs import DiagnosticLogs
 from app.services.diagnostic_redaction import redact
 from app.services.network_commands import NetworkCommand, command_environment
+from app.services.shell_commands import ShellCommand
 
 OUTPUT_LIMIT = 65536
 LINE_LIMIT = 4096
@@ -24,12 +25,26 @@ def event(kind: str, **values: Any) -> bytes:
 
 
 async def stop_process(process: asyncio.subprocess.Process) -> None:
-    """终止整个 POSIX 进程组并回收；Windows 诊断程序不产生子进程。"""
+    """终止 POSIX 进程组或 Windows 子进程树，再排空管道回收。"""
     try:
         if os.name == "posix":
             os.killpg(process.pid, signal.SIGKILL)
         elif process.returncode is None:
-            process.kill()
+            taskkill = os.path.join(
+                os.environ.get("SYSTEMROOT", r"C:\Windows"), "System32", "taskkill.exe"
+            )
+            killer = await asyncio.create_subprocess_exec(
+                taskkill,
+                "/PID",
+                str(process.pid),
+                "/T",
+                "/F",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await killer.wait()
+            if process.returncode is None:
+                process.kill()
     except ProcessLookupError:
         pass
     # kill 后排空管道，避免输出上限触发时 wait 因满管道无法完成。
@@ -69,18 +84,18 @@ async def output_lines(reader: asyncio.StreamReader) -> AsyncIterator[str]:
 
 
 class NetworkCommandRunner:
-    """每个 worker 同时最多两次诊断，不保存其他用户的输出或可恢复会话。"""
+    """每个 worker 同时最多两项命令，不保存其他用户的输出或可恢复会话。"""
 
     def __init__(self, store: DiagnosticLogs) -> None:
         self.store = store
         self.running = 0
 
     async def events(
-        self, command: NetworkCommand, args: list[str]
+        self, command: NetworkCommand | ShellCommand, args: list[str]
     ) -> AsyncIterator[bytes]:
         """运行诊断，断开连接、取消或超时均回收进程。"""
         if self.running >= 2:
-            yield event("result", status="busy", message="已有两项诊断运行，请稍后重试")
+            yield event("result", status="busy", message="已有两项命令运行，请稍后重试")
             return
         self.running += 1
         started = time.monotonic()
@@ -88,7 +103,7 @@ class NetworkCommandRunner:
         status = "failed"
         try:
             self.store.record(
-                "网络诊断开始", level="INFO", operation=f"network/{command.kind}"
+                "命令执行开始", level="INFO", operation=f"command/{command.kind}"
             )
             with anyio.CancelScope(shield=True):
                 process = await self._spawn(args)
@@ -129,9 +144,9 @@ class NetworkCommandRunner:
                 await stop_process(process)
         self.running -= 1
         self.store.record(
-            f"网络诊断结束：{status}",
+            f"命令执行结束：{status}",
             level="INFO" if status == "completed" else "WARNING",
-            operation=f"network/{kind}",
+            operation=f"command/{kind}",
         )
 
     async def _consume(

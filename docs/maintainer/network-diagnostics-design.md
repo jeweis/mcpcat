@@ -3,20 +3,26 @@
 ## 范围
 
 补全诊断日志的自动刷新、导出，并提供管理员网页网络诊断。现有 WRITE 权限可运行
-Ping、DNS、TCP 和 HTTP HEAD；READ 和匿名请求不能执行，也不能读取命令能力。
+任意 Shell 命令及 Ping、DNS、TCP 和 HTTP HEAD 快捷项；READ 和匿名请求不能执行，也不能读取命令能力。
 命令在服务端运行，能够检查容器网络与上游地址，包含内网目标。
 
 ## 实现
 
-- `NetworkCommand` 校验结构化参数，拒绝 Shell、额外选项和带认证信息的 URL。
+- 默认自由命令模式使用 `ShellCommand` 接受完整脚本；Linux/macOS 使用 `/bin/sh -c`，
+  Windows 使用系统 `cmd.exe /d /s /c`，仅拒绝空命令、NUL 和超长输入。
+- `NetworkCommand` 继续校验网络快捷项的结构化参数，拒绝额外选项和带认证信息的 URL。
 - `command_args` 构造固定 argv；所有进程经 `create_subprocess_exec` 启动。
+  自由命令通过固定系统 Shell 执行管理员输入，支持管道、重定向和多行。
   DNS/TCP/HTTP 使用独立标准库脚本，无额外依赖；Ping 使用系统程序。
 - `NetworkCommandRunner` 每 worker 最多并行 2 个进程，不共享进程、输出或用户状态。
 - `POST /api/admin/commands/run` 返回 NDJSON 实时输出；认证 Key 仅在应用配置的头中传递。
   `GET /api/admin/commands` 返回执行位置、ping 可用性及限制。
 - 按完整行脱敏，超过 4096 字节的行整体省略；原始输出 64 KiB、最长执行 60 秒。
   停止、断开、取消和超时均终止进程并排空管道，避免满管道导致回收挂起。
-- POSIX 使用独立进程组，Windows 仅运行不派生子进程的诊断程序。
+- POSIX 使用独立进程组，Windows 使用 taskkill /T /F 回收进程树。每次 Shell 独立，
+  不提供 PTY 或交互输入，也不共享 cwd/临时变量。自行脱离进程组的后台程序不保证回收。
+- 自由命令等同应用系统用户的权限，不是隔离沙箱。环境保留 HOME 等工具运行必需变量，
+  默认不传入应用秘密；输出继续脱敏，审计不记录脚本文本。
 - 浏览器使用 XHR 文本进度事件接收输出，避免 Dio 默认 Web adapter 缓冲整个响应；
   原生端使用 Dio stream。身份切换或页面销毁会取消请求，不自动重试命令。
 - 日志自动刷新默认关闭，开启后每 5 秒加载最新页；保留当前内容直到响应到达。
@@ -45,3 +51,7 @@ Ping、DNS、TCP 和 HTTP HEAD；READ 和匿名请求不能执行，也不能读
 ```
 
 浏览器脚本为前端 `tool/test_network_commands_browser.mjs`，只接受临时实例的测试凭证。
+
+自由命令补验：后端 31 项命令/诊断日志回归、前端全量 170 项通过。
+真实 Shell 的管道、重定向、多行、工作目录隔离、stderr、非零退出码和子进程组超时回收均纳入专项测试。
+正式 Web 构建、真实浏览器自由命令/管道/实时输出/停止，以及 Docker 非 root HTTP 命令探针均通过。

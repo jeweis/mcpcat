@@ -1,4 +1,4 @@
-"""网络诊断命令白名单，不解释 shell、不继承应用秘密环境变量。"""
+"""管理员自由命令与网络快捷项的参数构造，使用最小运行环境。"""
 
 import os
 import re
@@ -9,6 +9,8 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, model_validator
+
+from app.services.shell_commands import ShellCommand, shell_args
 
 
 class NetworkCommand(BaseModel):
@@ -46,8 +48,10 @@ class NetworkCommand(BaseModel):
         return self
 
 
-def command_args(command: NetworkCommand) -> list[str]:
-    """构造固定可执行文件和参数；不通过 shell 执行用户文本。"""
+def command_args(command: NetworkCommand | ShellCommand) -> list[str]:
+    """自由命令交给系统 Shell；网络快捷项继续构造固定 argv。"""
+    if isinstance(command, ShellCommand):
+        return shell_args(command)
     if command.kind == "ping":
         executable = shutil.which("ping")
         if not executable:
@@ -73,6 +77,11 @@ def command_environment() -> dict[str, str]:
     """保留必要的系统运行环境，不传入 API Key、数据库密码等应用变量。"""
     allowed = {
         "PATH",
+        "HOME",
+        "USERPROFILE",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
         "SYSTEMROOT",
         "WINDIR",
         "LANG",

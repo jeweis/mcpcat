@@ -65,6 +65,14 @@ async def verify(api, read, write):
         rows = await execute(api, write, kind=kind, target=target, **extra)
         assert rows[-1]["status"] == "completed", rows
         assert any(row["type"] == "output" for row in rows)
+    rows = await execute(
+        api,
+        write,
+        kind="shell",
+        command="printf 'arbitrary-shell-ok\\n' | cat; printf 'stderr-ok\\n' >&2; exit 7",
+    )
+    assert rows[-1]["exit_code"] == 7 and rows[-1]["status"] == "failed", rows
+    assert "arbitrary-shell-ok" in str(rows) and "stderr-ok" in str(rows)
     async with api.stream(
         "POST",
         endpoint + "/run",
@@ -85,7 +93,7 @@ async def verify(api, read, write):
     )
     assert rows[-1]["status"] == "timed_out", rows
     print(
-        "PASS: HTTP Ping/DNS/TCP/HTTP HEAD, timeout, disconnect cleanup, admin guards"
+        "PASS: arbitrary shell/pipes/stderr/exit code, Ping/DNS/TCP/HTTP HEAD, timeout, disconnect cleanup, admin guards"
     )
 
 
