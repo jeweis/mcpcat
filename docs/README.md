@@ -4,6 +4,7 @@
 
 ## 用户文档
 
+- [网页命令执行与网络诊断](user/network-diagnostics.md)
 - [在测试页面检查远程 Skills](user/inspector-skills.md)
 - [MCP 测试台：工具、资源、提示模板与应用](user/mcp-workbench.md)
 - [查看 MCP 诊断日志与排查 npx 启动失败](user/diagnostic-logs.md)
@@ -18,6 +19,7 @@
 
 ## 维护说明
 
+- [网络诊断设计](maintainer/network-diagnostics-design.md)
 - [npx 冷启动失败与近期升级相关性调查](maintainer/npx-cold-start-diagnosis.md)
 
 - [mcpcat 1.1.0 发布说明与升级注意事项](maintainer/release-1.1.0.md)
@@ -43,4 +45,3 @@
 - [Skills 双模式设计与实际 Web 验收](maintainer/skills-ui-design.md)
 - [Apps 官方 SDK 参考 Host 与管理预览验收](maintainer/apps-host-verification.md)
 - [Python 3.10+ 最低运行版本兼容验收](maintainer/python-runtime-compatibility.md)
-

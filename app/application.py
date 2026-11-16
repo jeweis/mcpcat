@@ -21,6 +21,7 @@ from app.api import (
     health,
     inspector,
     market,
+    network_commands,
     oauth,
     servers,
     skill_generation,
@@ -53,6 +54,7 @@ from app.services.market_service import (
     MARKET_DATA_URL_PRIMARY,
     MarketService,
 )
+from app.services.network_command_runner import NetworkCommandRunner
 from app.services.platform_endpoints import prepare_platform_paths
 from app.services.security_service import security_service
 from app.services.server_manager import MCPServerManager
@@ -130,6 +132,7 @@ def create_app(
         version=APP_VERSION,
         lifespan=lifespan,
     )
+    application.state.network_commands = NetworkCommandRunner(diagnostics)
     application.state.diagnostic_logs = diagnostics
     application.state.storage_ready = True
     application.state.database = bootstrap.database
@@ -146,6 +149,9 @@ def create_app(
     skills_runtime.mount(application)
     code_runtime.mount(application)
     apps_runtime.mount(application)
+    application.include_router(
+        network_commands.router, prefix="/api", tags=["网络诊断"]
+    )
     application.include_router(diagnostic_router, prefix="/api", tags=["诊断日志"])
     application.include_router(health.router, prefix="/api", tags=["健康检查"])
     application.include_router(servers.router, prefix="/api", tags=["服务器管理"])
