@@ -70,6 +70,11 @@ def create_app(
 ) -> FastAPI:
     """完成存储 Bootstrap 后创建业务服务与 FastAPI 应用。"""
 
+    from app.api.diagnostic_logs import protect_config
+    from app.api.diagnostic_logs import router as diagnostic_router
+    from app.middleware.diagnostic_logs import DiagnosticContextMiddleware
+    from app.services.diagnostic_logs import install_diagnostics
+
     configure_mcp_runtime()
     install_oauth_access_filter()
     bootstrap = bootstrap_storage(database)
@@ -80,6 +85,9 @@ def create_app(
     created_keys = security_service.ensure_default_keys()
     if created_keys:
         logger.warning("首次运行已创建 %d 个默认 API Key", len(created_keys))
+
+    diagnostics = install_diagnostics()
+    protect_config(diagnostics)
 
     skills_runtime = SkillsMCPRuntime(bootstrap.database, manager)
     manager.skills_runtime = skills_runtime
@@ -122,6 +130,7 @@ def create_app(
         version=APP_VERSION,
         lifespan=lifespan,
     )
+    application.state.diagnostic_logs = diagnostics
     application.state.storage_ready = True
     application.state.database = bootstrap.database
     application.state.schema_status = bootstrap.schema
@@ -130,12 +139,14 @@ def create_app(
     application.state.port = settings.port
     application.state.market_service = market_service
 
+    application.add_middleware(DiagnosticContextMiddleware)
     application.add_middleware(AuthMiddleware)
     application.add_middleware(MCPPrivateCacheMiddleware)
     manager.mount_all_servers(application)
     skills_runtime.mount(application)
     code_runtime.mount(application)
     apps_runtime.mount(application)
+    application.include_router(diagnostic_router, prefix="/api", tags=["诊断日志"])
     application.include_router(health.router, prefix="/api", tags=["健康检查"])
     application.include_router(servers.router, prefix="/api", tags=["服务器管理"])
     application.include_router(auth.router, prefix="/api", tags=["认证"])

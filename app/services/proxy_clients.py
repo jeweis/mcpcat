@@ -17,6 +17,8 @@ from mcp.types import CreateMessageRequest
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 
 from app.services.input_exchange import current_exchange
+from app.services.diagnostic_stdio import DiagnosticStdioTransport
+from app.services.upstream_startup import STARTUP_TIMEOUT
 from app.services.legacy_input_bridge import answer_input
 from app.services.oauth_tokens import current_access_token
 from app.services.oauth_machine_client import machine_client_options
@@ -122,32 +124,27 @@ def upstream_mode(server_type: str = "streamable-http") -> str:
 
 
 def make_proxy_client_factory(
-    config: Dict[str, Any], token: str | None = None
+    config: Dict[str, Any], token: str | None = None, *, server_name: str = ""
 ) -> Callable[..., ProxyClient]:
     """每次创建独立 transport/client，仅使用已配置的上游凭证。"""
     server_type = config["type"]
     headers = dict(config.get("headers") or {})
     url = config.get("url", "")
     timeout = config.get("timeout", 30)
-    if server_type == "stdio":
-        target = {
-            "mcpServers": {
-                "default": {
-                    "command": config["command"],
-                    "args": list(config.get("args") or []),
-                    "env": dict(config.get("env") or {}),
-                    # 每次操作独立创建；Tasks 在整个任务生命周期持有上下文。
-                    "keep_alive": False,
-                }
-            }
-        }
 
     def create_client(
         *, message_handler: Any = None, extensions: Any = None
     ) -> ProxyClient:
         client_extensions = list(extensions or ())
         if server_type == "stdio":
-            transport = target
+            transport = DiagnosticStdioTransport(
+                server_name=server_name,
+                command=config["command"],
+                args=list(config.get("args") or []),
+                env=dict(config.get("env") or {}),
+                request_timeout=timeout,
+                keep_alive=False,
+            )
         else:
             machine_options = machine_client_options(config)
             if machine_options is not None:
@@ -218,6 +215,7 @@ def make_proxy_client_factory(
             forward_incoming_headers=False,
             mode=upstream_mode(server_type),
             timeout=timeout,
+            init_timeout=STARTUP_TIMEOUT if server_type == "stdio" else None,
             extensions=(
                 client_extensions
                 if extensions is not None or client_extensions

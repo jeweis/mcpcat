@@ -11,7 +11,7 @@ from app.services.security_service import security_service
 
 
 def attach_proxy_tasks(
-    server: Any, config: dict, subscriptions: Any
+    server: Any, config: dict, subscriptions: Any, *, server_name: str = ""
 ) -> ProxyTasks | None:
     """HTTP 跨请求连接，STDIO 持有原进程，旧 SSE 不声明现代 Tasks。"""
     if (
@@ -33,7 +33,7 @@ def attach_proxy_tasks(
         )
 
     adapter = ProxyTasks(
-        make_proxy_client_factory(config),
+        make_proxy_client_factory(config, server_name=server_name),
         principal,
         authorized,
         retain_connection=config.get("type") == "stdio",

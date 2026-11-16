@@ -6,6 +6,7 @@
 
 - [在测试页面检查远程 Skills](user/inspector-skills.md)
 - [MCP 测试台：工具、资源、提示模板与应用](user/mcp-workbench.md)
+- [查看 MCP 诊断日志与排查 npx 启动失败](user/diagnostic-logs.md)
 
 - [mcpcat CLI：安装、本地 Skills 与平台管理](user/cli.md)
 - [官方 Agent Skills：让 AI 使用 mcpcat CLI](user/cli-skills.md)
@@ -16,6 +17,8 @@
 - [MCP Apps：上传、预览、发布与连接](user/mcp-apps.md)
 
 ## 维护说明
+
+- [npx 冷启动失败与近期升级相关性调查](maintainer/npx-cold-start-diagnosis.md)
 
 - [mcpcat 1.1.0 发布说明与升级注意事项](maintainer/release-1.1.0.md)
 - [生产依赖安全修复与真实 Apps 查询补验](maintainer/security-dependency-remediation.md)

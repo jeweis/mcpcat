@@ -210,7 +210,7 @@ def attach_proxy_subscriptions(
         ):
             middleware.authorized = authorized
 
-    factory = make_proxy_client_factory(config)
+    factory = make_proxy_client_factory(config, server_name=name)
     adapter = ProxySubscriptions(factory, authorized)
     adapter.legacy_resources = LegacyResourceSubscriptions(
         factory,

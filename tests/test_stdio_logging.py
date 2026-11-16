@@ -26,8 +26,8 @@ async def test_stdio_logs_preserve_payload_filter_and_release_process(
 ):
     clients = []
 
-    def tracked_factory(config):
-        factory = make_proxy_client_factory(config)
+    def tracked_factory(config, **options):
+        factory = make_proxy_client_factory(config, **options)
 
         def create(**kwargs):
             client = factory(**kwargs)

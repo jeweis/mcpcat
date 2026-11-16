@@ -15,6 +15,8 @@ from app.services.modern_input_bridge import ModernInputBridge
 from app.services.roots_notifications import RootsNotifications
 from app.services.proxy_logging import ProxyLogging
 
+from app.services.diagnostic_logs import diagnostic
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,11 +40,11 @@ class MCPServerFactory:
             server_type = config_data.get("type")
 
             if server_type == "stdio":
-                mcp = MCPServerFactory._create_stdio_server(config_data)
+                mcp = MCPServerFactory._create_stdio_server(config_data, name)
             elif server_type == "sse":
-                mcp = MCPServerFactory._create_sse_server(config_data)
+                mcp = MCPServerFactory._create_sse_server(config_data, name)
             elif server_type == "streamable-http":
-                mcp = MCPServerFactory._create_streamable_http_server(config_data)
+                mcp = MCPServerFactory._create_streamable_http_server(config_data, name)
             elif server_type == "openapi":
                 mcp = MCPServerFactory._create_openapi_server(config_data)
             else:
@@ -59,31 +61,35 @@ class MCPServerFactory:
             return mcp
 
         except Exception as e:
-            logger.error(f"创建MCP服务器 {name} 时发生异常: {e}")
+            diagnostic("创建 MCP 服务失败", server=name, operation="configure", error=e)
+            logger.error("创建 MCP 服务 %s 失败：%s", name, type(e).__name__)
             return None
 
     @staticmethod
-    def _create_stdio_server(config_data: Dict[str, Any]) -> FastMCP:
+    def _create_stdio_server(config_data: Dict[str, Any], name: str = "") -> FastMCP:
         """创建STDIO类型的MCP服务器"""
-        return MCPServerFactory._create_proxy_server(config_data)
+        return MCPServerFactory._create_proxy_server(config_data, name)
 
     @staticmethod
-    def _create_sse_server(config_data: Dict[str, Any]) -> FastMCP:
+    def _create_sse_server(config_data: Dict[str, Any], name: str = "") -> FastMCP:
         """创建SSE类型的MCP服务器"""
-        return MCPServerFactory._create_proxy_server(config_data)
+        return MCPServerFactory._create_proxy_server(config_data, name)
 
     @staticmethod
-    def _create_streamable_http_server(config_data: Dict[str, Any]) -> FastMCP:
+    def _create_streamable_http_server(
+        config_data: Dict[str, Any], name: str = ""
+    ) -> FastMCP:
         """创建Streamable HTTP类型的MCP服务器"""
-        return MCPServerFactory._create_proxy_server(config_data)
+        return MCPServerFactory._create_proxy_server(config_data, name)
 
     @staticmethod
-    def _create_proxy_server(config_data: Dict[str, Any]) -> FastMCP:
+    def _create_proxy_server(config_data: Dict[str, Any], name: str = "") -> FastMCP:
         """代理输入等待随端点生命周期创建和关闭。"""
         bridge = ModernInputBridge()
         logging_bridge = ProxyLogging()
         server = FastMCPProxy(
-            client_factory=make_proxy_client_factory(config_data),
+            client_factory=make_proxy_client_factory(config_data, server_name=name),
+            provider_error_strategy="raise",
             name="Config-Based Proxy",
             lifespan=ContextManagerLifespan(logging_bridge.lifespan)
             | ContextManagerLifespan(bridge.lifespan),

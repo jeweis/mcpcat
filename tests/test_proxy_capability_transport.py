@@ -169,8 +169,8 @@ async def test_exact_input_advertisement_reaches_upstream(
 async def test_stdio_capabilities_and_process_release(monkeypatch, downstream, allowed):
     clients = []
 
-    def tracked_factory(config):
-        factory = make_proxy_client_factory(config)
+    def tracked_factory(config, **options):
+        factory = make_proxy_client_factory(config, **options)
 
         def create(**kwargs):
             client = factory(**kwargs)

@@ -19,6 +19,8 @@ from app.services.platform_endpoints import skills_path_reserved
 from app.services.proxy_subscriptions import attach_proxy_subscriptions
 from app.services.proxy_task_attachment import attach_proxy_tasks
 
+from app.services.diagnostic_logs import diagnostic
+
 logger = logging.getLogger(__name__)
 
 RESERVED_NAMES = frozenset({"mcpcat"})
@@ -69,6 +71,14 @@ class MCPServerManager:
             error: 错误信息（可选）
         """
         if server_name in self.server_info:
+            if self.server_info[server_name].get("status") != status:
+                diagnostic(
+                    f"服务状态变更：{status}",
+                    level="ERROR" if status == "failed" else "INFO",
+                    server=server_name,
+                    operation="lifecycle",
+                    detail=error or "",
+                )
             self.server_info[server_name]["status"] = status
             self.runtime_changes.publish({"mcp_runtime"})
             if error:
@@ -112,7 +122,7 @@ class MCPServerManager:
                 return False
 
             subscriptions = attach_proxy_subscriptions(self, key, mcp, value)
-            attach_proxy_tasks(mcp, value, subscriptions)
+            attach_proxy_tasks(mcp, value, subscriptions, server_name=key)
 
             # 创建应用并正确获取生命周期
             runtime = getattr(self, "skills_runtime", None)

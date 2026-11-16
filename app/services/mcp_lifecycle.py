@@ -11,6 +11,8 @@ from weakref import WeakValueDictionary
 from app.services.async_compat import cancel_task_once, task_cancelling
 from app.services.mcp_request_lifecycle import cancel_service_requests
 
+from app.services.diagnostic_logs import diagnostic
+
 logger = logging.getLogger(__name__)
 START_TIMEOUT = 10
 STOP_TIMEOUT = 5
@@ -90,6 +92,12 @@ class ServiceLifecycles:
             raise
         except Exception as error:
             handle.failed = True
+            diagnostic(
+                "MCP 生命周期启动或关闭失败",
+                server=name,
+                operation="lifecycle",
+                error=error,
+            )
             logger.error("MCP 生命周期失败：%s (%s)", name, type(error).__name__)
             if self._current(name, handle):
                 self.manager._update_server_status(

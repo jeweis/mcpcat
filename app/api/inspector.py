@@ -12,6 +12,9 @@ from app.services.security_service import security_service
 from app.services.inspector_auth import auth_snapshot, diagnose_upstream
 from app.services.inspector_client_options import InspectorClientOptions
 
+from app.services.diagnostic_logs import diagnostic
+from app.services.upstream_startup import INSPECTOR_REQUEST_TIMEOUT
+
 router = APIRouter()
 _operations = asyncio.Semaphore(8)
 
@@ -202,20 +205,39 @@ async def skill_operation(session: InspectorSession, action: Any, *args: Any) ->
     session.records.append(record)
     del session.records[:-100]
     try:
-        with anyio.fail_after(25):
+        with anyio.fail_after(INSPECTOR_REQUEST_TIMEOUT):
             async with _operations, session.lock, session.client:
-                result = await action(session.client, *args)
+                with anyio.fail_after(25):
+                    result = await action(session.client, *args)
                 record["status"] = "completed"
                 return result
     except TimeoutError as error:
+        diagnostic(
+            "测试台请求超时",
+            server=session.server_name,
+            operation=action.__name__,
+            error=error,
+        )
         record["status"] = "unconfirmed"
         raise HTTPException(
             504, "请求超时，结果未确认；调用可能已产生副作用，请勿自动重试"
         ) from error
     except ValueError as error:
+        diagnostic(
+            "测试台请求参数或响应无效",
+            server=session.server_name,
+            operation=action.__name__,
+            error=error,
+        )
         record["status"] = "invalid"
         raise HTTPException(422, str(error)) from error
     except Exception as error:
+        diagnostic(
+            "测试台请求失败",
+            server=session.server_name,
+            operation=action.__name__,
+            error=error,
+        )
         record["status"] = "failed"
         raise HTTPException(
             502, "MCP 请求失败，请确认资源权限、端点状态和协议支持"

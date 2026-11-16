@@ -19,6 +19,9 @@ from app.services.inspector_events import InspectorEvents
 from app.services.inspector_client_options import InspectorClientOptions
 from app.services.security_service import security_service
 
+from app.services.diagnostic_logs import diagnostic
+from app.services.upstream_startup import STARTUP_TIMEOUT
+
 logger = logging.getLogger(__name__)
 
 
@@ -98,7 +101,8 @@ class InspectorService:
                     {"mimeTypes": ["text/html;profile=mcp-app"]},
                 ),
             ],
-            timeout=30,
+            timeout=STARTUP_TIMEOUT,
+            init_timeout=STARTUP_TIMEOUT,
             **sampling_options,
             **(client_options or InspectorClientOptions()).client_kwargs(),
         )
@@ -108,13 +112,25 @@ class InspectorService:
 
         # Test connection
         try:
-            with anyio.fail_after(25):
+            with anyio.fail_after(STARTUP_TIMEOUT):
                 async with client:
                     pass  # SDK 协商已完成，纯 Skills 端点不要求 tools。
         except Exception as e:
+            diagnostic(
+                "测试台初始化连接失败",
+                server=server_name,
+                operation="initialize",
+                error=e,
+            )
             logger.warning("Inspector connection failed: %s", type(e).__name__)
             raise ValueError("无法连接到服务器，请检查端点状态与权限") from e
 
+        diagnostic(
+            "测试台会话连接成功",
+            level="INFO",
+            server=server_name,
+            operation="initialize",
+        )
         self.sessions[session.id] = session
         return session.id
 
@@ -122,8 +138,20 @@ class InspectorService:
         session = self._get_session(session_id)
         async with session.client:
             if "tools" not in capabilities(session.client)["capabilities"]:
+                diagnostic(
+                    "服务未声明 tools 能力（并非工具列表请求失败）",
+                    level="INFO",
+                    server=session.server_name,
+                    operation="tools/list",
+                )
                 return []
             tools = await session.client.list_tools()
+            diagnostic(
+                f"工具发现完成：{len(tools)} 个工具",
+                level="INFO" if tools else "WARNING",
+                server=session.server_name,
+                operation="tools/list",
+            )
             result = []
             for tool in tools:
                 schema = self._extract_tool_schema(tool)

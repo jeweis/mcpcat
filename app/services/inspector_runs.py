@@ -11,6 +11,7 @@ from fastmcp.client.elicitation import ElicitResult
 from fastmcp_tasks import call_tool_task
 from jsonschema import Draft202012Validator
 
+from app.services.diagnostic_logs import diagnostic
 from app.services.inspector_skills import capabilities
 from app.services.inspector_questions import make_question
 from app.services.inspector_sampling import sampling_question, sampling_answer
@@ -109,9 +110,21 @@ class InspectorRuns:
                     )
         except asyncio.CancelledError:
             run.update(status="unconfirmed", error="已停止等待；远端副作用不保证撤销")
-        except TimeoutError:
+        except TimeoutError as error:
+            diagnostic(
+                "测试台调用超时，结果未确认",
+                server=session.server_name,
+                operation=run.get("operation", "call"),
+                error=error,
+            )
             run.update(status="unconfirmed", error="调用超时，结果未确认；请勿自动重试")
-        except Exception:
+        except Exception as error:
+            diagnostic(
+                "测试台调用失败",
+                server=session.server_name,
+                operation=run.get("operation", "call"),
+                error=error,
+            )
             run.update(
                 status="failed",
                 error="调用失败，请检查端点能力、权限及参数；不会自动重试",
