@@ -13,13 +13,13 @@ from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from mcp.client.extension import advertise
 
-from app.services.inspector_skills import EXTENSION, capabilities
-from app.services.inspector_runs import InspectorRuns
-from app.services.inspector_events import InspectorEvents
-from app.services.inspector_client_options import InspectorClientOptions
-from app.services.security_service import security_service
-
 from app.services.diagnostic_logs import diagnostic
+from app.services.inspector_client_options import InspectorClientOptions
+from app.services.inspector_events import InspectorEvents
+from app.services.inspector_runs import InspectorRuns
+from app.services.inspector_skills import EXTENSION, capabilities
+from app.services.security_service import security_service
+from app.services.startup_errors import startup_error_message
 from app.services.upstream_startup import STARTUP_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,9 @@ class InspectorService:
                 error=e,
             )
             logger.warning("Inspector connection failed: %s", type(e).__name__)
-            raise ValueError("无法连接到服务器，请检查端点状态与权限") from e
+            raise ValueError(
+                startup_error_message(e) or "无法连接到服务器，请检查端点状态与权限"
+            ) from e
 
         diagnostic(
             "测试台会话连接成功",

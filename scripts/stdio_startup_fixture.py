@@ -9,6 +9,7 @@ from pathlib import Path
 
 SOURCE = """
 import asyncio, json, os, time
+import anyio
 from pathlib import Path
 from anyio.abc import ObjectReceiveStream
 from mcp.server.lowlevel import Server
@@ -49,6 +50,11 @@ async def identity(ctx, params):
     roots = await ctx.session.list_roots()
     values = [str(item.uri) for item in roots.roots]
     event("tool_start", roots=values)
+    if os.environ.get("STARTUP_FIXTURE_BARRIER"):
+        (root / f"tool-ready-{os.getpid()}").touch()
+        with anyio.fail_after(15):
+            while len(list(root.glob("tool-ready-*"))) < 2:
+                await asyncio.sleep(0.02)
     await asyncio.sleep(params.arguments.get("pause", 0.2))
     event("tool_end", roots=values)
     data = {"pid": os.getpid(), "roots": values}

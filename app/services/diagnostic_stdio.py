@@ -16,6 +16,7 @@ from mcp import ClientSession
 
 from app.services.diagnostic_logs import DiagnosticLogs, diagnostic, diagnostic_store
 from app.services.diagnostic_redaction import redact
+from app.services.stdio_compatibility import StdioCompatibility
 from app.services.upstream_startup import STARTUP_TIMEOUT, StartupGate, startup_session
 
 
@@ -26,12 +27,14 @@ class DiagnosticStdioTransport(StdioTransport):
         self,
         server_name: str = "",
         *,
+        compatibility: StdioCompatibility | None = None,
         request_timeout: float = 30,
         startup_timeout: float = STARTUP_TIMEOUT,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self.server_name = server_name
+        self.compatibility = compatibility
         self.request_timeout = request_timeout
         self.startup_timeout = startup_timeout
 
@@ -52,6 +55,9 @@ class DiagnosticStdioTransport(StdioTransport):
         )
         try:
             await gate.acquire()
+            if self.compatibility is not None:
+                with anyio.fail_after(gate.remaining()):
+                    self.args = await self.compatibility.prepare()
             async with self._diagnosed_session(options, **kwargs) as session:
                 yield session
         except TimeoutError as error:

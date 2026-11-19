@@ -7,13 +7,13 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from app.services import inspector_skills, inspector_workbench
-from app.services.inspector_service import InspectorSession, inspector_service
-from app.services.security_service import security_service
+from app.services.diagnostic_logs import diagnostic
 from app.services.inspector_auth import auth_snapshot, diagnose_upstream
 from app.services.inspector_client_options import InspectorClientOptions
-
-from app.services.diagnostic_logs import diagnostic
-from app.services.upstream_startup import INSPECTOR_REQUEST_TIMEOUT
+from app.services.inspector_service import InspectorSession, inspector_service
+from app.services.security_service import security_service
+from app.services.startup_errors import startup_error_message
+from app.services.upstream_startup import INSPECTOR_REQUEST_TIMEOUT, STARTUP_TIMEOUT
 
 router = APIRouter()
 _operations = asyncio.Semaphore(8)
@@ -32,6 +32,7 @@ async def auth_diagnostic(server_name: str) -> dict:
 async def probe_authorization(server_name: str) -> dict:
     """显式只读探测，不触发授权、注册、刷新或配置写入。"""
     from copy import deepcopy
+
     from app.services.server_manager import server_manager
 
     info = server_manager.server_info.get(server_name)
@@ -204,10 +205,12 @@ async def skill_operation(session: InspectorSession, action: Any, *args: Any) ->
     record = {"operation": action.__name__, "status": "running"}
     session.records.append(record)
     del session.records[:-100]
+    discovery = action.__name__ in {"tools", "resources", "prompts"}
     try:
         with anyio.fail_after(INSPECTOR_REQUEST_TIMEOUT):
             async with _operations, session.lock, session.client:
-                with anyio.fail_after(25):
+                budget = STARTUP_TIMEOUT if discovery else 25
+                with anyio.fail_after(budget):
                     result = await action(session.client, *args)
                 record["status"] = "completed"
                 return result
@@ -220,7 +223,12 @@ async def skill_operation(session: InspectorSession, action: Any, *args: Any) ->
         )
         record["status"] = "unconfirmed"
         raise HTTPException(
-            504, "请求超时，结果未确认；调用可能已产生副作用，请勿自动重试"
+            504,
+            (
+                "上游准备或能力发现超时，请查看诊断日志中的 prepare/startup 记录"
+                if discovery
+                else "请求超时，结果未确认；调用可能已产生副作用，请勿自动重试"
+            ),
         ) from error
     except ValueError as error:
         diagnostic(
@@ -240,7 +248,9 @@ async def skill_operation(session: InspectorSession, action: Any, *args: Any) ->
         )
         record["status"] = "failed"
         raise HTTPException(
-            502, "MCP 请求失败，请确认资源权限、端点状态和协议支持"
+            502,
+            startup_error_message(error)
+            or "MCP 请求失败，请确认资源权限、端点状态和协议支持",
         ) from error
     finally:
         record["duration_ms"] = round((monotonic() - started) * 1000)

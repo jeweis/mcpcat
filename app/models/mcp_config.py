@@ -68,6 +68,7 @@ class StdioConfig(MCPBaseConfig):
     """STDIO传输配置 - 对应现有的 stdio 类型"""
     type: Literal[MCPTransportType.STDIO]
     command: str
+    startup_compatibility: Literal["auto", "off"] = "auto"
     args: List[str] = []
     env: Dict[str, str] = {}
 

@@ -72,7 +72,9 @@ async def test_concurrent_cold_connections_keep_roots_and_processes_isolated(
     tmp_path, mode
 ):
     root = tmp_path / "fixture"
-    proxy = MCPServerFactory.create_server("cold", fake_npx_config(root, delay=0.25))
+    config = fake_npx_config(root, delay=0.25)
+    config["env"]["STARTUP_FIXTURE_BARRIER"] = "1"
+    proxy = MCPServerFactory.create_server("cold", config)
     async with live_http(proxy.http_app(path="/mcp")) as url:
 
         async def use(owner):

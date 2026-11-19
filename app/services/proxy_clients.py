@@ -11,20 +11,21 @@ from fastmcp.client.transports import (
 )
 from fastmcp.server.dependencies import get_context
 from fastmcp.server.providers.proxy import ProxyClient
-from mcp.shared.exceptions import MCPError
 from mcp.client.extension import advertise
+from mcp.shared.exceptions import MCPError
 from mcp.types import CreateMessageRequest
 from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 
-from app.services.input_exchange import current_exchange
 from app.services.diagnostic_stdio import DiagnosticStdioTransport
-from app.services.upstream_startup import STARTUP_TIMEOUT
+from app.services.input_exchange import current_exchange
 from app.services.legacy_input_bridge import answer_input
-from app.services.oauth_tokens import current_access_token
 from app.services.oauth_machine_client import machine_client_options
+from app.services.oauth_tokens import current_access_token
 from app.services.proxy_capability_transport import CapabilityTransport
 from app.services.proxy_logging import already_forwarded_log, request_log_handler
 from app.services.roots_notifications import current_roots_relay
+from app.services.stdio_compatibility import StdioCompatibility
+from app.services.upstream_startup import STARTUP_TIMEOUT
 
 
 def request_interaction_options() -> dict[str, Any]:
@@ -131,6 +132,17 @@ def make_proxy_client_factory(
     headers = dict(config.get("headers") or {})
     url = config.get("url", "")
     timeout = config.get("timeout", 30)
+    compatibility = (
+        StdioCompatibility(
+            config["command"],
+            list(config.get("args") or []),
+            dict(config.get("env") or {}),
+            server_name,
+            enabled=config.get("startup_compatibility", "auto") != "off",
+        )
+        if server_type == "stdio"
+        else None
+    )
 
     def create_client(
         *, message_handler: Any = None, extensions: Any = None
@@ -139,6 +151,7 @@ def make_proxy_client_factory(
         if server_type == "stdio":
             transport = DiagnosticStdioTransport(
                 server_name=server_name,
+                compatibility=compatibility,
                 command=config["command"],
                 args=list(config.get("args") or []),
                 env=dict(config.get("env") or {}),

@@ -19,6 +19,7 @@
 
 ## 维护说明
 
+- [stdio 上游启动与 mcpdoc 依赖兼容](maintainer/stdio-startup-compatibility.md)
 - [网络诊断设计](maintainer/network-diagnostics-design.md)
 - [npx 冷启动失败与近期升级相关性调查](maintainer/npx-cold-start-diagnosis.md)
 
