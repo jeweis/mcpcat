@@ -41,6 +41,11 @@ class DiagnosticLogs:
         error: BaseException | None = None,
         source: str = "mcpcat",
         detail: str = "",
+        attempt_id: str | None = None,
+        stage: str | None = None,
+        exit_code: int | None = None,
+        error_code: str | None = None,
+        environment_revision: str | None = None,
     ) -> int:
         """保存已脱敏、有界的异常链，不保存 traceback 对象。"""
         if error is not None:
@@ -53,6 +58,17 @@ class DiagnosticLogs:
             self.rows.append(
                 {
                     "id": self.sequence,
+                    **(
+                        {
+                            "attempt_id": attempt_id,
+                            "stage": stage,
+                            "exit_code": exit_code,
+                            "error_code": error_code,
+                            "environment_revision": environment_revision,
+                        }
+                        if attempt_id
+                        else {}
+                    ),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "level": level,
                     "server": redact(server, self.secrets)[:256],
@@ -105,7 +121,11 @@ class DiagnosticLogs:
 
     def _safe(self, row: dict) -> dict:
         return {
-            key: redact(value, self.secrets) if isinstance(value, str) else value
+            key: (
+                redact(value, self.secrets)
+                if isinstance(value, str) and key not in {"stage", "error_code"}
+                else value
+            )
             for key, value in row.items()
         }
 

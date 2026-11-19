@@ -17,7 +17,9 @@ class StartupPreparationError(RuntimeError):
     """可安全穿过 MCP 代理的启动错误，不包含原始输出或配置秘密。"""
 
     def __init__(self, code: str) -> None:
-        super().__init__(f"[MCPCAT_STARTUP:{code}]")
+        from app.services.startup_errors import MESSAGES
+
+        super().__init__(f"{MESSAGES.get(code, code)} [MCPCAT_STARTUP:{code}]")
 
 
 def mcpdoc_prefix(command: str, args: list[str]) -> list[str] | None:

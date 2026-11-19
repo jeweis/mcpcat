@@ -23,6 +23,7 @@ from app.api import (
     market,
     network_commands,
     oauth,
+    runtime_management,
     servers,
     skill_generation,
     skill_variants,
@@ -153,6 +154,9 @@ def create_app(
         network_commands.router, prefix="/api", tags=["网络诊断"]
     )
     application.include_router(diagnostic_router, prefix="/api", tags=["诊断日志"])
+    application.include_router(
+        runtime_management.router, prefix="/api", tags=["运行管理"]
+    )
     application.include_router(health.router, prefix="/api", tags=["健康检查"])
     application.include_router(servers.router, prefix="/api", tags=["服务器管理"])
     application.include_router(auth.router, prefix="/api", tags=["认证"])

@@ -4,6 +4,7 @@
 
 ## 用户文档
 
+- [平台 MCP 运行管理与诊断](user/mcp-runtime.md)
 - [网页命令执行与网络诊断](user/network-diagnostics.md)
 - [在测试页面检查远程 Skills](user/inspector-skills.md)
 - [MCP 测试台：工具、资源、提示模板与应用](user/mcp-workbench.md)
@@ -19,6 +20,7 @@
 
 ## 维护说明
 
+- [平台运行环境与多类型验收](maintainer/platform-runtime.md)
 - [stdio 上游启动与 mcpdoc 依赖兼容](maintainer/stdio-startup-compatibility.md)
 - [网络诊断设计](maintainer/network-diagnostics-design.md)
 - [npx 冷启动失败与近期升级相关性调查](maintainer/npx-cold-start-diagnosis.md)

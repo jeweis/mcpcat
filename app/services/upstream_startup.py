@@ -6,6 +6,8 @@ from typing import Any
 
 import anyio
 from filelock import FileLock, Timeout
+from mcp.shared.exceptions import MCPError
+from mcp_types import CONNECTION_CLOSED
 
 from app.core.config import settings
 
@@ -20,6 +22,7 @@ class StartupGate:
         self.deadline = time.monotonic() + timeout
         self.lock: FileLock | None = None
         self.negotiated = False
+        self.attempt = None
         if Path(command).name.lower() in {"npx", "npx.cmd", "npx.exe"}:
             path = Path(settings.mcpcat_database_path).with_suffix(".npx-startup.lock")
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,8 +64,27 @@ def startup_session(base: type, gate: StartupGate, request_timeout: float) -> ty
         def adopt(self, result: Any) -> None:
             """现代 discover 和 legacy initialize 完成后即可并行运行。"""
             super().adopt(result)
+            if gate.attempt:
+                gate.attempt.phase("ready", self.protocol_version)
             gate.negotiated = True
             gate.release()
+
+        async def send_discover(self, *args: Any, **kwargs: Any) -> Any:
+            """记录探测阶段，不修改 SDK 协商规则。"""
+            if gate.attempt:
+                gate.attempt.phase("discover")
+            try:
+                return await super().send_discover(*args, **kwargs)
+            except MCPError as error:
+                if gate.attempt and error.code == CONNECTION_CLOSED:
+                    gate.attempt.discover_closed = True
+                raise
+
+        async def initialize(self, *args: Any, **kwargs: Any) -> Any:
+            """旧协议初始化有独立阶段，已关闭探测不会被误认为业务请求。"""
+            if gate.attempt:
+                gate.attempt.phase("initialize")
+            return await super().initialize(*args, **kwargs)
 
         async def send_request(
             self,
@@ -72,6 +94,8 @@ def startup_session(base: type, gate: StartupGate, request_timeout: float) -> ty
             **kwargs: Any,
         ) -> Any:
             """初始化使用剩余启动预算，普通请求保持来源原来的超时。"""
+            if gate.attempt and self.protocol_version is not None:
+                gate.attempt.phase("request")
             if request_read_timeout_seconds is None:
                 request_read_timeout_seconds = (
                     gate.remaining()

@@ -14,6 +14,14 @@ def secret_values(value: object, private: bool = False) -> set[str]:
     if isinstance(value, dict):
         result: set[str] = set()
         for key, item in value.items():
+            if (
+                key == "api_keys"
+                and isinstance(item, list)
+                and all(isinstance(entry, dict) and "key" in entry for entry in item)
+            ):
+                for entry in item:
+                    result.update(secret_values({"key": entry["key"]}))
+                continue
             hidden = private or bool(SECRET_NAME.search(str(key)))
             result.update(secret_values(item, hidden or key in {"env", "headers"}))
         return result

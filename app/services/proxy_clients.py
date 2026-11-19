@@ -10,7 +10,6 @@ from fastmcp.client.transports import (
     infer_transport,
 )
 from fastmcp.server.dependencies import get_context
-from fastmcp.server.providers.proxy import ProxyClient
 from mcp.client.extension import advertise
 from mcp.shared.exceptions import MCPError
 from mcp.types import CreateMessageRequest
@@ -21,9 +20,12 @@ from app.services.input_exchange import current_exchange
 from app.services.legacy_input_bridge import answer_input
 from app.services.oauth_machine_client import machine_client_options
 from app.services.oauth_tokens import current_access_token
+from app.services.observed_transport import ObservedTransport
 from app.services.proxy_capability_transport import CapabilityTransport
 from app.services.proxy_logging import already_forwarded_log, request_log_handler
 from app.services.roots_notifications import current_roots_relay
+from app.services.runtime_client import RuntimeProxyClient as ProxyClient
+from app.services.runtime_environments import RuntimeEnvironment
 from app.services.stdio_compatibility import StdioCompatibility
 from app.services.upstream_startup import STARTUP_TIMEOUT
 
@@ -132,29 +134,33 @@ def make_proxy_client_factory(
     headers = dict(config.get("headers") or {})
     url = config.get("url", "")
     timeout = config.get("timeout", 30)
-    compatibility = (
-        StdioCompatibility(
-            config["command"],
-            list(config.get("args") or []),
-            dict(config.get("env") or {}),
-            server_name,
-            enabled=config.get("startup_compatibility", "auto") != "off",
-        )
-        if server_type == "stdio"
-        else None
-    )
+    preparations = {}
 
     def create_client(
         *, message_handler: Any = None, extensions: Any = None
     ) -> ProxyClient:
         client_extensions = list(extensions or ())
+        environment = None
         if server_type == "stdio":
+            environment = RuntimeEnvironment(server_name or "default", config)
+            runtime_env = environment.environment()
+            compatibility = preparations.setdefault(
+                environment.revision,
+                StdioCompatibility(
+                    config["command"],
+                    list(config.get("args") or []),
+                    runtime_env,
+                    server_name,
+                    enabled=config.get("startup_compatibility", "auto") != "off",
+                ),
+            )
             transport = DiagnosticStdioTransport(
                 server_name=server_name,
                 compatibility=compatibility,
+                runtime_environment=environment,
                 command=config["command"],
                 args=list(config.get("args") or []),
-                env=dict(config.get("env") or {}),
+                env=runtime_env,
                 request_timeout=timeout,
                 keep_alive=False,
             )
@@ -193,6 +199,9 @@ def make_proxy_client_factory(
                     }
                 ),
             )
+        if server_type != "stdio":
+            transport = ObservedTransport(transport, server_name, timeout)
+        runtime_transport = transport
         callbacks = {**request_sampling_options(), **request_interaction_options()}
         callbacks["log_handler"] = request_log_handler()
         elicitation = None
@@ -225,8 +234,15 @@ def make_proxy_client_factory(
             callbacks["message_handler"] = message_handler
         return ProxyClient(
             transport,
+            runtime_transport=runtime_transport,
+            recovery=config.get("startup_compatibility", "auto") != "off",
+            protocol_auto=config.get("protocol_mode", "auto") == "auto",
             forward_incoming_headers=False,
-            mode=upstream_mode(server_type),
+            mode=(
+                environment.protocol_mode()
+                if environment and config.get("protocol_mode", "auto") == "auto"
+                else config.get("protocol_mode") or upstream_mode(server_type)
+            ),
             timeout=timeout,
             init_timeout=STARTUP_TIMEOUT if server_type == "stdio" else None,
             extensions=(

@@ -53,6 +53,7 @@ class MCPBaseConfig(BaseModel):
     type: MCPTransportType
     name: Optional[str] = None
     enabled: bool = True
+    protocol_mode: Literal["auto", "legacy", "2026-07-28"] = "auto"
     timeout: int = Field(default=30, ge=1, le=300)
     require_auth: bool = Field(default=True, description="是否需要API Key认证")
     note: Optional[str] = Field(default=None, description="服务器备注")
@@ -69,6 +70,7 @@ class StdioConfig(MCPBaseConfig):
     type: Literal[MCPTransportType.STDIO]
     command: str
     startup_compatibility: Literal["auto", "off"] = "auto"
+    environment_mode: Literal["managed", "external"] = "managed"
     args: List[str] = []
     env: Dict[str, str] = {}
 
