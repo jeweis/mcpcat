@@ -20,6 +20,7 @@
 
 ## 维护说明
 
+- [OAuth 压缩元数据修复与验证](maintainer/oauth-compressed-metadata.md)
 - [平台运行环境与多类型验收](maintainer/platform-runtime.md)
 - [stdio 上游启动与 mcpdoc 依赖兼容](maintainer/stdio-startup-compatibility.md)
 - [网络诊断设计](maintainer/network-diagnostics-design.md)

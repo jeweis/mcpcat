@@ -51,7 +51,12 @@ async def _fetch(client: httpx2.AsyncClient, url: str) -> httpx2.Response:
             body.extend(chunk)
         return httpx2.Response(
             response.status_code,
-            headers=response.headers,
+            # aiter_bytes 已完成解压；重建响应不能再次声明原始传输编码或长度。
+            headers=[
+                (name, value)
+                for name, value in response.headers.multi_items()
+                if name.lower() not in {"content-encoding", "content-length"}
+            ],
             content=bytes(body),
             request=request,
         )
