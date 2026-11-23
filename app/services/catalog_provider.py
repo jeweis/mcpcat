@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Tuple
 
 from fastmcp.apps.config import is_model_visible
@@ -35,6 +36,11 @@ class CatalogProvider(Provider):
         super().__init__()
         self._server_manager = server_manager
         self._config = config
+        self._cache: Optional[List[Tool]] = None
+        self._cache_at = 0.0
+        self._cache_sig: Optional[Tuple[Any, ...]] = None
+        self._cache_lock = asyncio.Lock()
+        self._ttl = max(5, int(getattr(config, "refresh_interval_sec", 60)))
 
     def _eligible_servers(self) -> List[Tuple[str, Dict[str, Any]]]:
         """返回当前可纳入 Catalog 的服务，长名称优先用于无歧义路由。"""
@@ -107,7 +113,44 @@ class CatalogProvider(Provider):
 
         return app_uri(tool) is not None
 
-    async def unfiltered_tools(self) -> Sequence[Tool]:
+    def _signature(self) -> Tuple[Any, ...]:
+        """来源集合/身份/状态签名；变化即失效，动态增删替换即时生效。"""
+        return tuple(
+            (name, id(info.get("mcp")), info.get("status"))
+            for name, info in self._eligible_servers()
+        )
+
+    async def unfiltered_tools(self, force: bool = False) -> Sequence[Tool]:
+        """按来源签名 + TTL 复用聚合结果，避免每次目录搜索都为每个来源启动上游进程。"""
+        if (
+            not force
+            and self._cache is not None
+            and self._cache_sig == self._signature()
+            and time.monotonic() - self._cache_at < self._ttl
+        ):
+            return list(self._cache)
+        async with self._cache_lock:
+            sig = self._signature()
+            if (
+                not force
+                and self._cache is not None
+                and self._cache_sig == sig
+                and time.monotonic() - self._cache_at < self._ttl
+            ):
+                return list(self._cache)
+            tools = await self._compute_unfiltered_tools()
+            self._cache = list(tools)
+            self._cache_at = time.monotonic()
+            self._cache_sig = sig
+            return list(tools)
+
+    async def force_refresh(self) -> Sequence[Tool]:
+        """使缓存失效并立即重算（目录刷新/来源变更时调用）。"""
+        self._cache = None
+        self._cache_sig = None
+        return await self.unfiltered_tools(force=True)
+
+    async def _compute_unfiltered_tools(self) -> Sequence[Tool]:
         """在受众/App 分类之前排除整个来源命名空间的实际别名冲突。"""
         servers = self._eligible_servers()
         results = await asyncio.gather(

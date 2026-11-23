@@ -103,6 +103,7 @@ class CatalogService:
     async def refresh_index(self) -> None:
         """读取实时 Provider 目录并更新状态统计。"""
         async with self._lock:
+            await self._provider.force_refresh()
             tools = await self._provider.list_tools()
             self._tool_count = len(tools)
             self._last_refresh = time.time()
