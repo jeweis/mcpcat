@@ -5,7 +5,8 @@ from typing import Any
 import anyio
 from fastmcp.server.providers.proxy import ProxyClient
 
-from app.services.diagnostic_logs import diagnostic
+from app.services.diagnostic_logs import diagnostic, diagnostic_store
+from app.services.diagnostic_redaction import redact
 from app.services.stdio_compatibility import (
     StartupPreparationError,
     explicit_dependencies,
@@ -32,6 +33,22 @@ def uv_tool_prefix(command: str, args: list[str]) -> list[str] | None:
         else:
             return None
     return None
+
+
+def failure_detail(attempt: Any) -> str | None:
+    """仅返回脱敏、截断的退出码与 stderr 尾部，供错误信息自证根因。"""
+    parts = []
+    code = getattr(attempt, "exit_code", None)
+    if code is not None:
+        parts.append(f"exit_code={code}")
+    tail = (getattr(attempt, "stderr", "") or "").strip()[-500:]
+    if tail:
+        store = diagnostic_store()
+        if store is not None:
+            with store.lock:
+                tail = redact(tail, store.secrets)
+        parts.append("stderr=" + " ".join(tail.split()))
+    return "；".join(parts) or None
 
 
 class RuntimeProxyClient(ProxyClient):
@@ -76,6 +93,8 @@ class RuntimeProxyClient(ProxyClient):
                     self.mode = "auto"
             elif action == "legacy":
                 self.mode = "legacy"
+            elif action == "no_offline":
+                transport.disable_offline_once = True
             else:
                 transport.recovery_args = action
                 transport.recovery_profile = "python-mcp1-import"
@@ -90,7 +109,11 @@ class RuntimeProxyClient(ProxyClient):
                     else (
                         "已保留失败缓存并创建新修订"
                         if action == "new_environment"
-                        else "独立 uv 工具环境约束 mcp<2"
+                        else (
+                            "关闭 --offline，联网重试一次"
+                            if action == "no_offline"
+                            else "独立 uv 工具环境约束 mcp<2"
+                        )
                     )
                 ),
                 attempt_id=attempt.id,
@@ -112,11 +135,15 @@ class RuntimeProxyClient(ProxyClient):
 
             code = "RUNTIME_" + attempt.category.upper()
             if code in MESSAGES:
-                raise StartupPreparationError(code) from error
+                raise StartupPreparationError(code, failure_detail(attempt)) from error
         raise error
 
     def _recovery_action(self, attempt: Any) -> str | list[str] | None:
         environment = getattr(self.runtime_transport, "runtime_environment", None)
+        if getattr(self.runtime_transport, "offline_injected", False) and (
+            attempt.category in {"cache", "process_exit", "network"}
+        ):
+            return "no_offline"
         if (
             attempt.category == "cache"
             and any(

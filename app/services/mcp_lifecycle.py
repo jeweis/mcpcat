@@ -171,10 +171,12 @@ class ServiceLifecycles:
             if not handle.ready.done():
                 handle.ready.set_result(False)
             if handle.failed and handle.started:
-                self.manager._update_server_status(
-                    name, "failed", "MCP 生命周期退出失败"
+                # 已启动后崩溃：清理旧代际，让“重启”能重新拉起而不是卡死。
+                diagnostic(
+                    "MCP 生命周期退出失败，已清理以便重启",
+                    server=name,
+                    operation="lifecycle",
                 )
-                return False
             if self.handles.get(name) is handle:
                 self.handles.pop(name, None)
             return True

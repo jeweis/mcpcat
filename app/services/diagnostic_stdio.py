@@ -56,6 +56,8 @@ class DiagnosticStdioTransport(StdioTransport):
         self.attempt = None
         self.request_timeout = request_timeout
         self.startup_timeout = startup_timeout
+        self.offline_injected = False
+        self.disable_offline_once = False
 
     @asynccontextmanager
     async def connect_session(
@@ -142,8 +144,11 @@ class DiagnosticStdioTransport(StdioTransport):
         if self.compatibility is not None and self.recovery_args is None:
             with anyio.fail_after(gate.remaining()):
                 self.args = await self.compatibility.prepare()
-        if self.runtime_environment:
+        self.offline_injected = False
+        if self.runtime_environment and not self.disable_offline_once:
+            before = list(self.args)
             self.args = self.runtime_environment.cached_args(self.args)
+            self.offline_injected = self.args != before and "--offline" in self.args
         self.attempt.phase("spawn")
         self.command = sys.executable
         self.args = [

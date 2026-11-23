@@ -14,12 +14,15 @@ MCPDOC_FIX = "mcpdoc-mcp1-import"
 
 
 class StartupPreparationError(RuntimeError):
-    """可安全穿过 MCP 代理的启动错误，不包含原始输出或配置秘密。"""
+    """可安全穿过 MCP 代理的启动错误；detail 必须已脱敏。"""
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, detail: str | None = None) -> None:
         from app.services.startup_errors import MESSAGES
 
-        super().__init__(f"{MESSAGES.get(code, code)} [MCPCAT_STARTUP:{code}]")
+        message = MESSAGES.get(code, code)
+        if detail:
+            message = f"{message}（{detail}）"
+        super().__init__(f"{message} [MCPCAT_STARTUP:{code}]")
 
 
 def mcpdoc_prefix(command: str, args: list[str]) -> list[str] | None:
