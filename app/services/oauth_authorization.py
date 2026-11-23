@@ -84,7 +84,10 @@ def _authorization_parameters(
         "code_challenge_method": "S256",
     }
     if config.scopes:
-        params["scope"] = " ".join(config.scopes)
+        # 部分授权服务器会把 scopes_supported 全量逐个校验，遇到不认识的
+        # 工具组就 invalid_scope；只要支持 *，就只请求 *（等同全部），
+        # 避免把服务器自己列出的、但它不接受的细粒度 scope 一起发过去。
+        params["scope"] = "*" if "*" in config.scopes else " ".join(config.scopes)
     if getattr(config, "resource", None):
         params["resource"] = config.resource
     return params
