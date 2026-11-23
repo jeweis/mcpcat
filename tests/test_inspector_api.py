@@ -1,8 +1,9 @@
 """真实鉴权中间件下的 Inspector 会话与撤销回归。"""
 
+from unittest.mock import AsyncMock
+
 import httpx2
 import pytest
-from unittest.mock import AsyncMock
 from fastmcp import Client, FastMCP
 from test_skill_content_workflow import READ, WRITE, content_app  # noqa: F401
 
@@ -10,18 +11,22 @@ from app.services.inspector_service import InspectorSession, inspector_service
 
 
 @pytest.mark.asyncio
-async def test_auth_diagnostics_before_connection_and_no_stale_result(content_app, monkeypatch):
+async def test_auth_diagnostics_before_connection_and_no_stale_result(
+    content_app, monkeypatch
+):
     from app.api import inspector
-    from app.services.server_manager import server_manager
 
     app, _ = content_app
     info = {"config": {"type": "streamable-http", "url": "https://example.test/mcp"}}
-    monkeypatch.setitem(server_manager.server_info, "diagnostic-fixture", info)
+    monkeypatch.setitem(
+        app.state.server_manager.server_info, "diagnostic-fixture", info
+    )
     probe = AsyncMock(return_value={"status": "authorization_required"})
     monkeypatch.setattr(inspector, "diagnose_upstream", probe)
     path = "/api/inspector/auth/diagnostic-fixture"
     async with httpx2.AsyncClient(
-        transport=httpx2.ASGITransport(app=app), base_url="http://fixture",
+        transport=httpx2.ASGITransport(app=app),
+        base_url="http://fixture",
     ) as client:
         assert (await client.get(path)).status_code == 401
         headers = {"Mcpcat-Key": READ}
@@ -69,9 +74,15 @@ async def test_read_identity_can_test_but_cannot_borrow_session(
                 ("GET", "/events", None),
                 ("POST", "/subscription", {}),
                 ("DELETE", "/subscription", None),
-                ("POST", "/complete", {
-                    "kind": "prompts", "reference": "greet", "argument": "name",
-                }),
+                (
+                    "POST",
+                    "/complete",
+                    {
+                        "kind": "prompts",
+                        "reference": "greet",
+                        "argument": "name",
+                    },
+                ),
                 ("GET", "/browse/resources", None),
                 ("POST", "/inspect/prompts", {"name": "example"}),
                 ("POST", "/apps/open", {"tool": "example"}),

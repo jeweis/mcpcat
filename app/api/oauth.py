@@ -31,6 +31,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def server_manager_for(request: object):
+    """优先使用当前应用实际挂载的管理器。
+
+    模块级 server_manager 单例在 create_app 新建管理器后并不包含已加载的服务器，
+    误用会导致授权/状态/回调接口 404。这里优先取 app.state.server_manager，
+    仅在缺少应用状态（例如直接单元调用）时回退到模块单例。
+    """
+    app = getattr(request, "app", None)
+    manager = (
+        getattr(getattr(app, "state", None), "server_manager", None) if app else None
+    )
+    return manager if manager is not None else server_manager
+
+
 class ManualCallbackRequest(BaseModel):
     """手动粘贴回调请求"""
 
@@ -47,7 +61,8 @@ class SetCredentialsRequest(BaseModel):
 @router.post("/oauth/{server_name}/authorize")
 async def authorize_server(server_name: str, request: Request) -> dict:
     """选择已有/CIMD/DCR 身份，无法自动注册时保留原手工凭证引导。"""
-    server_info = server_manager.server_info.get(server_name)
+    manager = server_manager_for(request)
+    server_info = manager.server_info.get(server_name)
     if not server_info:
         raise HTTPException(status_code=404, detail=f"服务器 {server_name} 不存在")
 
@@ -78,7 +93,7 @@ async def authorize_server(server_name: str, request: Request) -> dict:
             status_code=400, detail="OAuth 客户端配置无效，请检查 issuer、CIMD 与端点"
         ) from None
     if (
-        server_manager.server_info.get(server_name) is not server_info
+        manager.server_info.get(server_name) is not server_info
         or source_context(server_info) != original_context
         or config.get("oauth") != original_oauth
     ):
@@ -152,9 +167,11 @@ def _begin_authorization(
 
 
 @router.post("/oauth/{server_name}/set-credentials")
-async def set_client_credentials(server_name: str, body: SetCredentialsRequest) -> dict:
+async def set_client_credentials(
+    server_name: str, body: SetCredentialsRequest, request: Request
+) -> dict:
     """手动设置 OAuth client_id / client_secret，然后生成授权 URL"""
-    server_info = server_manager.server_info.get(server_name)
+    server_info = server_manager_for(request).server_info.get(server_name)
     if not server_info:
         raise HTTPException(status_code=404, detail=f"服务器 {server_name} 不存在")
 
@@ -215,7 +232,7 @@ async def oauth_callback_auto(server_name: str, request: Request) -> HTMLRespons
             status_code=400,
         )
 
-    if not await _complete_callback(server_name, parsed):
+    if not await _complete_callback(server_name, parsed, server_manager_for(request)):
         return HTMLResponse(
             "<html><body><h2>授权失败</h2><p>Token 交换失败，请重试。</p></body></html>",
             status_code=400,
@@ -228,7 +245,9 @@ async def oauth_callback_auto(server_name: str, request: Request) -> HTMLRespons
 
 
 @router.post("/oauth/{server_name}/callback")
-async def oauth_callback_manual(server_name: str, body: ManualCallbackRequest) -> dict:
+async def oauth_callback_manual(
+    server_name: str, body: ManualCallbackRequest, request: Request
+) -> dict:
     """手动粘贴回调端点 - 用户粘贴回调 URL"""
     parsed = parse_callback_url(body.callback_url)
     if not parsed:
@@ -236,16 +255,18 @@ async def oauth_callback_manual(server_name: str, body: ManualCallbackRequest) -
             status_code=400, detail="回调 URL 格式错误，缺少 code 或 state"
         )
 
-    if not await _complete_callback(server_name, parsed, body.callback_url):
+    if not await _complete_callback(
+        server_name, parsed, server_manager_for(request), body.callback_url
+    ):
         raise HTTPException(status_code=400, detail="Token 交换失败")
 
     return {"status": "ok", "message": "授权成功"}
 
 
 @router.get("/oauth/{server_name}/status")
-async def get_oauth_status(server_name: str):
+async def get_oauth_status(server_name: str, request: Request):
     """查询 OAuth 授权状态"""
-    server_info = server_manager.server_info.get(server_name)
+    server_info = server_manager_for(request).server_info.get(server_name)
     if not server_info:
         raise HTTPException(status_code=404, detail=f"服务器 {server_name} 不存在")
 
@@ -254,10 +275,13 @@ async def get_oauth_status(server_name: str):
 
 
 async def _complete_callback(
-    server_name: str, parsed: AuthorizationCodeResult, callback_url: str | None = None
+    server_name: str,
+    parsed: AuthorizationCodeResult,
+    manager,
+    callback_url: str | None = None,
 ) -> bool:
     """令牌请求前后都核对同一运行来源和授权配置，不把迟到 token 写给新来源。"""
-    info = server_manager.server_info.get(server_name)
+    info = manager.server_info.get(server_name)
     if (
         not parsed.state
         or not info
@@ -280,7 +304,7 @@ async def _complete_callback(
     )
     if (
         not token
-        or server_manager.server_info.get(server_name) is not info
+        or manager.server_info.get(server_name) is not info
         or info.get("status") in {"stopping", "stopped"}
     ):
         return False
@@ -289,15 +313,15 @@ async def _complete_callback(
         config
     ) != authorization_context(current):
         return False
-    if not _persist_token(server_name, token):
+    if not _persist_token(server_name, token, manager):
         return False
-    server_manager._update_server_status(server_name, "running")
+    manager._update_server_status(server_name, "running")
     return True
 
 
-def _persist_token(server_name: str, token: OAuthToken) -> bool:
+def _persist_token(server_name: str, token: OAuthToken, manager) -> bool:
     """将 token 持久化到 server_info 和 SQLite"""
-    server_info = server_manager.server_info.get(server_name)
+    server_info = manager.server_info.get(server_name)
     if not server_info or not server_info.get("config"):
         return False
     cfg = server_info["config"]

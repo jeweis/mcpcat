@@ -20,27 +20,29 @@ _operations = asyncio.Semaphore(8)
 
 
 @router.get("/auth/{server_name}")
-async def auth_diagnostic(server_name: str) -> dict:
+async def auth_diagnostic(server_name: str, request: Request) -> dict:
     """连接失败前也可查看诊断；中间件已校验当前 READ 身份。"""
     from app.services.server_manager import server_manager
 
-    info = server_manager.server_info.get(server_name)
+    manager = getattr(request.app.state, "server_manager", None) or server_manager
+    info = manager.server_info.get(server_name)
     return {"gateway": "authenticated", "upstream": auth_snapshot(info)}
 
 
 @router.post("/auth/{server_name}/probe")
-async def probe_authorization(server_name: str) -> dict:
+async def probe_authorization(server_name: str, request: Request) -> dict:
     """显式只读探测，不触发授权、注册、刷新或配置写入。"""
     from copy import deepcopy
 
     from app.services.server_manager import server_manager
 
-    info = server_manager.server_info.get(server_name)
+    manager = getattr(request.app.state, "server_manager", None) or server_manager
+    info = manager.server_info.get(server_name)
     if info is None:
         raise HTTPException(404, "该端点没有独立的上游授权配置")
     before = deepcopy(info.get("config"))
     result = await diagnose_upstream(info)
-    if server_manager.server_info.get(server_name) is not info or info.get("config") != before:
+    if manager.server_info.get(server_name) is not info or info.get("config") != before:
         raise HTTPException(409, "探测期间来源配置已变化，请重新检查")
     return {"gateway": "authenticated", "upstream": result}
 
@@ -81,14 +83,19 @@ class SubscriptionRequest(BaseModel):
     tools_list_changed: bool = True
     prompts_list_changed: bool = True
     resources_list_changed: bool = True
-    resource_subscriptions: list[Annotated[str, Field(min_length=1, max_length=4096)]] = Field(
-        default_factory=list, max_length=32,
+    resource_subscriptions: list[
+        Annotated[str, Field(min_length=1, max_length=4096)]
+    ] = Field(
+        default_factory=list,
+        max_length=32,
     )
 
 
 @router.get("/sessions/{session_id}/events")
 async def get_events(
-    session_id: str, request: Request, after: int = Query(default=0, ge=0),
+    session_id: str,
+    request: Request,
+    after: int = Query(default=0, ge=0),
 ) -> dict:
     """读取当前身份的有界真实事件，不触发新的协议操作。"""
     return owned_session(session_id, request).events.snapshot(after)
@@ -96,13 +103,17 @@ async def get_events(
 
 @router.post("/sessions/{session_id}/subscription")
 async def start_subscription(
-    session_id: str, req: SubscriptionRequest, request: Request,
+    session_id: str,
+    req: SubscriptionRequest,
+    request: Request,
 ) -> dict:
     """独立连接监听，不占用普通操作的会话锁。"""
     session = owned_session(session_id, request)
     try:
         return session.events.start(
-            session.client, req.model_dump(), session.subscription_authorized,
+            session.client,
+            req.model_dump(),
+            session.subscription_authorized,
         )
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
@@ -116,12 +127,19 @@ async def stop_subscription(session_id: str, request: Request) -> dict:
 
 @router.post("/sessions/{session_id}/complete")
 async def complete_argument(
-    session_id: str, req: CompletionRequest, request: Request,
+    session_id: str,
+    req: CompletionRequest,
+    request: Request,
 ) -> dict:
     """沿用会话所有权、并发及超时控制执行只读补全。"""
     return await skill_operation(
-        owned_session(session_id, request), inspector_workbench.complete_argument,
-        req.kind, req.reference, req.argument, req.value, req.context,
+        owned_session(session_id, request),
+        inspector_workbench.complete_argument,
+        req.kind,
+        req.reference,
+        req.argument,
+        req.value,
+        req.context,
     )
 
 
@@ -139,7 +157,11 @@ async def start_run(session_id: str, req: RunRequest, request: Request) -> dict:
     session = owned_session(session_id, request)
     try:
         return session.runs.start(
-            session, req.tool, req.arguments, req.tasked, req.operation,
+            session,
+            req.tool,
+            req.arguments,
+            req.tasked,
+            req.operation,
         )
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
@@ -342,7 +364,9 @@ async def create_session(req: CreateSessionRequest, request: Request):
 
     try:
         session_id = await inspector_service.create_session(
-            req.server_name, base_url, api_key=api_key,
+            req.server_name,
+            base_url,
+            api_key=api_key,
             **({"client_options": req.client_options} if req.client_options else {}),
         )
         return {"session_id": session_id}
